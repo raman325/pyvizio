@@ -1,12 +1,30 @@
 ## Description
 
-Simple cli and API implementation for Vizio SmartCast TV. Mainly created for integration with [HASS](http://home-assistant.io).
+Simple cli and API implementation for Vizio SmartCast TV. Mainly created for 
+integration with [HASS](http://home-assistant.io).
+
+## Installation
+
+Either through pip
+
+```
+pip3 install git+https://github.com/vkorn/pyvizio.git@master
+```
+
+or checkout repo and run 
+
+```
+pip3 install -I .
+```
 
 ## CLI Usage
 
+To avoid repeating IP and Auth params, you can add them to environment variables as `VIZIO_IP` 
+and `VIZIO_AUTH` respectively
+
 ### Pairing
 
-First, find your device
+First, find your device (yeah, I'm too lazy to add another cli group)
 ```
 pyvizio --ip=0 --auth=0 discover
 ```
@@ -19,13 +37,15 @@ pyvizio --ip={ip} pair
 
 lookup PIN code on your TV and note challenge token in console.
 
-> Better to have device turned on as it's "forgetting" PIN sometimes if it was turned off prior to pairing command
+> Better to have device turned on as it's "forgetting" PIN sometimes if it was 
+turned off prior to pairing command
 
 Using these dafa finalize pairing procedure
 ```
 pyvizio --ip={ip} pair_finish --token={challenge_token} --pin={tv_pin} 
 ```
-If everything done correctly, you should see new connected device named `Python Vizio` in Vizio SmartCast mobile APP 
+If everything done correctly, you should see new connected device named `Python Vizio` 
+in Vizio SmartCast mobile APP 
 
 
 > You'll need auth code for any further commands
@@ -95,4 +115,5 @@ pyvizio --ip={ip} --auth={auth_code} input_next
 
 ## Contribution
 
-Thanks for great research uploaded [here](https://github.com/exiva/Vizio_SmartCast_API)
+Thanks for great research uploaded [here](https://github.com/exiva/Vizio_SmartCast_API) and 
+absolutely awesome SSDP discovery [snippet](https://gist.github.com/dankrause/6000248)

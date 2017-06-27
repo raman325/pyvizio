@@ -120,6 +120,7 @@ def invoke_api(ip, command, logger, headers=None):
         return command.process_response(json_obj)
     except Exception as e:
         logger.error("Failed to execute command: %s", e)
+        return None
 
 
 def invoke_api_auth(ip, command, auth_token, logger):
