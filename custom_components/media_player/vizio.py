@@ -114,7 +114,7 @@ class VizioDevice(MediaPlayerDevice):
         return self._available_inputs
 
     @property
-    def supported_media_commands(self):
+    def supported_features(self):
         return SUPPORTED_COMMANDS
 
     def turn_on(self):
