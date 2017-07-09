@@ -1,0 +1,14 @@
+nfig
+ language: python
+ python:
+  - "3.4"
+ script:
+  - touch foo
+deploy:
+  provider: pypi
+  user: vkorn1
+  password:
+    secure: "AcrDQ5BzbNd9w2C11DrDutQkSuG6Wk1co1ULEnB4EKvmz8pRhM514YvHSl7jmwwSPLSsktJvTktEhmgJ58olDwhlCqk41zXHBqsOAggJvtRrCIbtukWcXbhyRVcnM2SFR4986GGI4v15ggUxnl2mDnbKuN4gY7N4GLPKYv/HL5RWXAIGKbfpEt1RANnwbqGxA1hVhAg9+uxcJlxqKxw/SMkzSTn2RU2VLn7bV39GhT/uLXdDplchPsGxjVtscUU9Eiz2ys+oIqpivolQCcvR9CnEME/V9hqR4z9tWCv0qiiStUoZGH2o3hW78OuXEKOCK2Zsa1H5QVFxbYT8WJxlfP55bp6WgCXZTKjA7B4O7gxwNNJdE5tR8SuIXo7/5ZFzOY257cL5flYzr4i0Sylfde8ytpnm5GyAumFZVZXcbCeB/AD+ph7sRUlNTv1eeTdzvthu0P+fk6y04CoeQi47sVMVsT2otpBNUFxsqW/6TWPaifYMthHPDYzHWUrlPUd49Dzi9M4sRT6R+FLnbNuP91ae50VruMFvM7V+iQZURyJHBvEgvm0VVDiswJ5JZvq+JOYkDuAx3l5sbZlisv5GlMhTp74+EmcJE0+Jm3O7RDBC4w97oSYxPeaLZOLfz08TQA2ABfki1RjVKheOf7k2aqh3AVOnuQjtobpC7qR/EvU="
+  on:
+    tags: false
+    branch: master
