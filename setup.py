@@ -6,8 +6,8 @@ setup(
     name='pyvizio',
 
     version=__version__,
-    description='Python library for interfacing with Vizio SmartCast TV',
-    url='https://github.com/sllh/pyviziocast',
+    description='Python library for interfacing with Vizio SmartCast TV (2016+ models)',
+    url='https://github.com/vkorn/pyvizio',
 
     author='Vlad Korniev',
     author_email='vladimir.kornev@gmail.com',
