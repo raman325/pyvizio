@@ -109,7 +109,9 @@ def invoke_api(ip, command, logger, headers=None):
 
     try:
         method = command.get_method()
-        url = "https://{0}:9000{1}".format(ip, command.get_url())
+        if ":" not in ip:
+            ip = ip + ":7345"
+        url = "https://{0}{1}".format(ip, command.get_url())
         data = jsonpickle.encode(command, unpicklable=False)
         if "get" == method.lower():
             response = requests.get(url=url, headers=headers, verify=False)
