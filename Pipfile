@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+name = "pypi"
+verify_ssl = true
+
+[packages]
+click = "*"
+requests = "*"
+jsonpickle = "*"
+xmltodict = "*"
+
+[dev-packages]
+pylint = "*"
+
+[requires]
+python_version = "3.5"
