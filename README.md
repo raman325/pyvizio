@@ -42,7 +42,7 @@ turned off prior to pairing command
 
 Using these dafa finalize pairing procedure
 ```
-pyvizio --ip={ip} pair_finish --token={challenge_token} --pin={tv_pin} 
+pyvizio --ip={ip} pair-finish --token={challenge_token} --pin={tv_pin} 
 ```
 If everything done correctly, you should see new connected device named `Python Vizio` 
 in Vizio SmartCast mobile APP 
