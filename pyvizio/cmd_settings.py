@@ -44,7 +44,7 @@ class GetSettingsCommandBase(SettingsCommandBase):
 class GetAudioSettingsCommand(GetSettingsCommandBase):
     @property
     def _url(self):
-        return "/audio"
+        return "/audio/volume"
 
     def process_response(self, json_obj):
         return self._get_items(json_obj)
