@@ -93,7 +93,7 @@ def validate_response(web_response):
     try:
         data = json.loads(web_response.text)
     except:
-        raise Exception("New Failed to parse response: {0}".format(web_response.content))
+        raise Exception("Failed to parse response: {0}".format(web_response.content))
     status_obj = get_json_obj(data, "status")
     if status_obj is None:
         raise Exception("Unknown response")
