@@ -129,8 +129,8 @@ class Vizio(object):
         # HACK: Single call just invoking overlay menu with current input
         return self.__remote_multiple(KeyCodes.INPUT_NEXT, 2)
     
-    def remotekey(self):
-        return self.__remote(KeyCodes)
+    def remotekey(self, state):
+        return self.__remote(KeyCodes.__dict__.get(state))
 
     def input_switch(self, name):
         cur_input = self.get_current_input()

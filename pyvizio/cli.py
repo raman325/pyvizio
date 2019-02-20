@@ -162,7 +162,7 @@ def channel(vizio, state, amount):
 @pass_tv
 def remotekey(vizio, state):
     _LOGGER.info(state)
-    _LOGGER.info("OK" if vizio.remotekey(KeyCodes.__dict__.get(state)) else "ERROR")
+    _LOGGER.info("OK" if vizio.remotekey(state) else "ERROR")
 
 @cli.command()
 @click.argument("state", required=False)
