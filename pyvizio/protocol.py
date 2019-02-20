@@ -67,6 +67,15 @@ class KeyCodes(object):
     POW_OFF = (11, 0)
     POW_ON = (11, 1)
     POW_TOGGLE = (11, 2)
+    DP_DOWN = (3, 0)
+    DP_LEFT = (3, 1)
+    DP_RIGHT = (3, 7)
+    DP_UP = (3, 8)
+    DP_ENTER = (3, 2)
+    BACK = (4, 0)
+    INFO = (4, 6)
+    MENU = (4, 8)
+    HOME = (4, 15)
 
     class KeyPressActions(object):
         KEY_DOWN = "KEYDOWN"
