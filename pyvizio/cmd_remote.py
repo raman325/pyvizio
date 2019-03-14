@@ -1,4 +1,4 @@
-from .protocol import CommandBase, KeyCodes
+from .protocol import CommandBase, KeyCodes, Endpoints
 
 
 class KeyPressEvent(object):
@@ -9,11 +9,9 @@ class KeyPressEvent(object):
 
 
 class EmulateRemoteCommand(CommandBase):
-    @property
-    def _url(self):
-        return "/key_command/"
-
-    def __init__(self, key_codes):
+    def __init__(self, key_codes, device_type):
+        super(EmulateRemoteCommand, self).__init__()
+        CommandBase.url.fset(self, Endpoints.ENDPOINTS[device_type]["KEY_PRESS"])
         # noinspection SpellCheckingInspection
         self.KEYLIST = []
         for key_code in key_codes:

@@ -1,10 +1,10 @@
-from .protocol import get_json_obj, ProtoConstants, InfoCommandBase
+from .protocol import get_json_obj, ProtoConstants, InfoCommandBase, Endpoints
 
 
 class GetPowerStateCommand(InfoCommandBase):
-    @property
-    def _url(self):
-        return "/state/device/power_mode"
+    def __init__(self, device_type):
+        super(GetPowerStateCommand, self).__init__()
+        InfoCommandBase.url.fset(self, Endpoints.ENDPOINTS[device_type]["POWER"])
 
     def process_response(self, json_obj):
         items = get_json_obj(json_obj, ProtoConstants.RESPONSE_ITEMS)

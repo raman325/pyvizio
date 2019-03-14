@@ -1,4 +1,4 @@
-from .protocol import get_json_obj, ProtoConstants, CommandBase, CNames
+from .protocol import get_json_obj, ProtoConstants, CommandBase, CNames, InfoCommandBase, Endpoints
 
 
 class SettingsItem(object):
@@ -14,12 +14,11 @@ class SettingsItem(object):
             for opt in options:
                 self.options.append(opt)
 
+class GetCurrentAudioCommand(InfoCommandBase):
 
-class SettingsCommandBase(CommandBase):
-    BASE_URL = "/menu_native/dynamic/tv_settings"
-
-    def get_url(self):
-        return self.BASE_URL + self._url
+    def __init__(self, device_type):
+        super(GetCurrentAudioCommand, self).__init__()
+        InfoCommandBase.url.fset(self, Endpoints.ENDPOINTS[device_type]["VOLUME"])
 
     @staticmethod
     def _get_items(json_obj):
@@ -34,25 +33,8 @@ class SettingsCommandBase(CommandBase):
 
         return results
 
-
-class GetSettingsCommandBase(SettingsCommandBase):
-    @property
-    def _method(self):
-        return "GET"
-
-
-class GetAudioSettingsCommand(GetSettingsCommandBase):
-    @property
-    def _url(self):
-        return "/audio/volume"
-
     def process_response(self, json_obj):
-        return self._get_items(json_obj)
-
-
-class GetCurrentAudioCommand(GetAudioSettingsCommand):
-    def process_response(self, json_obj):
-        items = super().process_response(json_obj)
+        items = self._get_items(json_obj)
         for itm in items:
             if itm.c_name.lower() == CNames.Audio.VOLUME:
                 return int(itm.value)
