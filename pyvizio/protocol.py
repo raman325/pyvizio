@@ -7,6 +7,8 @@ import json
 HTTP_OK = 200
 
 class CommandBase(object):
+    _url = ""
+    
     def __init__(self):
         self._url = ""
 
@@ -43,7 +45,7 @@ class InfoCommandBase(CommandBase):
     
     @property
     def url(self):
-        return CommandBase.url.fget(self, new_url)
+        return CommandBase.url.fget(self)
 
     @url.setter
     def url(self, new_url):

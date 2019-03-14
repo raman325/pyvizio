@@ -44,7 +44,7 @@ ALLOWED_DEVICE_CLASS = ['tv', 'soundbar']
 
 SUPPORTED_COMMANDS['tv'] = \
                         SUPPORT_TURN_ON | SUPPORT_TURN_OFF \
-                        | SUPPORT_PLAY | SUPPORT_PAUSE
+                        | SUPPORT_PLAY | SUPPORT_PAUSE \
                         | SUPPORT_SELECT_SOURCE \
                         | SUPPORT_NEXT_TRACK | SUPPORT_PREVIOUS_TRACK \
                         | SUPPORT_VOLUME_MUTE | SUPPORT_VOLUME_STEP \
@@ -52,7 +52,7 @@ SUPPORTED_COMMANDS['tv'] = \
 
 SUPPORTED_COMMANDS['soundbar'] = \
                         SUPPORT_TURN_ON | SUPPORT_TURN_OFF \
-                        | SUPPORT_PLAY | SUPPORT_PAUSE
+                        | SUPPORT_PLAY | SUPPORT_PAUSE \
                         | SUPPORT_SELECT_SOURCE \
                         | SUPPORT_VOLUME_MUTE | SUPPORT_VOLUME_STEP \
                         | SUPPORT_VOLUME_SET
