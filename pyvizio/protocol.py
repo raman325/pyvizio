@@ -7,8 +7,6 @@ import json
 HTTP_OK = 200
 
 class CommandBase(object):
-    _url = ""
-    
     def __init__(self):
         self._url = ""
 
