@@ -10,7 +10,7 @@ from .cmd_power import GetPowerStateCommand
 from .cmd_remote import EmulateRemoteCommand
 from .cmd_settings import GetCurrentAudioCommand
 from .discovery import discover
-from .protocol import invoke_api, invoke_api_auth, KeyCodes, Endpoints
+from .protocol import invoke_api, invoke_api_auth, KeyCodes
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -162,4 +162,4 @@ class Vizio(object):
         return self.__remote(key)
 
     def get_device_keys(self):
-        return Endpoints.ENDPOINTS[self._device_type].keys()
+        return KeyCodes.CODES[self._device_type].keys()
