@@ -1,4 +1,4 @@
-from .protocol import get_json_obj, ProtoConstants, InfoCommandBase, CommandBase
+from .protocol import get_json_obj, ProtoConstants, InfoCommandBase, CommandBase, Endpoints
 
 
 class VizioInput(object):
@@ -25,9 +25,20 @@ class VizioInput(object):
 class GetInputsListCommand(InfoCommandBase):
     """Obtaining list of available inputs"""
 
+    def __init__(self, device_type):
+        super(GetInputsListCommand, self).__init__()
+        InfoCommandBase.url.fset(self, Endpoints.ENDPOINTS[device_type]["INPUTS"])
+        self._device_type = device_type
+
     def process_response(self, json_obj):
         items = get_json_obj(json_obj, ProtoConstants.RESPONSE_ITEMS)
+        
+        # Last input for sound bar is the current input so it needs to be removed before processing
+        if self._device_type == "soundbar":
+            items = items[:-1]
+
         inputs = []
+
         if items is not None:
             for itm in items:
                 v_input = VizioInput(itm, True)
@@ -35,13 +46,13 @@ class GetInputsListCommand(InfoCommandBase):
 
         return inputs
 
-    @property
-    def _url(self):
-        return "/menu_native/dynamic/tv_settings/devices/name_input"
-
 
 class GetCurrentInputCommand(InfoCommandBase):
     """Obtaining current input"""
+
+    def __init__(self, device_type):
+        super(GetCurrentInputCommand, self).__init__()
+        InfoCommandBase.url.fset(self, Endpoints.ENDPOINTS[device_type]["CURR_INPUT"])
 
     def process_response(self, json_obj):
         items = get_json_obj(json_obj, ProtoConstants.RESPONSE_ITEMS)
@@ -50,17 +61,11 @@ class GetCurrentInputCommand(InfoCommandBase):
             v_input = VizioInput(items[0], False)
         return v_input
 
-    @property
-    def _url(self):
-        return "/menu_native/dynamic/tv_settings/devices/current_input"
-
 
 class ChangeInputCommand(CommandBase):
-    @property
-    def _url(self):
-        return "/menu_native/dynamic/tv_settings/devices/current_input"
-
-    def __init__(self, id_, name):
+    def __init__(self, id_, name, device_type):
+        super(ChangeInputCommand, self).__init__()
+        CommandBase.url.fset(self, Endpoints.ENDPOINTS[device_type]["SET_INPUT"])
         self.VALUE = str(name)
         # noinspection SpellCheckingInspection
         self.HASHVAL = int(id_)

@@ -6,16 +6,21 @@ import json
 
 HTTP_OK = 200
 
-
 class CommandBase(object):
+    def __init__(self):
+        self._url = ""
+
     @property
     def _method(self):
         return "PUT"
 
     @property
-    @abstractmethod
-    def _url(self):
-        return ""
+    def url(self):
+        return self._url
+    
+    @url.setter
+    def url(self, new_url):
+        self._url = new_url
 
     def get_url(self):
         return self._url
@@ -29,9 +34,20 @@ class CommandBase(object):
 
 
 class InfoCommandBase(CommandBase):
+    def __init__(self):
+        super(InfoCommandBase, self).__init__()
+
     @property
     def _method(self):
         return "GET"
+    
+    @property
+    def url(self):
+        return CommandBase.url.fget(self)
+
+    @url.setter
+    def url(self, new_url):
+        CommandBase.url.fset(self, new_url)
 
 
 class ProtoConstants(object):
@@ -55,23 +71,89 @@ class ProtoConstants(object):
 
 
 class KeyCodes(object):
-    VOL_DOWN = (5, 0)
-    VOL_UP = (5, 1)
-    MUTE_OFF = (5, 2)
-    MUTE_ON = (5, 3)
-    MUTE_TOGGLE = (5, 4)
-    INPUT_NEXT = (7, 1)
-    CH_DOWN = (8, 0)
-    CH_UP = (8, 1)
-    CH_PREV = (8, 2)
-    POW_OFF = (11, 0)
-    POW_ON = (11, 1)
-    POW_TOGGLE = (11, 2)
+    CODES = {
+        "tv": 
+        {
+            "SEEK_FWD":     (2, 0),
+            "SEEK_BACK":    (2, 1),
+            "PAUSE":        (2, 2),
+            "PLAY":         (2, 3),
+            "DOWN":         (3, 0),
+            "LEFT":         (3, 1),
+            "OK":           (3, 2),
+            "UP":           (3, 3),
+            "LEFT2":        (3, 4),
+            "RIGHT":        (3, 5),
+            "BACK":         (4, 0),
+            "SMARTCAST":    (4, 3),
+            "CC_TOGGLE":    (4, 4),
+            "INFO":         (4, 6),
+            "MENU":         (4, 8),
+            "HOME":         (4, 15),
+            "VOL_DOWN":     (5, 0),
+            "VOL_UP":       (5, 1),
+            "MUTE_OFF":     (5, 2),
+            "MUTE_ON":      (5, 3),
+            "MUTE_TOGGLE":  (5, 4),
+            "PIC_MODE":     (6, 0),
+            "PIC_SIZE":     (6, 2),
+            "INPUT_NEXT":   (7, 1),
+            "CH_DOWN":      (8, 0),
+            "CH_UP":        (8, 1),
+            "CH_PREV":      (8, 2),
+            "EXIT":         (9, 0),
+            "POW_OFF":      (11, 0),
+            "POW_ON":       (11, 1),
+            "POW_TOGGLE":   (11, 2)
+        },
+        "soundbar": 
+        {
+            "PAUSE":        (2, 2),
+            "PLAY":         (2, 3),
+            "VOL_DOWN":     (5, 0),
+            "VOL_UP":       (5, 1),
+            "MUTE_OFF":     (5, 2),
+            "MUTE_ON":      (5, 3),
+            "MUTE_TOGGLE":  (5, 4),
+            "POW_OFF":      (11, 0),
+            "POW_ON":       (11, 1),
+            "POW_TOGGLE":   (11, 2)
+        }
+    }
 
     class KeyPressActions(object):
         KEY_DOWN = "KEYDOWN"
         KEY_UP = "KEYUP"
         KEY_PRESS = "KEYPRESS"
+
+
+class Endpoints(object):
+    ENDPOINTS = {
+        "tv":
+        {
+            "BEGIN_PAIR":   "/pairing/start",
+            "FINISH_PAIR":  "/pairing/pair",
+            "CANCEL_PAIR":  "/pairing/cancel",
+            "INPUTS":       "/menu_native/dynamic/tv_settings/devices/name_input",
+            "CURR_INPUT":   "/menu_native/dynamic/tv_settings/devices/current_input",
+            "SET_INPUT":   "/menu_native/dynamic/tv_settings/devices/current_input",
+            "POWER":        "/state/device/power_mode",
+            "KEY_PRESS":    "/key_command/",
+            "VOLUME":       "/menu_native/dynamic/tv_settings/audio/volume"
+        },
+        "soundbar":
+        {
+            "BEGIN_PAIR":   "/pairing/start",
+            "FINISH_PAIR":  "/pairing/pair",
+            "CANCEL_PAIR":  "/pairing/cancel",
+            "INPUTS":       "/menu_native/dynamic/audio_settings/input",
+            "CURR_INPUT":   "/menu_native/dynamic/audio_settings/input/current_input",
+            "SET_INPUT":   "/menu_native/dynamic/audio_settings/input/current_input",
+            "POWER":        "/state/device/power_mode",
+            "KEY_PRESS":    "/key_command/",
+            "VOLUME":       "/menu_native/dynamic/audio_settings/audio/volume"
+        }
+    }
 
 
 class CNames(object):

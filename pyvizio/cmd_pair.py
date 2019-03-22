@@ -1,8 +1,10 @@
-from .protocol import CommandBase, get_json_obj, ProtoConstants
+from .protocol import CommandBase, get_json_obj, ProtoConstants, Endpoints
 
 
 class PairCommandBase(CommandBase):
-    def __init__(self, device_id):
+    def __init__(self, device_id, device_type, endpoint):
+        super(PairCommandBase, self).__init__()
+        CommandBase.url.fset(self, Endpoints.ENDPOINTS[device_type][endpoint])
         self.DEVICE_ID = device_id
 
 
@@ -21,12 +23,8 @@ class BeginPairCommand(PairCommandBase):
                                      get_json_obj(item, ProtoConstants.PAIRING_REQ_TOKEN))
         return response
 
-    @property
-    def _url(self):
-        return "/pairing/start"
-
-    def __init__(self, device_id, device_name):
-        super().__init__(device_id)
+    def __init__(self, device_id, device_name, device_type):
+        super().__init__(device_id, device_type, "BEGIN_PAIR")
         self.DEVICE_NAME = str(device_name)
 
 
@@ -43,12 +41,8 @@ class PairChallengeCommand(PairCommandBase):
         response = PairChallengeResponse(get_json_obj(item, ProtoConstants.AUTH_TOKEN))
         return response
 
-    @property
-    def _url(self):
-        return "/pairing/pair"
-
-    def __init__(self, device_id, challenge_type, pairing_token, pin):
-        super().__init__(device_id)
+    def __init__(self, device_id, challenge_type, pairing_token, pin, device_type):
+        super().__init__(device_id, device_type, "FINISH_PAIR")
         self.CHALLENGE_TYPE = int(challenge_type)
         self.RESPONSE_VALUE = str(pin)
         self.PAIRING_REQ_TOKEN = int(pairing_token)
@@ -57,12 +51,8 @@ class PairChallengeCommand(PairCommandBase):
 class CancelPairCommand(BeginPairCommand):
     """Cancel pairing process"""
 
-    @property
-    def _url(self):
-        return "/pairing/cancel"
-
     def process_response(self, json_obj):
         return None
 
-    def __init__(self, device_id, device_name):
-        super().__init__(device_id, device_name)
+    def __init__(self, device_id, device_name, device_type):
+        super().__init__(device_id, device_name, device_type, "CANCEL_PAIR")
