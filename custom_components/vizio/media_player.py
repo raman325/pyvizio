@@ -22,7 +22,7 @@ from homeassistant.const import (
     STATE_OFF, STATE_ON)
 from homeassistant.helpers import config_validation as cv
 
-REQUIREMENTS = ['pyvizio==0.0.4']
+REQUIREMENTS = ['pyvizio==0.0.6']
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,25 +40,24 @@ ICON = 'mdi:television'
 MIN_TIME_BETWEEN_FORCED_SCANS = timedelta(seconds=1)
 MIN_TIME_BETWEEN_SCANS = timedelta(seconds=10)
 
-ALLOWED_DEVICE_CLASS = ['tv', 'soundbar']
+SUPPORTED_COMMANDS  = {
+    'tv': (SUPPORT_TURN_ON | SUPPORT_TURN_OFF \
+        | SUPPORT_PLAY | SUPPORT_PAUSE \
+        | SUPPORT_SELECT_SOURCE \
+        | SUPPORT_NEXT_TRACK | SUPPORT_PREVIOUS_TRACK \
+        | SUPPORT_VOLUME_MUTE | SUPPORT_VOLUME_STEP \
+        | SUPPORT_VOLUME_SET),
+    'soundbar': (SUPPORT_TURN_ON | SUPPORT_TURN_OFF \
+        | SUPPORT_PLAY | SUPPORT_PAUSE \
+        | SUPPORT_SELECT_SOURCE \
+        | SUPPORT_VOLUME_MUTE | SUPPORT_VOLUME_STEP \
+        | SUPPORT_VOLUME_SET)
+}
 
-SUPPORTED_COMMANDS['tv'] = \
-                        SUPPORT_TURN_ON | SUPPORT_TURN_OFF \
-                        | SUPPORT_PLAY | SUPPORT_PAUSE \
-                        | SUPPORT_SELECT_SOURCE \
-                        | SUPPORT_NEXT_TRACK | SUPPORT_PREVIOUS_TRACK \
-                        | SUPPORT_VOLUME_MUTE | SUPPORT_VOLUME_STEP \
-                        | SUPPORT_VOLUME_SET
-
-SUPPORTED_COMMANDS['soundbar'] = \
-                        SUPPORT_TURN_ON | SUPPORT_TURN_OFF \
-                        | SUPPORT_PLAY | SUPPORT_PAUSE \
-                        | SUPPORT_SELECT_SOURCE \
-                        | SUPPORT_VOLUME_MUTE | SUPPORT_VOLUME_STEP \
-                        | SUPPORT_VOLUME_SET
-
-MAX_VOLUME['tv'] = 100.0
-MAX_VOLUME['soundbar'] = 31.0
+MAX_VOLUME = {
+    'tv': 100.0,
+    'soundbar': 31.0
+}
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_HOST): cv.string,
@@ -66,7 +65,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Optional(CONF_SUPPRESS_WARNING, default=False): cv.boolean,
     vol.Optional(CONF_DEVICE_CLASS, default=DEFAULT_DEVICE_CLASS): 
-        vol.All(cv.string, vol.In(ALLOWED_DEVICE_CLASS)),
+        vol.All(cv.string, vol.Lower, vol.In(['tv', 'soundbar'])),
     vol.Optional(CONF_VOLUME_STEP, default=DEFAULT_VOLUME_STEP):
         vol.All(vol.Coerce(int), vol.Range(min=1, max=10)),
 })
@@ -79,7 +78,6 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     name = config.get(CONF_NAME)
     volume_step = config.get(CONF_VOLUME_STEP)
     device_type = config.get(CONF_DEVICE_CLASS)
-
     device = VizioDevice(host, token, name, volume_step, device_type)
     if device.validate_setup() is False:
         _LOGGER.error("Failed to set up Vizio platform, "
@@ -96,10 +94,11 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
 class VizioDevice(MediaPlayerDevice):
     """Media Player implementation which performs REST requests to device."""
-    def __init__(self, host, token, name, device_type, volume_step):
+
+    def __init__(self, host, token, name, volume_step, device_type):
         """Initialize Vizio device."""
         import pyvizio
-        self._device = pyvizio.Vizio(DEVICE_ID, host, DEFAULT_NAME, device_type, token)
+
         self._name = name
         self._state = None
         self._volume_level = None
@@ -109,6 +108,7 @@ class VizioDevice(MediaPlayerDevice):
         self._device_type = device_type
         self._max_volume = MAX_VOLUME[device_type]
         self._supported_commands = SUPPORTED_COMMANDS[device_type]
+        self._device = pyvizio.Vizio(DEVICE_ID, host, DEFAULT_NAME, token, device_type)
 
     @util.Throttle(MIN_TIME_BETWEEN_SCANS, MIN_TIME_BETWEEN_FORCED_SCANS)
     def update(self):
