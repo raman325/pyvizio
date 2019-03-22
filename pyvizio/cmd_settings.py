@@ -37,6 +37,8 @@ class GetCurrentAudioCommand(InfoCommandBase):
         items = self._get_items(json_obj)
         for itm in items:
             if itm.c_name.lower() == CNames.Audio.VOLUME:
-                return int(itm.value)
+                if itm.value is not None:
+                    return int(itm.value)
+                return None
 
         return 0
