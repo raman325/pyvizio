@@ -14,6 +14,11 @@ from .protocol import invoke_api, invoke_api_auth, KeyCodes
 
 _LOGGER = logging.getLogger(__name__)
 
+MAX_VOLUME = {
+    'tv': 100,
+    'soundbar': 31
+}
+
 
 class DeviceDescription(object):
     def __init__(self, ip, name, model, udn):
@@ -122,6 +127,9 @@ class Vizio(object):
 
     def get_current_volume(self):
         return self.__invoke_api_may_need_auth(GetCurrentAudioCommand(self._device_type))
+
+    def get_max_volume(self):
+        return MAX_VOLUME[self._device_type]
 
     def ch_up(self, num=1):
         return self.__remote_multiple("CH_UP", num)
