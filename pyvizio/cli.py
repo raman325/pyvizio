@@ -137,6 +137,12 @@ def volume_current(vizio):
 
 
 @cli.command()
+@pass_vizio
+def volume_max(vizio):
+    _LOGGER.info("Max volume: %s", vizio.get_max_volume())
+
+
+@cli.command()
 @click.argument("state", required=False, default="previous", type=click.Choice(["up", "down", "previous"]))
 @click.argument("amount", required=False, default=1, type=click.IntRange(1, 100, clamp=True))
 @pass_vizio
