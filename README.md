@@ -35,7 +35,7 @@ and note it's IP address. If using your IP address by itself does not lead to su
 
 ### Pairing
 
-> For a Sounnd Bar, it is unclear how the device would notify you of a valid auth token, so it's best to first skip the pairing process entirely, specify `--device_type=soundbar`, and try commands like `volume-current` to see if you have any success. If not, and if specifying different ports as mentioned above doesn't work, you will need to find a way to get the auth token during this process.
+> For a Sound Bar, it is unclear how the device would notify you of a valid auth token, so it's best to first skip the pairing process entirely, specify `--device_type=soundbar`, and try commands like `volume-current` to see if you have any success. If not, and if specifying different ports as mentioned above doesn't work, you will need to find a way to get the auth token during this process.
 
 Using your device's IP address, request pairing procedure:
 

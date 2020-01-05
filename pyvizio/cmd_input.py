@@ -1,4 +1,10 @@
-from .protocol import get_json_obj, ProtoConstants, InfoCommandBase, CommandBase, Endpoints
+from .protocol import (
+    get_json_obj,
+    ProtoConstants,
+    InfoCommandBase,
+    CommandBase,
+    Endpoints,
+)
 
 
 class VizioInput(object):
@@ -32,7 +38,7 @@ class GetInputsListCommand(InfoCommandBase):
 
     def process_response(self, json_obj):
         items = get_json_obj(json_obj, ProtoConstants.RESPONSE_ITEMS)
-        
+
         # Last input for sound bar is the current input so it needs to be removed before processing
         if self._device_type == "soundbar":
             items = items[:-1]

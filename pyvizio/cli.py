@@ -4,8 +4,7 @@ import sys
 import pyvizio
 
 if sys.version_info < (3, 4):
-    print("To use this script you need python 3.4 or newer, got %s" %
-          sys.version_info)
+    print("To use this script you need python 3.4 or newer, got %s" % sys.version_info)
     sys.exit(1)
 
 _LOGGER = logging.getLogger(__name__)
@@ -16,9 +15,25 @@ pass_vizio = click.make_pass_decorator(pyvizio.Vizio)
 
 
 @click.group(invoke_without_command=False)
-@click.option('--ip', envvar="VIZIO_IP", required=True, help="IP of the device to connect to (optionally add custom port by specifying '<IP>:<PORT>')")
-@click.option('--auth', envvar="VIZIO_AUTH", required=False, help="Auth token for the device to connect to (refer to documentation on how to obtain auth token)")
-@click.option("--device_type", envvar="VIZIO_DEVICE_TYPE", required=False, default="tv", type=click.Choice(["tv", "soundbar"]))
+@click.option(
+    "--ip",
+    envvar="VIZIO_IP",
+    required=True,
+    help="IP of the device to connect to (optionally add custom port by specifying '<IP>:<PORT>')",
+)
+@click.option(
+    "--auth",
+    envvar="VIZIO_AUTH",
+    required=False,
+    help="Auth token for the device to connect to (refer to documentation on how to obtain auth token)",
+)
+@click.option(
+    "--device_type",
+    envvar="VIZIO_DEVICE_TYPE",
+    required=False,
+    default="tv",
+    type=click.Choice(["tv", "soundbar"]),
+)
 @click.pass_context
 def cli(ctx, ip, auth, device_type):
     logging.basicConfig(level=logging.INFO)
@@ -29,8 +44,7 @@ def cli(ctx, ip, auth, device_type):
 def discover():
     logging.basicConfig(level=logging.INFO)
     devices = pyvizio.Vizio.discovery()
-    log_data = "Available devices:" \
-               "\nIP\tModel\tFriendly name"
+    log_data = "Available devices:" "\nIP\tModel\tFriendly name"
     for dev in devices:
         log_data += "\n{0}\t{1}\t{2}".format(dev.ip, dev.model, dev.name)
     _LOGGER.info(log_data)
@@ -39,7 +53,9 @@ def discover():
 @cli.command()
 @pass_vizio
 def pair(vizio):
-    _LOGGER.info("Initiating pairing process, please check your device for pin upon success")
+    _LOGGER.info(
+        "Initiating pairing process, please check your device for pin upon success"
+    )
     pair_data = vizio.start_pair()
     if pair_data is not None:
         _LOGGER.info("Challenge type: %s", pair_data.ch_type)
@@ -54,9 +70,18 @@ def pair_stop(vizio):
 
 
 @cli.command()
-@click.option('--ch_type', required=False, default=1, help="Challenge type obtained from pair command")
-@click.option('--token', required=True, help="Challenge token obtained from pair command")
-@click.option('--pin', required=True, help="PIN obtained from device after running pair command")
+@click.option(
+    "--ch_type",
+    required=False,
+    default=1,
+    help="Challenge type obtained from pair command",
+)
+@click.option(
+    "--token", required=True, help="Challenge token obtained from pair command"
+)
+@click.option(
+    "--pin", required=True, help="PIN obtained from device after running pair command"
+)
 @pass_vizio
 def pair_finish(vizio, ch_type, token, pin):
     _LOGGER.info("Finishing pairing")
@@ -70,10 +95,11 @@ def pair_finish(vizio, ch_type, token, pin):
 def input_list(vizio):
     inputs = vizio.get_inputs()
     if inputs:
-        log_data = "Available inputs:" \
-                "\nName\tFriendly name\tType\tID"
+        log_data = "Available inputs:" "\nName\tFriendly name\tType\tID"
         for v_input in inputs:
-            log_data += "\n{0}\t{1}\t{2}\t{3}".format(v_input.name, v_input.meta_name, v_input.type, v_input.id)
+            log_data += "\n{0}\t{1}\t{2}\t{3}".format(
+                v_input.name, v_input.meta_name, v_input.type, v_input.id
+            )
 
         _LOGGER.info(log_data)
     else:
@@ -88,7 +114,7 @@ def input_get(vizio):
         _LOGGER.info("Current input: %s", data.meta_name)
     else:
         _LOGGER.error("Couldn't get current input")
-    
+
 
 @cli.command()
 @pass_vizio
@@ -98,7 +124,12 @@ def power_get(vizio):
 
 
 @cli.command()
-@click.argument("state", required=False, default="toggle", type=click.Choice(["toggle", "on", "off"]))
+@click.argument(
+    "state",
+    required=False,
+    default="toggle",
+    type=click.Choice(["toggle", "on", "off"]),
+)
 @pass_vizio
 def power(vizio, state):
     if "on" == state:
@@ -115,8 +146,12 @@ def power(vizio, state):
 
 
 @cli.command()
-@click.argument("state", required=False, default="up", type=click.Choice(["up", "down"]))
-@click.argument("amount", required=False, default=1, type=click.IntRange(1, 100, clamp=True))
+@click.argument(
+    "state", required=False, default="up", type=click.Choice(["up", "down"])
+)
+@click.argument(
+    "amount", required=False, default=1, type=click.IntRange(1, 100, clamp=True)
+)
 @pass_vizio
 def volume(vizio, state, amount):
     amount = int(amount)
@@ -143,8 +178,15 @@ def volume_max(vizio):
 
 
 @cli.command()
-@click.argument("state", required=False, default="previous", type=click.Choice(["up", "down", "previous"]))
-@click.argument("amount", required=False, default=1, type=click.IntRange(1, 100, clamp=True))
+@click.argument(
+    "state",
+    required=False,
+    default="previous",
+    type=click.Choice(["up", "down", "previous"]),
+)
+@click.argument(
+    "amount", required=False, default=1, type=click.IntRange(1, 100, clamp=True)
+)
 @pass_vizio
 def channel(vizio, state, amount):
     amount = int(amount)
@@ -162,7 +204,12 @@ def channel(vizio, state, amount):
 
 
 @cli.command()
-@click.argument("state", required=False, default="toggle", type=click.Choice(["toggle", "on", "off"]))
+@click.argument(
+    "state",
+    required=False,
+    default="toggle",
+    type=click.Choice(["toggle", "on", "off"]),
+)
 @pass_vizio
 def mute(vizio, state):
     if "on" == state:
@@ -187,7 +234,7 @@ def input_next(vizio):
 
 
 @cli.command(name="input")
-@click.option('--name', required=True)
+@click.option("--name", required=True)
 @pass_vizio
 def input(vizio, name):
     result = vizio.input_switch(name)

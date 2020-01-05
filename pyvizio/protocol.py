@@ -6,6 +6,7 @@ import json
 
 HTTP_OK = 200
 
+
 class CommandBase(object):
     def __init__(self):
         self._url = ""
@@ -17,7 +18,7 @@ class CommandBase(object):
     @property
     def url(self):
         return self._url
-    
+
     @url.setter
     def url(self, new_url):
         self._url = new_url
@@ -40,7 +41,7 @@ class InfoCommandBase(CommandBase):
     @property
     def _method(self):
         return "GET"
-    
+
     @property
     def url(self):
         return CommandBase.url.fget(self)
@@ -72,53 +73,51 @@ class ProtoConstants(object):
 
 class KeyCodes(object):
     CODES = {
-        "tv": 
-        {
-            "SEEK_FWD":     (2, 0),
-            "SEEK_BACK":    (2, 1),
-            "PAUSE":        (2, 2),
-            "PLAY":         (2, 3),
-            "DOWN":         (3, 0),
-            "LEFT":         (3, 1),
-            "OK":           (3, 2),
-            "UP":           (3, 3),
-            "LEFT2":        (3, 4),
-            "RIGHT":        (3, 5),
-            "BACK":         (4, 0),
-            "SMARTCAST":    (4, 3),
-            "CC_TOGGLE":    (4, 4),
-            "INFO":         (4, 6),
-            "MENU":         (4, 8),
-            "HOME":         (4, 15),
-            "VOL_DOWN":     (5, 0),
-            "VOL_UP":       (5, 1),
-            "MUTE_OFF":     (5, 2),
-            "MUTE_ON":      (5, 3),
-            "MUTE_TOGGLE":  (5, 4),
-            "PIC_MODE":     (6, 0),
-            "PIC_SIZE":     (6, 2),
-            "INPUT_NEXT":   (7, 1),
-            "CH_DOWN":      (8, 0),
-            "CH_UP":        (8, 1),
-            "CH_PREV":      (8, 2),
-            "EXIT":         (9, 0),
-            "POW_OFF":      (11, 0),
-            "POW_ON":       (11, 1),
-            "POW_TOGGLE":   (11, 2)
+        "tv": {
+            "SEEK_FWD": (2, 0),
+            "SEEK_BACK": (2, 1),
+            "PAUSE": (2, 2),
+            "PLAY": (2, 3),
+            "DOWN": (3, 0),
+            "LEFT": (3, 1),
+            "OK": (3, 2),
+            "UP": (3, 3),
+            "LEFT2": (3, 4),
+            "RIGHT": (3, 5),
+            "BACK": (4, 0),
+            "SMARTCAST": (4, 3),
+            "CC_TOGGLE": (4, 4),
+            "INFO": (4, 6),
+            "MENU": (4, 8),
+            "HOME": (4, 15),
+            "VOL_DOWN": (5, 0),
+            "VOL_UP": (5, 1),
+            "MUTE_OFF": (5, 2),
+            "MUTE_ON": (5, 3),
+            "MUTE_TOGGLE": (5, 4),
+            "PIC_MODE": (6, 0),
+            "PIC_SIZE": (6, 2),
+            "INPUT_NEXT": (7, 1),
+            "CH_DOWN": (8, 0),
+            "CH_UP": (8, 1),
+            "CH_PREV": (8, 2),
+            "EXIT": (9, 0),
+            "POW_OFF": (11, 0),
+            "POW_ON": (11, 1),
+            "POW_TOGGLE": (11, 2),
         },
-        "soundbar": 
-        {
-            "PAUSE":        (2, 2),
-            "PLAY":         (2, 3),
-            "VOL_DOWN":     (5, 0),
-            "VOL_UP":       (5, 1),
-            "MUTE_OFF":     (5, 2),
-            "MUTE_ON":      (5, 3),
-            "MUTE_TOGGLE":  (5, 4),
-            "POW_OFF":      (11, 0),
-            "POW_ON":       (11, 1),
-            "POW_TOGGLE":   (11, 2)
-        }
+        "soundbar": {
+            "PAUSE": (2, 2),
+            "PLAY": (2, 3),
+            "VOL_DOWN": (5, 0),
+            "VOL_UP": (5, 1),
+            "MUTE_OFF": (5, 2),
+            "MUTE_ON": (5, 3),
+            "MUTE_TOGGLE": (5, 4),
+            "POW_OFF": (11, 0),
+            "POW_ON": (11, 1),
+            "POW_TOGGLE": (11, 2),
+        },
     }
 
     class KeyPressActions(object):
@@ -129,36 +128,39 @@ class KeyCodes(object):
 
 class Endpoints(object):
     ENDPOINTS = {
-        "tv":
-        {
-            "BEGIN_PAIR":   "/pairing/start",
-            "FINISH_PAIR":  "/pairing/pair",
-            "CANCEL_PAIR":  "/pairing/cancel",
-            "INPUTS":       "/menu_native/dynamic/tv_settings/devices/name_input",
-            "CURR_INPUT":   "/menu_native/dynamic/tv_settings/devices/current_input",
-            "SET_INPUT":   "/menu_native/dynamic/tv_settings/devices/current_input",
-            "POWER":        "/state/device/power_mode",
-            "KEY_PRESS":    "/key_command/",
-            "VOLUME":       "/menu_native/dynamic/tv_settings/audio/volume"
+        "tv": {
+            "BEGIN_PAIR": "/pairing/start",
+            "FINISH_PAIR": "/pairing/pair",
+            "CANCEL_PAIR": "/pairing/cancel",
+            "INPUTS": "/menu_native/dynamic/tv_settings/devices/name_input",
+            "CURR_INPUT": "/menu_native/dynamic/tv_settings/devices/current_input",
+            "SET_INPUT": "/menu_native/dynamic/tv_settings/devices/current_input",
+            "ESN": "/menu_native/dynamic/tv_settings/system/system_information/uli_information/esn",
+            "POWER": "/state/device/power_mode",
+            "KEY_PRESS": "/key_command/",
+            "VOLUME": "/menu_native/dynamic/tv_settings/audio/volume",
         },
-        "soundbar":
-        {
-            "BEGIN_PAIR":   "/pairing/start",
-            "FINISH_PAIR":  "/pairing/pair",
-            "CANCEL_PAIR":  "/pairing/cancel",
-            "INPUTS":       "/menu_native/dynamic/audio_settings/input",
-            "CURR_INPUT":   "/menu_native/dynamic/audio_settings/input/current_input",
-            "SET_INPUT":   "/menu_native/dynamic/audio_settings/input/current_input",
-            "POWER":        "/state/device/power_mode",
-            "KEY_PRESS":    "/key_command/",
-            "VOLUME":       "/menu_native/dynamic/audio_settings/audio/volume"
-        }
+        "soundbar": {
+            "BEGIN_PAIR": "/pairing/start",
+            "FINISH_PAIR": "/pairing/pair",
+            "CANCEL_PAIR": "/pairing/cancel",
+            "INPUTS": "/menu_native/dynamic/audio_settings/input",
+            "CURR_INPUT": "/menu_native/dynamic/audio_settings/input/current_input",
+            "SET_INPUT": "/menu_native/dynamic/audio_settings/input/current_input",
+            "ESN": "/menu_native/dynamic/audio_settings/system/system_information/uli_information/esn",
+            "POWER": "/state/device/power_mode",
+            "KEY_PRESS": "/key_command/",
+            "VOLUME": "/menu_native/dynamic/audio_settings/audio/volume",
+        },
     }
 
 
 class CNames(object):
     class Audio(object):
         VOLUME = "volume"
+
+    class ESN(object):
+        ESN = "esn"
 
 
 def get_json_obj(json_obj, key):
@@ -171,7 +173,9 @@ def get_json_obj(json_obj, key):
 
 def validate_response(web_response):
     if HTTP_OK != web_response.status_code:
-        raise Exception("TV is unreachable? Status code: {0}".format(web_response.status_code))
+        raise Exception(
+            "TV is unreachable? Status code: {0}".format(web_response.status_code)
+        )
     try:
         data = json.loads(web_response.text)
     except:
@@ -181,7 +185,11 @@ def validate_response(web_response):
         raise Exception("Unknown response")
     result_status = get_json_obj(status_obj, "result")
     if result_status is None or result_status.lower() != ProtoConstants.STATUS_SUCCESS:
-        raise Exception("Unexpected response {0}: {1}".format(result_status, get_json_obj(status_obj, "detail")))
+        raise Exception(
+            "Unexpected response {0}: {1}".format(
+                result_status, get_json_obj(status_obj, "detail")
+            )
+        )
     return data
 
 
@@ -199,7 +207,9 @@ def invoke_api(ip, command, logger, headers=None):
             response = requests.get(url=url, headers=headers, verify=False)
         else:
             headers["Content-Type"] = "application/json"
-            response = requests.request(method=method, data=str(data), url=url, headers=headers, verify=False)
+            response = requests.request(
+                method=method, data=str(data), url=url, headers=headers, verify=False
+            )
         json_obj = validate_response(response)
         return command.process_response(json_obj)
     except Exception as e:

@@ -1,4 +1,4 @@
-from .protocol import get_json_obj, ProtoConstants, CommandBase, CNames, InfoCommandBase, Endpoints
+from .protocol import get_json_obj, ProtoConstants, CNames, InfoCommandBase, Endpoints
 
 
 class SettingsItem(object):
@@ -14,8 +14,8 @@ class SettingsItem(object):
             for opt in options:
                 self.options.append(opt)
 
-class GetCurrentAudioCommand(InfoCommandBase):
 
+class GetCurrentAudioCommand(InfoCommandBase):
     def __init__(self, device_type):
         super(GetCurrentAudioCommand, self).__init__()
         InfoCommandBase.url.fset(self, Endpoints.ENDPOINTS[device_type]["VOLUME"])
@@ -42,3 +42,31 @@ class GetCurrentAudioCommand(InfoCommandBase):
                 return None
 
         return 0
+
+
+class GetESNCommand(InfoCommandBase):
+    def __init__(self, device_type):
+        super(GetESNCommand, self).__init__()
+        InfoCommandBase.url.fset(self, Endpoints.ENDPOINTS[device_type]["ESN"])
+
+    @staticmethod
+    def _get_items(json_obj):
+        items = get_json_obj(json_obj, ProtoConstants.RESPONSE_ITEMS)
+        if items is None:
+            return []
+
+        results = []
+        for itm in items:
+            item = SettingsItem(itm)
+            results.append(item)
+
+        return results
+
+    def process_response(self, json_obj):
+        items = self._get_items(json_obj)
+        for itm in items:
+            if itm.c_name.lower() == CNames.ESN.ESN:
+                if itm.value is not None:
+                    return itm.value
+
+        return None
