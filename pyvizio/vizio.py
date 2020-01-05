@@ -102,7 +102,7 @@ class Vizio(object):
         try:
             return self.__invoke_api_may_need_auth(GetESNCommand(self._device_type))
         except Exception:
-            _LOGGER.debug(
+            _LOGGER.error(
                 "ESN unable to be retrieved, please submit issue to https://github.com/vkorn/pyvizio/issues with logs",
                 exc_info=True,
             )
