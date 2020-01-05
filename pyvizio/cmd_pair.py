@@ -19,8 +19,10 @@ class BeginPairCommand(PairCommandBase):
 
     def process_response(self, json_obj):
         item = get_json_obj(json_obj, ProtoConstants.RESPONSE_ITEM)
-        response = BeginPairResponse(get_json_obj(item, ProtoConstants.CHALLENGE_TYPE),
-                                     get_json_obj(item, ProtoConstants.PAIRING_REQ_TOKEN))
+        response = BeginPairResponse(
+            get_json_obj(item, ProtoConstants.CHALLENGE_TYPE),
+            get_json_obj(item, ProtoConstants.PAIRING_REQ_TOKEN),
+        )
         return response
 
     def __init__(self, device_id, device_name, device_type):

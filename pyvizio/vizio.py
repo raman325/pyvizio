@@ -8,16 +8,13 @@ from .cmd_input import GetInputsListCommand, GetCurrentInputCommand, ChangeInput
 from .cmd_pair import BeginPairCommand, CancelPairCommand, PairChallengeCommand
 from .cmd_power import GetPowerStateCommand
 from .cmd_remote import EmulateRemoteCommand
-from .cmd_settings import GetCurrentAudioCommand
+from .cmd_settings import GetCurrentAudioCommand, GetESNCommand
 from .discovery import discover
 from .protocol import invoke_api, invoke_api_auth, KeyCodes
 
 _LOGGER = logging.getLogger(__name__)
 
-MAX_VOLUME = {
-    'tv': 100,
-    'soundbar': 31
-}
+MAX_VOLUME = {"tv": 100, "soundbar": 31}
 
 
 class DeviceDescription(object):
@@ -32,12 +29,15 @@ class Vizio(object):
     def __init__(self, device_id, ip, name, auth_token="", device_type="tv"):
         self._device_type = device_type.lower()
         if self._device_type != "tv" and self._device_type != "soundbar":
-            raise Exception("Invalid device type specified. Use either 'tv' or 'soundbar'")
-        
+            raise Exception(
+                "Invalid device type specified. Use either 'tv' or 'soundbar'"
+            )
+
         self._ip = ip
         self._name = name
         self._device_id = device_id
         self._auth_token = auth_token
+        self._esn = self.get_esn()
 
     def __invoke_api(self, cmd):
         return invoke_api(self._ip, cmd, _LOGGER)
@@ -47,9 +47,10 @@ class Vizio(object):
             if self._device_type == "soundbar":
                 return invoke_api(self._ip, cmd, _LOGGER)
             else:
-                raise Exception("Empty auth token. To target a soundbar and bypass auth requirements, pass 'soundbar' as device_type")
+                raise Exception(
+                    "Empty auth token. To target a soundbar and bypass auth requirements, pass 'soundbar' as device_type"
+                )
         return invoke_api_auth(self._ip, cmd, self._auth_token, _LOGGER)
-
 
     def __remote(self, key_list):
         key_codes = []
@@ -58,7 +59,11 @@ class Vizio(object):
 
         for key in key_list:
             if key not in KeyCodes.CODES[self._device_type]:
-                _LOGGER.error("Key Code of '%s' not found for device type of '%s'", key, self._device_type)
+                _LOGGER.error(
+                    "Key Code of '%s' not found for device type of '%s'",
+                    key,
+                    self._device_type,
+                )
                 return False
             else:
                 key_codes.append(KeyCodes.CODES[self._device_type][key])
@@ -87,25 +92,40 @@ class Vizio(object):
             if manufacturer is None or "VIZIO" != manufacturer:
                 continue
             split_url = urlsplit(dev.location)
-            device = DeviceDescription(split_url.hostname, root["friendlyName"], root["modelName"], root["UDN"])
+            device = DeviceDescription(
+                split_url.hostname, root["friendlyName"], root["modelName"], root["UDN"]
+            )
             results.append(device)
 
         return results
 
+    def get_esn(self):
+        return self.__invoke_api_may_need_auth(GetESNCommand(self._device_type))
+
     def start_pair(self):
-        return self.__invoke_api(BeginPairCommand(self._device_id, self._name, self._device_type))
+        return self.__invoke_api(
+            BeginPairCommand(self._device_id, self._name, self._device_type)
+        )
 
     def stop_pair(self):
-        return self.__invoke_api(CancelPairCommand(self._device_id, self._name, self._device_type))
+        return self.__invoke_api(
+            CancelPairCommand(self._device_id, self._name, self._device_type)
+        )
 
     def pair(self, ch_type, token, pin):
-        return self.__invoke_api(PairChallengeCommand(self._device_id, ch_type, token, pin, self._device_type))
+        return self.__invoke_api(
+            PairChallengeCommand(
+                self._device_id, ch_type, token, pin, self._device_type
+            )
+        )
 
     def get_inputs(self):
         return self.__invoke_api_may_need_auth(GetInputsListCommand(self._device_type))
 
     def get_current_input(self):
-        return self.__invoke_api_may_need_auth(GetCurrentInputCommand(self._device_type))
+        return self.__invoke_api_may_need_auth(
+            GetCurrentInputCommand(self._device_type)
+        )
 
     def get_power_state(self):
         return self.__invoke_api_may_need_auth(GetPowerStateCommand(self._device_type))
@@ -126,7 +146,9 @@ class Vizio(object):
         return self.__remote_multiple("VOL_DOWN", num)
 
     def get_current_volume(self):
-        return self.__invoke_api_may_need_auth(GetCurrentAudioCommand(self._device_type))
+        return self.__invoke_api_may_need_auth(
+            GetCurrentAudioCommand(self._device_type)
+        )
 
     def get_max_volume(self):
         return MAX_VOLUME[self._device_type]
@@ -158,7 +180,9 @@ class Vizio(object):
         if cur_input is None:
             _LOGGER.error("Couldn't detect current input")
             return False
-        return self.__invoke_api_may_need_auth(ChangeInputCommand(cur_input.id, name, self._device_type))
+        return self.__invoke_api_may_need_auth(
+            ChangeInputCommand(cur_input.id, name, self._device_type)
+        )
 
     def play(self):
         return self.__remote("PLAY")
