@@ -193,7 +193,7 @@ def validate_response(web_response):
     return data
 
 
-def invoke_api(ip, command, logger, headers=None):
+def invoke_api(ip, command, logger, headers=None, log_exception=True):
     if headers is None:
         headers = {}
 
@@ -213,10 +213,11 @@ def invoke_api(ip, command, logger, headers=None):
         json_obj = validate_response(response)
         return command.process_response(json_obj)
     except Exception as e:
-        logger.error("Failed to execute command: %s", e)
+        if log_exception:
+            logger.error("Failed to execute command: %s", e)
         return None
 
 
-def invoke_api_auth(ip, command, auth_token, logger):
+def invoke_api_auth(ip, command, auth_token, logger, log_exception=True):
     headers = {ProtoConstants.HEADER_AUTH: auth_token}
-    return invoke_api(ip, command, logger, headers)
+    return invoke_api(ip, command, logger, headers, log_exception)

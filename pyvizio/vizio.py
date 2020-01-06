@@ -38,18 +38,20 @@ class Vizio(object):
         self._device_id = device_id
         self._auth_token = auth_token
 
-    def __invoke_api(self, cmd):
-        return invoke_api(self._ip, cmd, _LOGGER)
+    def __invoke_api(self, cmd, log_exception=True):
+        return invoke_api(self._ip, cmd, _LOGGER, log_exception=log_exception)
 
-    def __invoke_api_may_need_auth(self, cmd):
+    def __invoke_api_may_need_auth(self, cmd, log_exception=True):
         if self._auth_token is None or "" == self._auth_token:
             if self._device_type == "soundbar":
-                return invoke_api(self._ip, cmd, _LOGGER)
+                return invoke_api(self._ip, cmd, _LOGGER, log_exception=log_exception)
             else:
                 raise Exception(
                     "Empty auth token. To target a soundbar and bypass auth requirements, pass 'soundbar' as device_type"
                 )
-        return invoke_api_auth(self._ip, cmd, self._auth_token, _LOGGER)
+        return invoke_api_auth(
+            self._ip, cmd, self._auth_token, _LOGGER, log_exception=log_exception
+        )
 
     def __remote(self, key_list):
         key_codes = []
@@ -75,6 +77,11 @@ class Vizio(object):
         for ii in range(0, num):
             key_codes.append(key_code)
         return self.__remote(key_codes)
+
+    def _test_command(self):
+        return self.__invoke_api_may_need_auth(
+            GetCurrentAudioCommand(self._device_type), log_exception=False
+        )
 
     @staticmethod
     def discovery():
@@ -201,3 +208,15 @@ class Vizio(object):
 
     def get_device_keys(self):
         return KeyCodes.CODES[self._device_type].keys()
+
+
+def guess_device_type(ip):
+    device = Vizio("", ip, "", "", "soundbar")
+
+    try:
+        if device._test_command():
+            return "soundbar"
+        else:
+            return "tv"
+    except Exception:
+        return "tv"

@@ -1,1 +1,1 @@
-from .vizio import Vizio
+from .vizio import Vizio, guess_device_type
