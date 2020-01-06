@@ -207,11 +207,13 @@ def invoke_api(ip, command, logger, headers=None, log_exception=True):
         data = jsonpickle.encode(command, unpicklable=False)
         if "get" == method.lower():
             with warnings.catch_warnings():
+                # Ignores InsecureRequestWarning for JUST this request so that warning doesn't have to be excluded globally
                 warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
                 response = requests.get(url=url, headers=headers, verify=False)
         else:
             headers["Content-Type"] = "application/json"
             with warnings.catch_warnings():
+                # Ignores InsecureRequestWarning for JUST this request so that warning doesn't have to be excluded globally
                 warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
                 response = requests.request(
                     method=method, data=str(data), url=url, headers=headers, verify=False
