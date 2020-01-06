@@ -211,6 +211,21 @@ class Vizio(object):
 
 
 def guess_device_type(ip):
+    """
+    Attempts to guess the device type by getting power state with no auth
+    token.
+
+    NOTE:
+    The `ip` value passed in has to be valid for the device in the format
+    `<ip>:<port>` in order for this to work. This function is being used as
+    part of a zeroconf discovery workflow which is why it is safe to assume
+    that `ip` is valid.
+    """
+
+    if ":" not in ip:
+        _LOGGER.warning(
+            "This function may not work correctly since a port was not specified."
+        )
     device = Vizio("", ip, "", "", "soundbar")
 
     try:
