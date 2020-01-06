@@ -1,8 +1,10 @@
 from abc import abstractmethod
 
 import requests
+from requests.packages import urllib3
 import jsonpickle
 import json
+import warnings
 
 HTTP_OK = 200
 
@@ -204,12 +206,16 @@ def invoke_api(ip, command, logger, headers=None, log_exception=True):
         url = "https://{0}{1}".format(ip, command.get_url())
         data = jsonpickle.encode(command, unpicklable=False)
         if "get" == method.lower():
-            response = requests.get(url=url, headers=headers, verify=False)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
+                response = requests.get(url=url, headers=headers, verify=False)
         else:
             headers["Content-Type"] = "application/json"
-            response = requests.request(
-                method=method, data=str(data), url=url, headers=headers, verify=False
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
+                response = requests.request(
+                    method=method, data=str(data), url=url, headers=headers, verify=False
+                )
         json_obj = validate_response(response)
         return command.process_response(json_obj)
     except Exception as e:
