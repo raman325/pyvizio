@@ -78,11 +78,6 @@ class Vizio(object):
             key_codes.append(key_code)
         return self.__remote(key_codes)
 
-    def _test_command(self):
-        return self.__invoke_api_may_need_auth(
-            GetPowerStateCommand(self._device_type), False
-        )
-
     @staticmethod
     def discovery():
         results = []
@@ -104,6 +99,17 @@ class Vizio(object):
             results.append(device)
 
         return results
+
+    def can_connect(self):
+        try:
+            if self.__invoke_api_may_need_auth(
+                GetPowerStateCommand(self._device_type), False
+            ):
+                return True
+            else:
+                return False
+        except Exception:
+            return False
 
     def get_esn(self):
         try:
@@ -210,28 +216,31 @@ class Vizio(object):
         return KeyCodes.CODES[self._device_type].keys()
 
 
-def guess_device_type(ip):
+def guess_device_type(ip, port=None):
     """
     Attempts to guess the device type by getting power state with no auth
     token.
 
     NOTE:
-    The `ip` value passed in has to be valid for the device in the format
-    `<ip>:<port>` in order for this to work. This function is being used as
-    part of a zeroconf discovery workflow which is why it is safe to assume
-    that `ip` is valid.
+    The `ip` and `port` values passed in have to be valid for the device in
+    order for this to work. This function is being used as part of a zeroconf
+    discovery workflow in HomeAssistant which is why it is safe to assume that
+    `ip` and `port` are valid.
     """
 
-    if ":" not in ip:
-        _LOGGER.warning(
-            "This function may not work correctly since a port was not specified."
-        )
-    device = Vizio("", ip, "", "", "soundbar")
+    if port:
+        if ":" in ip:
+            raise Exception("Port can't be included in both `ip` and `port` parameters")
 
-    try:
-        if device._test_command():
-            return "soundbar"
-        else:
-            return "tv"
-    except Exception:
+        device = Vizio("test", ip + ":" + port, "test", "", "soundbar")
+    else:
+        if ":" not in ip:
+            _LOGGER.warning(
+                "May not return correct device type since a port was not specified."
+            )
+        device = Vizio("test", ip, "test", "", "soundbar")
+
+    if device.can_connect():
+        return "soundbar"
+    else:
         return "tv"
