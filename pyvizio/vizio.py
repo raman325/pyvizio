@@ -80,7 +80,7 @@ class Vizio(object):
 
     def _test_command(self):
         return self.__invoke_api_may_need_auth(
-            GetCurrentAudioCommand(self._device_type), log_exception=False
+            GetPowerStateCommand(self._device_type), False
         )
 
     @staticmethod
