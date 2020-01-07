@@ -105,6 +105,10 @@ class Vizio(object):
 
         return results
 
+    @staticmethod
+    def validate_config(ip, auth_token, device_type):
+        return Vizio("", ip, "", auth_token, device_type).can_connect()
+
     def can_connect(self):
         try:
             if self.__invoke_api_may_need_auth(
