@@ -2,7 +2,9 @@ import logging
 from urllib.parse import urlsplit
 
 import requests
+from requests.packages import urllib3
 import xmltodict
+import warnings
 
 from .cmd_input import GetInputsListCommand, GetCurrentInputCommand, ChangeInputCommand
 from .cmd_pair import BeginPairCommand, CancelPairCommand, PairChallengeCommand
@@ -83,7 +85,10 @@ class Vizio(object):
         results = []
         devices = discover("urn:dial-multiscreen-org:device:dial:1")
         for dev in devices:
-            data = xmltodict.parse(requests.get(dev.location, verify=False).text)
+            with warnings.catch_warnings():
+                # Ignores InsecureRequestWarning for JUST this request so that warning doesn't have to be excluded globally
+                warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
+                data = xmltodict.parse(requests.get(dev.location, verify=False).text)
 
             if "root" not in data or "device" not in data["root"]:
                 continue
