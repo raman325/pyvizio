@@ -1,5 +1,3 @@
-# flake8: E501
-
 import logging
 from urllib.parse import urlsplit
 
