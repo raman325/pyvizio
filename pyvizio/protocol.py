@@ -1,5 +1,6 @@
 from abc import abstractmethod
 
+import aiohttp
 import requests
 from requests.packages import urllib3
 import jsonpickle
@@ -173,14 +174,14 @@ def get_json_obj(json_obj, key):
     return None
 
 
-def validate_response(web_response):
-    if HTTP_OK != web_response.status_code:
+async def async_validate_response(web_response):
+    if HTTP_OK != web_response.status:
         raise Exception(
-            "TV is unreachable? Status code: {0}".format(web_response.status_code)
+            "TV is unreachable? Status code: {0}".format(web_response.status)
         )
     try:
-        data = json.loads(web_response.text)
-    except:
+        data = json.loads(await web_response.text())
+    except Exception:
         raise Exception("Failed to parse response: {0}".format(web_response.content))
     status_obj = get_json_obj(data, "status")
     if status_obj is None:
@@ -195,7 +196,7 @@ def validate_response(web_response):
     return data
 
 
-def invoke_api(ip, command, logger, headers=None, log_exception=True):
+async def async_invoke_api(ip, command, logger, headers=None, log_exception=True):
     if headers is None:
         headers = {}
 
@@ -205,20 +206,17 @@ def invoke_api(ip, command, logger, headers=None, log_exception=True):
             ip = ip + ":7345"
         url = "https://{0}{1}".format(ip, command.get_url())
         data = jsonpickle.encode(command, unpicklable=False)
-        if "get" == method.lower():
-            with warnings.catch_warnings():
-                # Ignores InsecureRequestWarning for JUST this request so that warning doesn't have to be excluded globally
-                warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
-                response = requests.get(url=url, headers=headers, verify=False)
-        else:
-            headers["Content-Type"] = "application/json"
-            with warnings.catch_warnings():
-                # Ignores InsecureRequestWarning for JUST this request so that warning doesn't have to be excluded globally
-                warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
-                response = requests.request(
-                    method=method, data=str(data), url=url, headers=headers, verify=False
+        async with aiohttp.ClientSession() as session:
+            if "get" == method.lower():
+                response = await session.get(url=url, headers=headers, ssl=False)
+            else:
+                headers["Content-Type"] = "application/json"
+                response = await session.put(
+                    url=url, data=str(data), headers=headers, ssl=False
                 )
-        json_obj = validate_response(response)
+
+            json_obj = await async_validate_response(response)
+
         return command.process_response(json_obj)
     except Exception as e:
         if log_exception:
@@ -226,6 +224,6 @@ def invoke_api(ip, command, logger, headers=None, log_exception=True):
         return None
 
 
-def invoke_api_auth(ip, command, auth_token, logger, log_exception=True):
+async def async_invoke_api_auth(ip, command, auth_token, logger, log_exception=True):
     headers = {ProtoConstants.HEADER_AUTH: auth_token}
-    return invoke_api(ip, command, logger, headers, log_exception)
+    return await async_invoke_api(ip, command, logger, headers, log_exception)
