@@ -29,7 +29,7 @@ setup(
 
     packages=["pyvizio"],
 
-    install_requires=['click', 'requests', 'jsonpickle', 'xmltodict'],
+    install_requires=['aiohttp', 'asyncio', 'click', 'requests', 'jsonpickle', 'xmltodict'],
     entry_points={
         'console_scripts': [
             'pyvizio=pyvizio.cli:cli',

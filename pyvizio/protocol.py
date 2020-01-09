@@ -1,11 +1,8 @@
 from abc import abstractmethod
 
 import aiohttp
-import requests
-from requests.packages import urllib3
 import jsonpickle
 import json
-import warnings
 
 HTTP_OK = 200
 
@@ -196,7 +193,9 @@ async def async_validate_response(web_response):
     return data
 
 
-async def async_invoke_api(ip, command, logger, headers=None, log_exception=True):
+async def async_invoke_api(
+    ip, command, logger, headers=None, log_exception=True, session=None
+):
     if headers is None:
         headers = {}
 
@@ -206,7 +205,8 @@ async def async_invoke_api(ip, command, logger, headers=None, log_exception=True
             ip = ip + ":7345"
         url = "https://{0}{1}".format(ip, command.get_url())
         data = jsonpickle.encode(command, unpicklable=False)
-        async with aiohttp.ClientSession() as session:
+
+        if session:
             if "get" == method.lower():
                 response = await session.get(url=url, headers=headers, ssl=False)
             else:
@@ -216,6 +216,17 @@ async def async_invoke_api(ip, command, logger, headers=None, log_exception=True
                 )
 
             json_obj = await async_validate_response(response)
+        else:
+            async with aiohttp.ClientSession() as local_session:
+                if "get" == method.lower():
+                    response = await local_session.get(url=url, headers=headers, ssl=False)
+                else:
+                    headers["Content-Type"] = "application/json"
+                    response = await local_session.put(
+                        url=url, data=str(data), headers=headers, ssl=False
+                    )
+
+                json_obj = await async_validate_response(response)
 
         return command.process_response(json_obj)
     except Exception as e:
@@ -224,6 +235,8 @@ async def async_invoke_api(ip, command, logger, headers=None, log_exception=True
         return None
 
 
-async def async_invoke_api_auth(ip, command, auth_token, logger, log_exception=True):
+async def async_invoke_api_auth(
+    ip, command, auth_token, logger, log_exception=True, session=None
+):
     headers = {ProtoConstants.HEADER_AUTH: auth_token}
-    return await async_invoke_api(ip, command, logger, headers, log_exception)
+    return await async_invoke_api(ip, command, logger, headers, log_exception, session)
