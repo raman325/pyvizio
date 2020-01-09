@@ -288,30 +288,7 @@ class Vizio(VizioAsync):
 
     @staticmethod
     def discovery():
-        results = []
-        devices = discover("urn:dial-multiscreen-org:device:dial:1")
-        for dev in devices:
-            with warnings.catch_warnings():
-                # Ignores InsecureRequestWarning for JUST this request so that warning doesn't have to be excluded globally
-                warnings.filterwarnings(
-                    "ignore", category=urllib3.exceptions.InsecureRequestWarning
-                )
-                data = xmltodict.parse(requests.get(dev.location, verify=False).text)
-
-            if "root" not in data or "device" not in data["root"]:
-                continue
-
-            root = data["root"]["device"]
-            manufacturer = root["manufacturer"]
-            if manufacturer is None or "VIZIO" != manufacturer:
-                continue
-            split_url = urlsplit(dev.location)
-            device = DeviceDescription(
-                split_url.hostname, root["friendlyName"], root["modelName"], root["UDN"]
-            )
-            results.append(device)
-
-        return results
+        return VizioAsync.discovery()
 
     @staticmethod
     def validate_config(ip, auth_token, device_type):
