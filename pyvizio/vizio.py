@@ -29,7 +29,9 @@ class DeviceDescription(object):
 
 
 class VizioAsync(object):
-    def __init__(self, device_id, ip, name, auth_token="", device_type="tv"):
+    def __init__(
+        self, device_id, ip, name, auth_token="", device_type="tv", session=None
+    ):
         self._device_type = device_type.lower()
         if self._device_type != "tv" and self._device_type != "soundbar":
             raise Exception(
@@ -40,24 +42,34 @@ class VizioAsync(object):
         self._name = name
         self._device_id = device_id
         self._auth_token = auth_token
+        self._session = session
 
     async def __invoke_api(self, cmd, log_exception=True):
         return await async_invoke_api(
-            self._ip, cmd, _LOGGER, log_exception=log_exception
+            self._ip, cmd, _LOGGER, log_exception=log_exception, session=self._session
         )
 
     async def __invoke_api_may_need_auth(self, cmd, log_exception=True):
         if self._auth_token is None or "" == self._auth_token:
             if self._device_type == "soundbar":
                 return await async_invoke_api(
-                    self._ip, cmd, _LOGGER, log_exception=log_exception
+                    self._ip,
+                    cmd,
+                    _LOGGER,
+                    log_exception=log_exception,
+                    session=self._session,
                 )
             else:
                 raise Exception(
                     "Empty auth token. To target a soundbar and bypass auth requirements, pass 'soundbar' as device_type"
                 )
         return await async_invoke_api_auth(
-            self._ip, cmd, self._auth_token, _LOGGER, log_exception=log_exception
+            self._ip,
+            cmd,
+            self._auth_token,
+            _LOGGER,
+            log_exception=log_exception,
+            session=self._session,
         )
 
     async def __remote(self, key_list):
@@ -272,34 +284,11 @@ class Vizio(VizioAsync):
     def __init__(self, device_id, ip, name, auth_token="", device_type="tv"):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
-        super(Vizio, self).__init__(device_id, ip, name, auth_token, device_type)
+        super(Vizio, self).__init__(device_id, ip, name, auth_token, device_type, None)
 
     @staticmethod
     def discovery():
-        results = []
-        devices = discover("urn:dial-multiscreen-org:device:dial:1")
-        for dev in devices:
-            with warnings.catch_warnings():
-                # Ignores InsecureRequestWarning for JUST this request so that warning doesn't have to be excluded globally
-                warnings.filterwarnings(
-                    "ignore", category=urllib3.exceptions.InsecureRequestWarning
-                )
-                data = xmltodict.parse(requests.get(dev.location, verify=False).text)
-
-            if "root" not in data or "device" not in data["root"]:
-                continue
-
-            root = data["root"]["device"]
-            manufacturer = root["manufacturer"]
-            if manufacturer is None or "VIZIO" != manufacturer:
-                continue
-            split_url = urlsplit(dev.location)
-            device = DeviceDescription(
-                split_url.hostname, root["friendlyName"], root["modelName"], root["UDN"]
-            )
-            results.append(device)
-
-        return results
+        return VizioAsync.discovery()
 
     @staticmethod
     def validate_config(ip, auth_token, device_type):
@@ -402,5 +391,5 @@ def guess_device_type(ip, port=None):
     """
 
     loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(self.loop)
+    asyncio.set_event_loop(loop)
     return loop.run_until_complete(async_guess_device_type(ip, port))
