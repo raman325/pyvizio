@@ -107,7 +107,9 @@ class VizioAsync(object):
                 warnings.filterwarnings(
                     "ignore", category=urllib3.exceptions.InsecureRequestWarning
                 )
-                data = xmltodict.parse(requests.get(dev.location, verify=False).text)
+                data = xmltodict.parse(
+                    requests.get(dev.location, verify=False, timeout=8).text
+                )
 
             if "root" not in data or "device" not in data["root"]:
                 continue
