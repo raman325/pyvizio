@@ -1,6 +1,6 @@
 from abc import abstractmethod
 
-import aiohttp
+from aiohttp import ClientSession, ClientTimeout
 import jsonpickle
 import json
 
@@ -194,7 +194,7 @@ async def async_validate_response(web_response):
 
 
 async def async_invoke_api(
-    ip, command, logger, headers=None, log_exception=True, session=None
+    ip, command, logger, headers=None, log_exception=True, session: ClientSession = None
 ):
     if headers is None:
         headers = {}
@@ -208,22 +208,37 @@ async def async_invoke_api(
 
         if session:
             if "get" == method.lower():
-                response = await session.get(url=url, headers=headers, ssl=False)
+                response = await session.get(
+                    url=url, headers=headers, ssl=False, timeout=ClientTimeout(total=8)
+                )
             else:
                 headers["Content-Type"] = "application/json"
                 response = await session.put(
-                    url=url, data=str(data), headers=headers, ssl=False
+                    url=url,
+                    data=str(data),
+                    headers=headers,
+                    ssl=False,
+                    timeout=ClientTimeout(total=8),
                 )
 
             json_obj = await async_validate_response(response)
         else:
-            async with aiohttp.ClientSession() as local_session:
+            async with ClientSession() as local_session:
                 if "get" == method.lower():
-                    response = await local_session.get(url=url, headers=headers, ssl=False)
+                    response = await local_session.get(
+                        url=url,
+                        headers=headers,
+                        ssl=False,
+                        timeout=ClientTimeout(total=8),
+                    )
                 else:
                     headers["Content-Type"] = "application/json"
                     response = await local_session.put(
-                        url=url, data=str(data), headers=headers, ssl=False
+                        url=url,
+                        data=str(data),
+                        headers=headers,
+                        ssl=False,
+                        timeout=ClientTimeout(total=8),
                     )
 
                 json_obj = await async_validate_response(response)
