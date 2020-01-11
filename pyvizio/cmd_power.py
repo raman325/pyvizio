@@ -1,4 +1,4 @@
-from .protocol import get_json_obj, ProtoConstants, InfoCommandBase, Endpoints
+from .protocol import Endpoints, InfoCommandBase, ProtoConstants, get_json_obj
 
 
 class GetPowerStateCommand(InfoCommandBase):

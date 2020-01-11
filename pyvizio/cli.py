@@ -1,6 +1,8 @@
 import logging
-import click
 import sys
+
+import click
+
 import pyvizio
 
 if sys.version_info < (3, 4):

@@ -1,8 +1,8 @@
+import json
 from abc import abstractmethod
 
-from aiohttp import ClientSession, ClientTimeout
 import jsonpickle
-import json
+from aiohttp import ClientSession, ClientTimeout
 
 HTTP_OK = 200
 
@@ -60,6 +60,7 @@ class ProtoConstants(object):
     AUTH_TOKEN = "auth_token"
     CHALLENGE_TYPE = "challenge_type"
     PAIRING_REQ_TOKEN = "pairing_req_token"
+    URI_NOT_FOUND = "URI_NOT_FOUND"
 
     class Item(object):
         HASHVAL = "hashval"
@@ -174,7 +175,7 @@ def get_json_obj(json_obj, key):
 async def async_validate_response(web_response):
     if HTTP_OK != web_response.status:
         raise Exception(
-            "TV is unreachable? Status code: {0}".format(web_response.status)
+            "Device is unreachable? Status code: {0}".format(web_response.status)
         )
     try:
         data = json.loads(await web_response.text())
@@ -194,7 +195,13 @@ async def async_validate_response(web_response):
 
 
 async def async_invoke_api(
-    ip, command, logger, headers=None, log_exception=True, session: ClientSession = None
+    ip,
+    command,
+    logger,
+    timeout,
+    headers=None,
+    log_exception=True,
+    session: ClientSession = None,
 ):
     if headers is None:
         headers = {}
@@ -209,7 +216,10 @@ async def async_invoke_api(
         if session:
             if "get" == method.lower():
                 response = await session.get(
-                    url=url, headers=headers, ssl=False, timeout=ClientTimeout(total=8)
+                    url=url,
+                    headers=headers,
+                    ssl=False,
+                    timeout=ClientTimeout(total=timeout),
                 )
             else:
                 headers["Content-Type"] = "application/json"
@@ -218,7 +228,7 @@ async def async_invoke_api(
                     data=str(data),
                     headers=headers,
                     ssl=False,
-                    timeout=ClientTimeout(total=8),
+                    timeout=ClientTimeout(total=timeout),
                 )
 
             json_obj = await async_validate_response(response)
@@ -229,7 +239,7 @@ async def async_invoke_api(
                         url=url,
                         headers=headers,
                         ssl=False,
-                        timeout=ClientTimeout(total=8),
+                        timeout=ClientTimeout(total=timeout),
                     )
                 else:
                     headers["Content-Type"] = "application/json"
@@ -238,7 +248,7 @@ async def async_invoke_api(
                         data=str(data),
                         headers=headers,
                         ssl=False,
-                        timeout=ClientTimeout(total=8),
+                        timeout=ClientTimeout(total=timeout),
                     )
 
                 json_obj = await async_validate_response(response)
@@ -251,7 +261,9 @@ async def async_invoke_api(
 
 
 async def async_invoke_api_auth(
-    ip, command, auth_token, logger, log_exception=True, session=None
+    ip, command, auth_token, logger, timeout, log_exception=True, session=None
 ):
     headers = {ProtoConstants.HEADER_AUTH: auth_token}
-    return await async_invoke_api(ip, command, logger, headers, log_exception, session)
+    return await async_invoke_api(
+        ip, command, logger, timeout, headers, log_exception, session
+    )

@@ -1,9 +1,9 @@
 from .protocol import (
-    get_json_obj,
-    ProtoConstants,
-    InfoCommandBase,
     CommandBase,
     Endpoints,
+    InfoCommandBase,
+    ProtoConstants,
+    get_json_obj,
 )
 
 
