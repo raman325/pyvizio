@@ -1,19 +1,20 @@
+import asyncio
 import logging
+import warnings
 from urllib.parse import urlsplit
 
-import asyncio
 import requests
-from requests.packages import urllib3
 import xmltodict
-import warnings
+from requests.packages import urllib3
 
-from .cmd_input import GetInputsListCommand, GetCurrentInputCommand, ChangeInputCommand
+from .cmd_input import ChangeInputCommand, GetCurrentInputCommand, GetInputsListCommand
 from .cmd_pair import BeginPairCommand, CancelPairCommand, PairChallengeCommand
 from .cmd_power import GetPowerStateCommand
 from .cmd_remote import EmulateRemoteCommand
 from .cmd_settings import GetCurrentAudioCommand, GetESNCommand
+from .const import DEFAULT_TIMEOUT
 from .discovery import discover
-from .protocol import async_invoke_api, async_invoke_api_auth, KeyCodes
+from .protocol import KeyCodes, async_invoke_api, async_invoke_api_auth
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,7 +31,14 @@ class DeviceDescription(object):
 
 class VizioAsync(object):
     def __init__(
-        self, device_id, ip, name, auth_token="", device_type="tv", session=None
+        self,
+        device_id,
+        ip,
+        name,
+        auth_token="",
+        device_type="tv",
+        timeout=None,
+        session=None,
     ):
         self._device_type = device_type.lower()
         if self._device_type != "tv" and self._device_type != "soundbar":
@@ -43,10 +51,18 @@ class VizioAsync(object):
         self._device_id = device_id
         self._auth_token = auth_token
         self._session = session
+        if not timeout:
+            timeout = DEFAULT_TIMEOUT
+        self._timeout = timeout
 
     async def __invoke_api(self, cmd, log_exception=True):
         return await async_invoke_api(
-            self._ip, cmd, _LOGGER, log_exception=log_exception, session=self._session
+            self._ip,
+            cmd,
+            _LOGGER,
+            self._timeout,
+            log_exception=log_exception,
+            session=self._session,
         )
 
     async def __invoke_api_may_need_auth(self, cmd, log_exception=True):
@@ -56,6 +72,7 @@ class VizioAsync(object):
                     self._ip,
                     cmd,
                     _LOGGER,
+                    self._timeout,
                     log_exception=log_exception,
                     session=self._session,
                 )
@@ -68,6 +85,7 @@ class VizioAsync(object):
             cmd,
             self._auth_token,
             _LOGGER,
+            self._timeout,
             log_exception=log_exception,
             session=self._session,
         )
@@ -98,8 +116,10 @@ class VizioAsync(object):
         return await self.__remote(key_codes)
 
     @staticmethod
-    def discovery():
+    def discovery(timeout=None):
         results = []
+        if not timeout:
+            timeout = DEFAULT_TIMEOUT
         devices = discover("urn:dial-multiscreen-org:device:dial:1")
         for dev in devices:
             with warnings.catch_warnings():
@@ -108,7 +128,7 @@ class VizioAsync(object):
                     "ignore", category=urllib3.exceptions.InsecureRequestWarning
                 )
                 data = xmltodict.parse(
-                    requests.get(dev.location, verify=False, timeout=8).text
+                    requests.get(dev.location, verify=False, timeout=timeout).text
                 )
 
             if "root" not in data or "device" not in data["root"]:
@@ -127,13 +147,13 @@ class VizioAsync(object):
         return results
 
     @staticmethod
-    async def validate_config(ip, auth_token, device_type):
+    async def validate_ha_config(ip, auth_token, device_type):
         return await VizioAsync("", ip, "", auth_token, device_type).can_connect()
 
     async def can_connect(self):
         try:
             if await self.__invoke_api_may_need_auth(
-                GetPowerStateCommand(self._device_type), False
+                GetCurrentAudioCommand(self._device_type), False
             ):
                 return True
             else:
@@ -283,17 +303,21 @@ async def async_guess_device_type(ip, port=None):
 
 
 class Vizio(VizioAsync):
-    def __init__(self, device_id, ip, name, auth_token="", device_type="tv"):
+    def __init__(
+        self, device_id, ip, name, auth_token="", device_type="tv", timeout=None
+    ):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
-        super(Vizio, self).__init__(device_id, ip, name, auth_token, device_type, None)
+        super(Vizio, self).__init__(
+            device_id, ip, name, auth_token, device_type, timeout=timeout, session=None
+        )
 
     @staticmethod
     def discovery():
         return VizioAsync.discovery()
 
     @staticmethod
-    def validate_config(ip, auth_token, device_type):
+    def validate_ha_config(ip, auth_token, device_type):
         return Vizio("", ip, "", auth_token, device_type).can_connect()
 
     def can_connect(self):

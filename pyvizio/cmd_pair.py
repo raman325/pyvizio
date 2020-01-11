@@ -1,4 +1,4 @@
-from .protocol import CommandBase, get_json_obj, ProtoConstants, Endpoints
+from .protocol import CommandBase, Endpoints, ProtoConstants, get_json_obj
 
 
 class PairCommandBase(CommandBase):

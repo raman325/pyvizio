@@ -1,4 +1,4 @@
-from .protocol import get_json_obj, ProtoConstants, CNames, InfoCommandBase, Endpoints
+from .protocol import CNames, Endpoints, InfoCommandBase, ProtoConstants, get_json_obj
 
 
 class SettingsItem(object):

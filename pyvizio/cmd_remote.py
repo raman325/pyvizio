@@ -1,4 +1,4 @@
-from .protocol import CommandBase, KeyCodes, Endpoints
+from .protocol import CommandBase, Endpoints, KeyCodes
 
 
 class KeyPressEvent(object):
