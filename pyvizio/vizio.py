@@ -37,8 +37,8 @@ class VizioAsync(object):
         name,
         auth_token="",
         device_type="tv",
-        session=None,
         timeout=None,
+        session=None,
     ):
         self._device_type = device_type.lower()
         if self._device_type != "tv" and self._device_type != "soundbar":
@@ -303,10 +303,14 @@ async def async_guess_device_type(ip, port=None):
 
 
 class Vizio(VizioAsync):
-    def __init__(self, device_id, ip, name, auth_token="", device_type="tv"):
+    def __init__(
+        self, device_id, ip, name, auth_token="", device_type="tv", timeout=None
+    ):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
-        super(Vizio, self).__init__(device_id, ip, name, auth_token, device_type, None)
+        super(Vizio, self).__init__(
+            device_id, ip, name, auth_token, device_type, timeout=timeout, session=None
+        )
 
     @staticmethod
     def discovery():
