@@ -147,7 +147,7 @@ class VizioAsync(object):
         return results
 
     @staticmethod
-    async def validate_config(ip, auth_token, device_type):
+    async def validate_ha_config(ip, auth_token, device_type):
         return await VizioAsync("", ip, "", auth_token, device_type).can_connect()
 
     async def can_connect(self):
@@ -313,7 +313,7 @@ class Vizio(VizioAsync):
         return VizioAsync.discovery()
 
     @staticmethod
-    def validate_config(ip, auth_token, device_type):
+    def validate_ha_config(ip, auth_token, device_type):
         return Vizio("", ip, "", auth_token, device_type).can_connect()
 
     def can_connect(self):
