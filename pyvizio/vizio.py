@@ -150,6 +150,10 @@ class VizioAsync(object):
     async def validate_ha_config(ip, auth_token, device_type):
         return await VizioAsync("", ip, "", auth_token, device_type).can_connect()
 
+    @staticmethod
+    async def get_unique_id(ip, auth_token, device_type):
+        return await VizioAsync("", ip, "", auth_token, device_type).get_esn()
+
     async def can_connect(self):
         try:
             if await self.__invoke_api_may_need_auth(
@@ -319,6 +323,10 @@ class Vizio(VizioAsync):
     @staticmethod
     def validate_ha_config(ip, auth_token, device_type):
         return Vizio("", ip, "", auth_token, device_type).can_connect()
+
+    @staticmethod
+    def get_unique_id(ip, auth_token, device_type):
+        return Vizio("", ip, "", auth_token, device_type).get_esn()
 
     def can_connect(self):
         return self.loop.run_until_complete(super(Vizio, self).can_connect())
