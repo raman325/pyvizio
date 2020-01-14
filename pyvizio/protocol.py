@@ -200,7 +200,7 @@ async def async_invoke_api(
     logger,
     timeout,
     headers=None,
-    log_exception=True,
+    log_api_exception=True,
     session: ClientSession = None,
 ):
     if headers is None:
@@ -255,15 +255,15 @@ async def async_invoke_api(
 
         return command.process_response(json_obj)
     except Exception as e:
-        if log_exception:
+        if log_api_exception:
             logger.error("Failed to execute command: %s", e)
         return None
 
 
 async def async_invoke_api_auth(
-    ip, command, auth_token, logger, timeout, log_exception=True, session=None
+    ip, command, auth_token, logger, timeout, log_api_exception=True, session=None
 ):
     headers = {ProtoConstants.HEADER_AUTH: auth_token}
     return await async_invoke_api(
-        ip, command, logger, timeout, headers, log_exception, session
+        ip, command, logger, timeout, headers, log_api_exception, session
     )
