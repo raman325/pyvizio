@@ -442,7 +442,7 @@ class Vizio(VizioAsync):
         )
 
     def input_switch(self, name, log_api_exception=True):
-        return self.loop.run_until_complete(super(Vizio, self).input_switch(name))
+        return self.loop.run_until_complete(super(Vizio, self).input_switch(name, log_api_exception))
 
     def play(self, log_api_exception=True):
         return self.loop.run_until_complete(super(Vizio, self).play(log_api_exception))
