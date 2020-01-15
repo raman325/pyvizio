@@ -3,7 +3,13 @@ import sys
 
 import click
 
-import pyvizio
+from . import Vizio
+from .const import (
+    DEFAULT_DEVICE_CLASS,
+    DEVICE_CLASS_SOUNDBAR,
+    DEVICE_CLASS_SPEAKER,
+    DEVICE_CLASS_TV,
+)
 
 if sys.version_info < (3, 4):
     print("To use this script you need python 3.4 or newer, got %s" % sys.version_info)
@@ -13,7 +19,7 @@ _LOGGER = logging.getLogger(__name__)
 DEVICE_ID = "pyvizio"
 DEVICE_NAME = "Python Vizio"
 
-pass_vizio = click.make_pass_decorator(pyvizio.Vizio)
+pass_vizio = click.make_pass_decorator(Vizio)
 
 
 @click.group(invoke_without_command=False)
@@ -33,19 +39,19 @@ pass_vizio = click.make_pass_decorator(pyvizio.Vizio)
     "--device_type",
     envvar="VIZIO_DEVICE_TYPE",
     required=False,
-    default="tv",
-    type=click.Choice(["tv", "soundbar"]),
+    default=DEFAULT_DEVICE_CLASS,
+    type=click.Choice([DEVICE_CLASS_TV, DEVICE_CLASS_SPEAKER, DEVICE_CLASS_SOUNDBAR]),
 )
 @click.pass_context
 def cli(ctx, ip, auth, device_type):
     logging.basicConfig(level=logging.INFO)
-    ctx.obj = pyvizio.Vizio(DEVICE_ID, ip, DEVICE_NAME, auth, device_type)
+    ctx.obj = Vizio(DEVICE_ID, ip, DEVICE_NAME, auth, device_type)
 
 
 @cli.command()
 def discover():
     logging.basicConfig(level=logging.INFO)
-    devices = pyvizio.Vizio.discovery()
+    devices = Vizio.discovery()
     log_data = "Available devices:" "\nIP\tModel\tFriendly name"
     for dev in devices:
         log_data += "\n{0}\t{1}\t{2}".format(dev.ip, dev.model, dev.name)

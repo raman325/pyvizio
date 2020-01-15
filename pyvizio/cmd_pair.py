@@ -50,11 +50,12 @@ class PairChallengeCommand(PairCommandBase):
         self.PAIRING_REQ_TOKEN = int(pairing_token)
 
 
-class CancelPairCommand(BeginPairCommand):
+class CancelPairCommand(PairCommandBase):
     """Cancel pairing process"""
 
     def process_response(self, json_obj):
         return None
 
     def __init__(self, device_id, device_name, device_type):
-        super().__init__(device_id, device_name, device_type, "CANCEL_PAIR")
+        super().__init__(device_id, device_type, "CANCEL_PAIR")
+        self.DEVICE_NAME = str(device_name)

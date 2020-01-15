@@ -4,6 +4,8 @@ from abc import abstractmethod
 import jsonpickle
 from aiohttp import ClientSession, ClientTimeout
 
+from .const import DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV
+
 HTTP_OK = 200
 
 
@@ -74,7 +76,7 @@ class ProtoConstants(object):
 
 class KeyCodes(object):
     CODES = {
-        "tv": {
+        DEVICE_CLASS_TV: {
             "SEEK_FWD": (2, 0),
             "SEEK_BACK": (2, 1),
             "PAUSE": (2, 2),
@@ -107,7 +109,7 @@ class KeyCodes(object):
             "POW_ON": (11, 1),
             "POW_TOGGLE": (11, 2),
         },
-        "soundbar": {
+        DEVICE_CLASS_SPEAKER: {
             "PAUSE": (2, 2),
             "PLAY": (2, 3),
             "VOL_DOWN": (5, 0),
@@ -129,7 +131,7 @@ class KeyCodes(object):
 
 class Endpoints(object):
     ENDPOINTS = {
-        "tv": {
+        DEVICE_CLASS_TV: {
             "BEGIN_PAIR": "/pairing/start",
             "FINISH_PAIR": "/pairing/pair",
             "CANCEL_PAIR": "/pairing/cancel",
@@ -141,7 +143,7 @@ class Endpoints(object):
             "KEY_PRESS": "/key_command/",
             "VOLUME": "/menu_native/dynamic/tv_settings/audio/volume",
         },
-        "soundbar": {
+        DEVICE_CLASS_SPEAKER: {
             "BEGIN_PAIR": "/pairing/start",
             "FINISH_PAIR": "/pairing/pair",
             "CANCEL_PAIR": "/pairing/cancel",

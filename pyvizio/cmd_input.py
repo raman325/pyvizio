@@ -1,3 +1,4 @@
+from .const import DEVICE_CLASS_SPEAKER
 from .protocol import (
     CommandBase,
     Endpoints,
@@ -40,7 +41,7 @@ class GetInputsListCommand(InfoCommandBase):
         items = get_json_obj(json_obj, ProtoConstants.RESPONSE_ITEMS)
 
         # Last input for sound bar is the current input so it needs to be removed before processing
-        if self._device_type == "soundbar":
+        if self._device_type == DEVICE_CLASS_SPEAKER:
             items = items[:-1]
 
         inputs = []
