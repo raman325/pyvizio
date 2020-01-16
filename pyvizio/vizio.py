@@ -44,6 +44,7 @@ class VizioAsync(object):
         auth_token="",
         device_type=DEFAULT_DEVICE_CLASS,
         session=None,
+        timeout=DEFAULT_TIMEOUT,
     ):
         self._device_type = device_type.lower()
         if self._device_type == DEVICE_CLASS_SOUNDBAR:
@@ -65,27 +66,26 @@ class VizioAsync(object):
         self._device_id = device_id
         self._auth_token = auth_token
         self._session = session
+        self._timeout = timeout
 
-    async def __invoke_api(self, cmd, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    async def __invoke_api(self, cmd, log_api_exception=True):
         return await async_invoke_api(
             self._ip,
             cmd,
             _LOGGER,
-            timeout,
+            self._timeout,
             log_api_exception=log_api_exception,
             session=self._session,
         )
 
-    async def __invoke_api_may_need_auth(
-        self, cmd, timeout=DEFAULT_TIMEOUT, log_api_exception=True
-    ):
+    async def __invoke_api_may_need_auth(self, cmd, log_api_exception=True):
         if self._auth_token is None or "" == self._auth_token:
             if self._device_type == DEVICE_CLASS_SPEAKER:
                 return await async_invoke_api(
                     self._ip,
                     cmd,
                     _LOGGER,
-                    timeout,
+                    self._timeout,
                     log_api_exception=log_api_exception,
                     session=self._session,
                 )
@@ -98,12 +98,12 @@ class VizioAsync(object):
             cmd,
             self._auth_token,
             _LOGGER,
-            timeout,
+            self._timeout,
             log_api_exception=log_api_exception,
             session=self._session,
         )
 
-    async def __remote(self, key_list, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    async def __remote(self, key_list, log_api_exception=True):
         key_codes = []
         if isinstance(key_list, list) is False:
             key_list = [key_list]
@@ -120,19 +120,15 @@ class VizioAsync(object):
                 key_codes.append(KeyCodes.CODES[self._device_type][key])
 
         result = await self.__invoke_api_may_need_auth(
-            EmulateRemoteCommand(key_codes, self._device_type),
-            timeout,
-            log_api_exception,
+            EmulateRemoteCommand(key_codes, self._device_type), log_api_exception
         )
         return result is not None
 
-    async def __remote_multiple(
-        self, key_code, num, timeout=DEFAULT_TIMEOUT, log_api_exception=True
-    ):
+    async def __remote_multiple(self, key_code, num, log_api_exception=True):
         key_codes = []
         for ii in range(0, num):
             key_codes.append(key_code)
-        return await self.__remote(key_codes, timeout, log_api_exception)
+        return await self.__remote(key_codes, log_api_exception)
 
     @staticmethod
     def discovery(timeout=DEFAULT_TIMEOUT):
@@ -165,22 +161,22 @@ class VizioAsync(object):
 
     @staticmethod
     async def validate_ha_config(ip, auth_token, device_type, timeout=DEFAULT_TIMEOUT):
-        return await VizioAsync("", ip, "", auth_token, device_type).can_connect(
-            timeout
-        )
+        return await VizioAsync(
+            "", ip, "", auth_token, device_type, timeout=timeout
+        ).can_connect()
 
     @staticmethod
     async def get_unique_id(
         ip, auth_token, device_type, timeout=DEFAULT_TIMEOUT, log_api_exception=True
     ):
-        return await VizioAsync("", ip, "", auth_token, device_type).get_esn(
-            timeout, log_api_exception
-        )
+        return await VizioAsync(
+            "", ip, "", auth_token, device_type, timeout=timeout
+        ).get_esn(log_api_exception)
 
-    async def can_connect(self, timeout=DEFAULT_TIMEOUT):
+    async def can_connect(self):
         try:
             if await self.__invoke_api_may_need_auth(
-                GetCurrentAudioCommand(self._device_type), timeout, False
+                GetCurrentAudioCommand(self._device_type), False
             ):
                 return True
             else:
@@ -188,10 +184,10 @@ class VizioAsync(object):
         except Exception:
             return False
 
-    async def get_esn(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    async def get_esn(self, log_api_exception=True):
         try:
             return await self.__invoke_api_may_need_auth(
-                GetESNCommand(self._device_type), timeout, log_api_exception
+                GetESNCommand(self._device_type), log_api_exception
             )
         except Exception:
             _LOGGER.error(
@@ -200,110 +196,103 @@ class VizioAsync(object):
             )
             return None
 
-    async def start_pair(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    async def start_pair(self, log_api_exception=True):
         return await self.__invoke_api(
             BeginPairCommand(self._device_id, self._name, self._device_type),
-            timeout,
             log_api_exception,
         )
 
-    async def stop_pair(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    async def stop_pair(self, log_api_exception=True):
         return await self.__invoke_api(
             CancelPairCommand(self._device_id, self._name, self._device_type),
-            timeout,
             log_api_exception,
         )
 
-    async def pair(
-        self, ch_type, token, pin, timeout=DEFAULT_TIMEOUT, log_api_exception=True
-    ):
+    async def pair(self, ch_type, token, pin, log_api_exception=True):
         return await self.__invoke_api(
             PairChallengeCommand(
                 self._device_id, ch_type, token, pin, self._device_type
             ),
-            timeout,
             log_api_exception,
         )
 
-    async def get_inputs(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    async def get_inputs(self, log_api_exception=True):
         return await self.__invoke_api_may_need_auth(
-            GetInputsListCommand(self._device_type), timeout, log_api_exception
+            GetInputsListCommand(self._device_type), log_api_exception
         )
 
-    async def get_current_input(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    async def get_current_input(self, log_api_exception=True):
         return await self.__invoke_api_may_need_auth(
-            GetCurrentInputCommand(self._device_type), timeout, log_api_exception
+            GetCurrentInputCommand(self._device_type), log_api_exception
         )
 
-    async def get_power_state(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    async def get_power_state(self, log_api_exception=True):
         return await self.__invoke_api_may_need_auth(
-            GetPowerStateCommand(self._device_type), timeout, log_api_exception
+            GetPowerStateCommand(self._device_type), log_api_exception
         )
 
-    async def pow_on(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return await self.__remote("POW_ON", timeout, log_api_exception)
+    async def pow_on(self, log_api_exception=True):
+        return await self.__remote("POW_ON", log_api_exception)
 
-    async def pow_off(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return await self.__remote("POW_OFF", timeout, log_api_exception)
+    async def pow_off(self, log_api_exception=True):
+        return await self.__remote("POW_OFF", log_api_exception)
 
-    async def pow_toggle(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return await self.__remote("POW_TOGGLE", timeout, log_api_exception)
+    async def pow_toggle(self, log_api_exception=True):
+        return await self.__remote("POW_TOGGLE", log_api_exception)
 
-    async def vol_up(self, num=1, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    async def vol_up(self, num=1, log_api_exception=True):
         return await self.__remote_multiple("VOL_UP", num, log_api_exception)
 
-    async def vol_down(self, num=1, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return await self.__remote_multiple("VOL_DOWN", num, timeout, log_api_exception)
+    async def vol_down(self, num=1, log_api_exception=True):
+        return await self.__remote_multiple("VOL_DOWN", num, log_api_exception)
 
-    async def get_current_volume(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    async def get_current_volume(self, log_api_exception=True):
         return await self.__invoke_api_may_need_auth(
-            GetCurrentAudioCommand(self._device_type), timeout, log_api_exception
+            GetCurrentAudioCommand(self._device_type), log_api_exception
         )
 
     def get_max_volume(self):
         return MAX_VOLUME[self._device_type]
 
-    async def ch_up(self, num=1, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return await self.__remote_multiple("CH_UP", num, timeout, log_api_exception)
+    async def ch_up(self, num=1, log_api_exception=True):
+        return await self.__remote_multiple("CH_UP", num, log_api_exception)
 
-    async def ch_down(self, num=1, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return await self.__remote_multiple("CH_DOWN", num, timeout, log_api_exception)
+    async def ch_down(self, num=1, log_api_exception=True):
+        return await self.__remote_multiple("CH_DOWN", num, log_api_exception)
 
-    async def ch_prev(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return await self.__remote("CH_PREV", timeout, log_api_exception)
+    async def ch_prev(self, log_api_exception=True):
+        return await self.__remote("CH_PREV", log_api_exception)
 
-    async def mute_on(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return await self.__remote("MUTE_ON", timeout, log_api_exception)
+    async def mute_on(self, log_api_exception=True):
+        return await self.__remote("MUTE_ON", log_api_exception)
 
-    async def mute_off(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return await self.__remote("MUTE_OFF", timeout, log_api_exception)
+    async def mute_off(self, log_api_exception=True):
+        return await self.__remote("MUTE_OFF", log_api_exception)
 
-    async def mute_toggle(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return await self.__remote("MUTE_TOGGLE", timeout, log_api_exception)
+    async def mute_toggle(self, log_api_exception=True):
+        return await self.__remote("MUTE_TOGGLE", log_api_exception)
 
-    async def input_next(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    async def input_next(self, log_api_exception=True):
         # HACK: Single call just invoking overlay menu with current input
-        return await self.__remote_multiple("INPUT_NEXT", 2, timeout, log_api_exception)
+        return await self.__remote_multiple("INPUT_NEXT", 2, log_api_exception)
 
-    async def input_switch(self, name, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        cur_input = await self.get_current_input(timeout, log_api_exception)
+    async def input_switch(self, name, log_api_exception=True):
+        cur_input = await self.get_current_input(log_api_exception)
         if cur_input is None:
             _LOGGER.error("Couldn't detect current input")
             return False
         return await self.__invoke_api_may_need_auth(
-            ChangeInputCommand(cur_input.id, name, self._device_type),
-            timeout,
-            log_api_exception,
+            ChangeInputCommand(cur_input.id, name, self._device_type), log_api_exception
         )
 
-    async def play(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return await self.__remote("PLAY", timeout, log_api_exception)
+    async def play(self, log_api_exception=True):
+        return await self.__remote("PLAY", log_api_exception)
 
-    async def pause(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return await self.__remote("PAUSE", timeout, log_api_exception)
+    async def pause(self, log_api_exception=True):
+        return await self.__remote("PAUSE", log_api_exception)
 
-    async def remote(self, key, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return await self.__remote(key, timeout, log_api_exception)
+    async def remote(self, key, log_api_exception=True):
+        return await self.__remote(key, log_api_exception)
 
     def get_device_keys(self):
         return KeyCodes.CODES[self._device_type].keys()
@@ -325,15 +314,19 @@ async def async_guess_device_type(ip, port=None, timeout=DEFAULT_TIMEOUT):
         if ":" in ip:
             raise Exception("Port can't be included in both `ip` and `port` parameters")
 
-        device = VizioAsync("test", ip + ":" + port, "test", "", DEVICE_CLASS_SPEAKER)
+        device = VizioAsync(
+            "test", ip + ":" + port, "test", "", DEVICE_CLASS_SPEAKER, timeout=timeout
+        )
     else:
         if ":" not in ip:
             _LOGGER.warning(
                 "May not return correct device type since a port was not specified."
             )
-        device = VizioAsync("test", ip, "test", "", DEVICE_CLASS_SPEAKER)
+        device = VizioAsync(
+            "test", ip, "test", "", DEVICE_CLASS_SPEAKER, timeout=timeout
+        )
 
-    if await device.can_connect(timeout):
+    if await device.can_connect():
         return DEVICE_CLASS_SPEAKER
     else:
         return DEVICE_CLASS_TV
@@ -341,12 +334,18 @@ async def async_guess_device_type(ip, port=None, timeout=DEFAULT_TIMEOUT):
 
 class Vizio(VizioAsync):
     def __init__(
-        self, device_id, ip, name, auth_token="", device_type=DEFAULT_DEVICE_CLASS
+        self,
+        device_id,
+        ip,
+        name,
+        auth_token="",
+        device_type=DEFAULT_DEVICE_CLASS,
+        timeout=DEFAULT_TIMEOUT,
     ):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         super(Vizio, self).__init__(
-            device_id, ip, name, auth_token, device_type, session=None
+            device_id, ip, name, auth_token, device_type, session=None, timeout=timeout
         )
 
     @staticmethod
@@ -355,186 +354,150 @@ class Vizio(VizioAsync):
 
     @staticmethod
     def validate_ha_config(ip, auth_token, device_type, timeout=DEFAULT_TIMEOUT):
-        return Vizio("", ip, "", auth_token, device_type).can_connect(timeout)
+        return Vizio("", ip, "", auth_token, device_type, timeout).can_connect()
 
     @staticmethod
     def get_unique_id(
         ip, auth_token, device_type, timeout=DEFAULT_TIMEOUT, log_api_exception=True
     ):
-        return Vizio("", ip, "", auth_token, device_type).get_esn(
-            timeout, log_api_exception
+        return Vizio("", ip, "", auth_token, device_type, timeout).get_esn(
+            log_api_exception
         )
 
-    def can_connect(self, timeout=DEFAULT_TIMEOUT):
+    def can_connect(self):
         return self.loop.run_until_complete(
-            self.loop.create_task(super(Vizio, self).can_connect(timeout))
+            self.loop.create_task(super(Vizio, self).can_connect())
         )
 
-    def get_esn(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    def get_esn(self, log_api_exception=True):
+        return self.loop.run_until_complete(
+            self.loop.create_task(super(Vizio, self).get_esn(log_api_exception))
+        )
+
+    def start_pair(self, log_api_exception=True):
+        return self.loop.run_until_complete(
+            self.loop.create_task(super(Vizio, self).start_pair(log_api_exception))
+        )
+
+    def stop_pair(self, log_api_exception=True):
+        return self.loop.run_until_complete(
+            self.loop.create_task(super(Vizio, self).stop_pair(log_api_exception))
+        )
+
+    def pair(self, ch_type, token, pin, log_api_exception=True):
         return self.loop.run_until_complete(
             self.loop.create_task(
-                super(Vizio, self).get_esn(timeout, log_api_exception)
+                super(Vizio, self).pair(ch_type, token, pin, log_api_exception)
             )
         )
 
-    def start_pair(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    def get_inputs(self, log_api_exception=True):
+        return self.loop.run_until_complete(
+            self.loop.create_task(super(Vizio, self).get_inputs(log_api_exception))
+        )
+
+    def get_current_input(self, log_api_exception=True):
         return self.loop.run_until_complete(
             self.loop.create_task(
-                super(Vizio, self).start_pair(timeout, log_api_exception)
+                super(Vizio, self).get_current_input(log_api_exception)
             )
         )
 
-    def stop_pair(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    def get_power_state(self, log_api_exception=True):
         return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).stop_pair(timeout, log_api_exception)
-            )
+            self.loop.create_task(super(Vizio, self).get_power_state(log_api_exception))
         )
 
-    def pair(
-        self, ch_type, token, pin, timeout=DEFAULT_TIMEOUT, log_api_exception=True
-    ):
+    def pow_on(self, log_api_exception=True):
         return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).pair(ch_type, token, pin, timeout, log_api_exception)
-            )
+            self.loop.create_task(super(Vizio, self).pow_on(log_api_exception))
         )
 
-    def get_inputs(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    def pow_off(self, log_api_exception=True):
         return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).get_inputs(timeout, log_api_exception)
-            )
+            self.loop.create_task(super(Vizio, self).pow_off(log_api_exception))
         )
 
-    def get_current_input(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    def pow_toggle(self, log_api_exception=True):
         return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).get_current_input(timeout, log_api_exception)
-            )
+            self.loop.create_task(super(Vizio, self).pow_toggle(log_api_exception))
         )
 
-    def get_power_state(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    def vol_up(self, num=1, log_api_exception=True):
         return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).get_power_state(timeout, log_api_exception)
-            )
+            self.loop.create_task(super(Vizio, self).vol_up(num, log_api_exception))
         )
 
-    def pow_on(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    def vol_down(self, num=1, log_api_exception=True):
         return self.loop.run_until_complete(
-            self.loop.create_task(super(Vizio, self).pow_on(timeout, log_api_exception))
+            self.loop.create_task(super(Vizio, self).vol_down(num, log_api_exception))
         )
 
-    def pow_off(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    def get_current_volume(self, log_api_exception=True):
         return self.loop.run_until_complete(
             self.loop.create_task(
-                super(Vizio, self).pow_off(timeout, log_api_exception)
-            )
-        )
-
-    def pow_toggle(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).pow_toggle(timeout, log_api_exception)
-            )
-        )
-
-    def vol_up(self, num=1, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).vol_up(num, timeout, log_api_exception)
-            )
-        )
-
-    def vol_down(self, num=1, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).vol_down(num, timeout, log_api_exception)
-            )
-        )
-
-    def get_current_volume(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).get_current_volume(timeout, log_api_exception)
+                super(Vizio, self).get_current_volume(log_api_exception)
             )
         )
 
     def get_max_volume(self):
         return super(Vizio, self).get_max_volume()
 
-    def ch_up(self, num=1, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    def ch_up(self, num=1, log_api_exception=True):
+        return self.loop.run_until_complete(
+            self.loop.create_task(super(Vizio, self).ch_up(num, log_api_exception))
+        )
+
+    def ch_down(self, num=1, log_api_exception=True):
+        return self.loop.run_until_complete(
+            self.loop.create_task(super(Vizio, self).ch_down(num, log_api_exception))
+        )
+
+    def ch_prev(self, log_api_exception=True):
+        return self.loop.run_until_complete(
+            self.loop.create_task(super(Vizio, self).ch_prev(log_api_exception))
+        )
+
+    def mute_on(self, log_api_exception=True):
+        return self.loop.run_until_complete(
+            self.loop.create_task(super(Vizio, self).mute_on(log_api_exception))
+        )
+
+    def mute_off(self, log_api_exception=True):
+        return self.loop.run_until_complete(
+            self.loop.create_task(super(Vizio, self).mute_off(log_api_exception))
+        )
+
+    def mute_toggle(self, log_api_exception=True):
+        return self.loop.run_until_complete(
+            self.loop.create_task(super(Vizio, self).mute_toggle(log_api_exception))
+        )
+
+    def input_next(self, log_api_exception=True):
+        return self.loop.run_until_complete(
+            self.loop.create_task(super(Vizio, self).input_next(log_api_exception))
+        )
+
+    def input_switch(self, name, log_api_exception=True):
         return self.loop.run_until_complete(
             self.loop.create_task(
-                super(Vizio, self).ch_up(num, timeout, log_api_exception)
+                super(Vizio, self).input_switch(name, log_api_exception)
             )
         )
 
-    def ch_down(self, num=1, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    def play(self, log_api_exception=True):
         return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).ch_down(num, timeout, log_api_exception)
-            )
+            self.loop.create_task(super(Vizio, self).play(log_api_exception))
         )
 
-    def ch_prev(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    def pause(self, log_api_exception=True):
         return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).ch_prev(timeout, log_api_exception)
-            )
+            self.loop.create_task(super(Vizio, self).pause(log_api_exception))
         )
 
-    def mute_on(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
+    def remote(self, key, log_api_exception=True):
         return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).mute_on(timeout, log_api_exception)
-            )
-        )
-
-    def mute_off(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).mute_off(timeout, log_api_exception)
-            )
-        )
-
-    def mute_toggle(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).mute_toggle(timeout, log_api_exception)
-            )
-        )
-
-    def input_next(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).input_next(timeout, log_api_exception)
-            )
-        )
-
-    def input_switch(self, name, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).input_switch(name, timeout, log_api_exception)
-            )
-        )
-
-    def play(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return self.loop.run_until_complete(
-            self.loop.create_task(super(Vizio, self).play(timeout, log_api_exception))
-        )
-
-    def pause(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return self.loop.run_until_complete(
-            self.loop.create_task(super(Vizio, self).pause(timeout, log_api_exception))
-        )
-
-    def remote(self, key, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
-        return self.loop.run_until_complete(
-            self.loop.create_task(
-                super(Vizio, self).remote(key, timeout, log_api_exception)
-            )
+            self.loop.create_task(super(Vizio, self).remote(key, log_api_exception))
         )
 
     def get_device_keys(self):
@@ -556,5 +519,5 @@ def guess_device_type(ip, port=None, timeout=DEFAULT_TIMEOUT):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     return loop.run_until_complete(
-        self.loop.create_task(async_guess_device_type(ip, port, timeout))
+        loop.create_task(async_guess_device_type(ip, port, timeout))
     )
