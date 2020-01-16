@@ -366,73 +366,99 @@ class Vizio(VizioAsync):
         )
 
     def can_connect(self, timeout=DEFAULT_TIMEOUT):
-        return self.loop.run_until_complete(super(Vizio, self).can_connect(timeout))
+        return self.loop.run_until_complete(
+            self.loop.create_task(super(Vizio, self).can_connect(timeout))
+        )
 
     def get_esn(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).get_esn(timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).get_esn(timeout, log_api_exception)
+            )
         )
 
     def start_pair(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).start_pair(timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).start_pair(timeout, log_api_exception)
+            )
         )
 
     def stop_pair(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).stop_pair(timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).stop_pair(timeout, log_api_exception)
+            )
         )
 
     def pair(
         self, ch_type, token, pin, timeout=DEFAULT_TIMEOUT, log_api_exception=True
     ):
         return self.loop.run_until_complete(
-            super(Vizio, self).pair(ch_type, token, pin, timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).pair(ch_type, token, pin, timeout, log_api_exception)
+            )
         )
 
     def get_inputs(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).get_inputs(timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).get_inputs(timeout, log_api_exception)
+            )
         )
 
     def get_current_input(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).get_current_input(timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).get_current_input(timeout, log_api_exception)
+            )
         )
 
     def get_power_state(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).get_power_state(timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).get_power_state(timeout, log_api_exception)
+            )
         )
 
     def pow_on(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).pow_on(timeout, log_api_exception)
+            self.loop.create_task(super(Vizio, self).pow_on(timeout, log_api_exception))
         )
 
     def pow_off(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).pow_off(timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).pow_off(timeout, log_api_exception)
+            )
         )
 
     def pow_toggle(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).pow_toggle(timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).pow_toggle(timeout, log_api_exception)
+            )
         )
 
     def vol_up(self, num=1, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).vol_up(num, timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).vol_up(num, timeout, log_api_exception)
+            )
         )
 
     def vol_down(self, num=1, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).vol_down(num, timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).vol_down(num, timeout, log_api_exception)
+            )
         )
 
     def get_current_volume(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).get_current_volume(timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).get_current_volume(timeout, log_api_exception)
+            )
         )
 
     def get_max_volume(self):
@@ -440,57 +466,75 @@ class Vizio(VizioAsync):
 
     def ch_up(self, num=1, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).ch_up(num, timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).ch_up(num, timeout, log_api_exception)
+            )
         )
 
     def ch_down(self, num=1, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).ch_down(num, timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).ch_down(num, timeout, log_api_exception)
+            )
         )
 
     def ch_prev(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).ch_prev(timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).ch_prev(timeout, log_api_exception)
+            )
         )
 
     def mute_on(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).mute_on(timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).mute_on(timeout, log_api_exception)
+            )
         )
 
     def mute_off(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).mute_off(timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).mute_off(timeout, log_api_exception)
+            )
         )
 
     def mute_toggle(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).mute_toggle(timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).mute_toggle(timeout, log_api_exception)
+            )
         )
 
     def input_next(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).input_next(timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).input_next(timeout, log_api_exception)
+            )
         )
 
     def input_switch(self, name, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).input_switch(name, timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).input_switch(name, timeout, log_api_exception)
+            )
         )
 
     def play(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).play(timeout, log_api_exception)
+            self.loop.create_task(super(Vizio, self).play(timeout, log_api_exception))
         )
 
     def pause(self, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).pause(timeout, log_api_exception)
+            self.loop.create_task(super(Vizio, self).pause(timeout, log_api_exception))
         )
 
     def remote(self, key, timeout=DEFAULT_TIMEOUT, log_api_exception=True):
         return self.loop.run_until_complete(
-            super(Vizio, self).remote(key, timeout, log_api_exception)
+            self.loop.create_task(
+                super(Vizio, self).remote(key, timeout, log_api_exception)
+            )
         )
 
     def get_device_keys(self):
@@ -511,4 +555,6 @@ def guess_device_type(ip, port=None, timeout=DEFAULT_TIMEOUT):
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    return loop.run_until_complete(async_guess_device_type(ip, port, timeout))
+    return loop.run_until_complete(
+        self.loop.create_task(async_guess_device_type(ip, port, timeout))
+    )
