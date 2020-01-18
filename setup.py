@@ -1,5 +1,5 @@
 from setuptools import setup
-from .pyvizio.version import __version__
+from pyvizio.version import __version__
 
 with open("pyvizio/version.py") as f:
     exec(f.read())
