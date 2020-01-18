@@ -175,8 +175,11 @@ class VizioAsync(object):
 
     async def can_connect(self):
         try:
-            if await self.__invoke_api_may_need_auth(
-                GetCurrentAudioCommand(self._device_type), False
+            if (
+                await self.__invoke_api_may_need_auth(
+                    GetPowerStateCommand(self._device_type), False
+                )
+                is not None
             ):
                 return True
             else:
