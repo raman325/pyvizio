@@ -48,7 +48,7 @@ class VizioAsync(object):
     ):
         self._device_type = device_type.lower()
         if self._device_type == DEVICE_CLASS_SOUNDBAR:
-            _LOGGER.error(
+            _LOGGER.warning(
                 f"The '{DEVICE_CLASS_SOUNDBAR}' device type has been deprecated and will be removed soon. Please use the '{DEVICE_CLASS_SPEAKER}' device type going forward"
             )
             self._device_type = DEVICE_CLASS_SPEAKER
