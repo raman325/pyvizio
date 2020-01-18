@@ -3,6 +3,7 @@ from abc import abstractmethod
 
 import jsonpickle
 from aiohttp import ClientSession, ClientTimeout
+from aiohttp.client import DEFAULT_TIMEOUT
 
 from .const import DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV
 
@@ -205,6 +206,11 @@ async def async_invoke_api(
     log_api_exception=True,
     session: ClientSession = None,
 ):
+    if timeout:
+        timeout = ClientTimeout(total=timeout)
+    else:
+        timeout = DEFAULT_TIMEOUT
+
     if headers is None:
         headers = {}
 
@@ -218,19 +224,12 @@ async def async_invoke_api(
         if session:
             if "get" == method.lower():
                 response = await session.get(
-                    url=url,
-                    headers=headers,
-                    ssl=False,
-                    timeout=ClientTimeout(total=timeout),
+                    url=url, headers=headers, ssl=False, timeout=timeout
                 )
             else:
                 headers["Content-Type"] = "application/json"
                 response = await session.put(
-                    url=url,
-                    data=str(data),
-                    headers=headers,
-                    ssl=False,
-                    timeout=ClientTimeout(total=timeout),
+                    url=url, data=str(data), headers=headers, ssl=False, timeout=timeout
                 )
 
             json_obj = await async_validate_response(response)
@@ -238,10 +237,7 @@ async def async_invoke_api(
             async with ClientSession() as local_session:
                 if "get" == method.lower():
                     response = await local_session.get(
-                        url=url,
-                        headers=headers,
-                        ssl=False,
-                        timeout=ClientTimeout(total=timeout),
+                        url=url, headers=headers, ssl=False, timeout=timeout
                     )
                 else:
                     headers["Content-Type"] = "application/json"
@@ -250,7 +246,7 @@ async def async_invoke_api(
                         data=str(data),
                         headers=headers,
                         ssl=False,
-                        timeout=ClientTimeout(total=timeout),
+                        timeout=timeout,
                     )
 
                 json_obj = await async_validate_response(response)
@@ -267,5 +263,11 @@ async def async_invoke_api_auth(
 ):
     headers = {ProtoConstants.HEADER_AUTH: auth_token}
     return await async_invoke_api(
-        ip, command, logger, timeout, headers, log_api_exception, session
+        ip,
+        command,
+        logger,
+        timeout,
+        headers,
+        log_api_exception=log_api_exception,
+        session=session,
     )
