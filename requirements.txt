@@ -1,6 +1,6 @@
 aiohttp
 asyncio
 click
-requests
 jsonpickle
-xmltodict
+tabulate
+zeroconf

@@ -1,64 +1,41 @@
-#   Copyright 2014 Dan Krause
-#
-#   Licensed under the Apache License, Version 2.0 (the "License");
-#   you may not use this file except in compliance with the License.
-#   You may obtain a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-#   Unless required by applicable law or agreed to in writing, software
-#   distributed under the License is distributed on an "AS IS" BASIS,
-#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#   See the License for the specific language governing permissions and
-#   limitations under the License.
+import time
+from typing import Callable, List
 
-import http.client
-import io
-import socket
+from zeroconf import IPVersion, ServiceBrowser, ServiceInfo, Zeroconf
 
 
-class SSDPResponse(object):
-    class _FakeSocket(io.BytesIO):
-        def makefile(self, *args, **kw):
-            return self
-
-    def __init__(self, response):
-        r = http.client.HTTPResponse(self._FakeSocket(response))
-        r.begin()
-        self.location = r.getheader("location")
-        self.usn = r.getheader("usn")
-        self.st = r.getheader("st")
-        self.cache = r.getheader("cache-control").split("=")[1]
-
-    def __repr__(self):
-        return "<SSDPResponse({location}, {st}, {usn})>".format(**self.__dict__)
+class ZeroconfDevice:
+    def __init__(self, name: str, ip: str, port: int, model: str, id: str) -> None:
+        self.name = name
+        self.ip = ip
+        self.port = port
+        self.model = model
+        self.id = id
 
 
-def discover(service, timeout=5, retries=1, mx=3):
-    group = ("239.255.255.250", 1900)
-    message = "\r\n".join(
-        [
-            "M-SEARCH * HTTP/1.1",
-            "HOST: {0}:{1}",
-            'MAN: "ssdp:discover"',
-            "ST: {st}",
-            "MX: {mx}",
-            "",
-            "",
-        ]
-    )
-    socket.setdefaulttimeout(timeout)
-    responses = {}
-    for _ in range(retries):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
-        message_bytes = message.format(*group, st=service, mx=mx).encode("utf-8")
-        sock.sendto(message_bytes, group)
-        while True:
-            try:
-                response = SSDPResponse(sock.recv(1024))
-                responses[response.location] = response
-            except socket.timeout:
-                break
-        return list(responses.values())
+class ZeroconfListener:
+    def __init__(self, func: Callable[[ServiceInfo], None]) -> None:
+        self._func = func
+
+    def add_service(self, zeroconf: Zeroconf, type: str, name: str) -> None:
+        self._func(zeroconf.get_service_info(type, name))
+
+
+def discover(service_type: str, timeout: int = 3) -> List[ZeroconfDevice]:
+    services = []
+
+    def append_service(info: ServiceInfo) -> None:
+        service = ZeroconfDevice(
+            info.name[: -(len(info.type) + 1)],
+            info.parsed_addresses(IPVersion.V4Only)[0],
+            info.port,
+            info.properties[b"name"].decode("utf-8"),
+            info.properties[b"id"].hex(),
+        )
+        services.append(service)
+
+    zeroconf = Zeroconf()
+    ServiceBrowser(zeroconf, service_type, ZeroconfListener(append_service))
+    time.sleep(timeout)
+    zeroconf.close()
+    return services
