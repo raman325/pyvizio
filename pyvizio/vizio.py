@@ -330,7 +330,14 @@ class VizioAsync(object):
     async def input_switch(
         self, name: str, log_api_exception: bool = True
     ) -> Optional[bool]:
-        cur_input = await self.get_current_input(log_api_exception=log_api_exception)
+        if isinstance(self, Vizio):
+            cur_input = await super(Vizio, self).get_current_input(
+                log_api_exception=log_api_exception
+            )
+        else:
+            cur_input = await self.get_current_input(
+                log_api_exception=log_api_exception
+            )
         if cur_input is None:
             _LOGGER.error("Couldn't detect current input")
             return False
@@ -404,6 +411,9 @@ class Vizio(VizioAsync):
         super(Vizio, self).__init__(
             device_id, ip, name, auth_token, device_type, session=None, timeout=timeout
         )
+
+    def __del__(self) -> None:
+        self.loop.close()
 
     @staticmethod
     def discovery(timeout: int = 3) -> List[ZeroconfDevice]:
@@ -631,8 +641,11 @@ def guess_device_type(
     `ip` and `port` are valid.
     """
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    return loop.run_until_complete(
-        loop.create_task(async_guess_device_type(ip, port, timeout))
-    )
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop.run_until_complete(
+            loop.create_task(async_guess_device_type(ip, port, timeout))
+        )
+    finally:
+        loop.close()
