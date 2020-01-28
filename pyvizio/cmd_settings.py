@@ -35,14 +35,12 @@ class GetCurrentAudioCommand(InfoCommandBase):
 
         return results
 
-    def process_response(self, json_obj: Dict[str, Any]) -> Optional[int]:
+    def process_response(self, json_obj: Dict[str, Any]) -> int:
         items = self._get_items(json_obj)
         for itm in items:
             if itm.c_name.lower() == CNames.Audio.VOLUME:
                 if itm.value is not None:
                     return int(itm.value)
-                return None
-
         return 0
 
 

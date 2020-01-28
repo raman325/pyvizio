@@ -194,30 +194,20 @@ class VizioAsync(object):
         ).get_esn(log_api_exception=log_api_exception)
 
     async def can_connect(self) -> bool:
-        try:
-            if (
-                await self.__invoke_api_may_need_auth(
-                    GetPowerStateCommand(self._device_type), log_api_exception=False
-                )
-                is not None
-            ):
-                return True
-            else:
-                return False
-        except Exception:
+        if (
+            await self.__invoke_api_may_need_auth(
+                GetPowerStateCommand(self._device_type), log_api_exception=False
+            )
+            is not None
+        ):
+            return True
+        else:
             return False
 
     async def get_esn(self, log_api_exception: bool = True) -> Optional[str]:
-        try:
-            return await self.__invoke_api_may_need_auth(
-                GetESNCommand(self._device_type), log_api_exception=log_api_exception
-            )
-        except Exception:
-            _LOGGER.error(
-                "ESN unable to be retrieved, please submit issue to https://github.com/vkorn/pyvizio/issues with logs",
-                exc_info=True,
-            )
-            return None
+        return await self.__invoke_api_may_need_auth(
+            GetESNCommand(self._device_type), log_api_exception=log_api_exception
+        )
 
     async def start_pair(
         self, log_api_exception: bool = True

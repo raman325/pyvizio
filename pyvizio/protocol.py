@@ -52,7 +52,7 @@ class InfoCommandBase(CommandBase):
         return CommandBase.url.fget(self)
 
     @url.setter
-    def url(self, new_url) -> None:
+    def url(self, new_url: str) -> None:
         CommandBase.url.fset(self, new_url)
 
 
@@ -204,7 +204,7 @@ async def async_invoke_api(
     command: CommandBase,
     logger: Logger,
     timeout: int,
-    headers: Dict[str, Any] = None,
+    headers: Optional[Dict[str, Any]] = None,
     log_api_exception: bool = True,
     session: Optional[ClientSession] = None,
 ) -> Any:
