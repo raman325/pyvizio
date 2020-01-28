@@ -1,9 +1,11 @@
-import json
 from abc import abstractmethod
+import json
+from logging import Logger
+from typing import Any, Dict, Optional
 
-import jsonpickle
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientResponse, ClientSession, ClientTimeout
 from aiohttp.client import DEFAULT_TIMEOUT
+import jsonpickle
 
 from .const import DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV
 
@@ -11,46 +13,46 @@ HTTP_OK = 200
 
 
 class CommandBase(object):
-    def __init__(self):
+    def __init__(self) -> None:
         self._url = ""
 
     @property
-    def _method(self):
+    def _method(self) -> str:
         return "PUT"
 
     @property
-    def url(self):
+    def url(self) -> str:
         return self._url
 
     @url.setter
-    def url(self, new_url):
+    def url(self, new_url: str) -> None:
         self._url = new_url
 
-    def get_url(self):
+    def get_url(self) -> str:
         return self._url
 
-    def get_method(self):
+    def get_method(self) -> str:
         return self._method
 
     @abstractmethod
-    def process_response(self, json_obj):
+    def process_response(self, json_obj: Dict[str, Any]) -> None:
         return None
 
 
 class InfoCommandBase(CommandBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super(InfoCommandBase, self).__init__()
 
     @property
-    def _method(self):
+    def _method(self) -> str:
         return "GET"
 
     @property
-    def url(self):
+    def url(self) -> str:
         return CommandBase.url.fget(self)
 
     @url.setter
-    def url(self, new_url):
+    def url(self, new_url) -> None:
         CommandBase.url.fset(self, new_url)
 
 
@@ -167,7 +169,7 @@ class CNames(object):
         ESN = "esn"
 
 
-def get_json_obj(json_obj, key):
+def get_json_obj(json_obj: Dict[str, Any], key: str) -> Any:
     key = key.lower()
     for k, v in json_obj.items():
         if k.lower() == key:
@@ -175,7 +177,7 @@ def get_json_obj(json_obj, key):
     return None
 
 
-async def async_validate_response(web_response):
+async def async_validate_response(web_response: ClientResponse) -> Dict[str, Any]:
     if HTTP_OK != web_response.status:
         raise Exception(
             "Device is unreachable? Status code: {0}".format(web_response.status)
@@ -198,14 +200,14 @@ async def async_validate_response(web_response):
 
 
 async def async_invoke_api(
-    ip,
-    command,
-    logger,
-    timeout,
-    headers=None,
-    log_api_exception=True,
-    session: ClientSession = None,
-):
+    ip: str,
+    command: CommandBase,
+    logger: Logger,
+    timeout: int,
+    headers: Dict[str, Any] = None,
+    log_api_exception: bool = True,
+    session: Optional[ClientSession] = None,
+) -> Any:
     if timeout:
         timeout = ClientTimeout(total=timeout)
     else:
@@ -259,8 +261,14 @@ async def async_invoke_api(
 
 
 async def async_invoke_api_auth(
-    ip, command, auth_token, logger, timeout, log_api_exception=True, session=None
-):
+    ip: str,
+    command: CommandBase,
+    auth_token: str,
+    logger: Logger,
+    timeout: int,
+    log_api_exception: bool = True,
+    session: Optional[ClientSession] = None,
+) -> Any:
     headers = {ProtoConstants.HEADER_AUTH: auth_token}
     return await async_invoke_api(
         ip,

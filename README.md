@@ -33,16 +33,16 @@ First, find your device (yeah, I'm too lazy to add another cli group)
 pyvizio --ip=0 discover
 ```
 
-and note it's IP address. If using your IP address by itself does not lead to success, you may need to append `:9000` or `:7345` to it when using it as a parameter in future commands. 
+and note its IP address and port number.
 
 ### Pairing
 
 > For a Speaker, it is unclear how the device would notify you of a valid auth token, so it's best to first skip the pairing process entirely, specify `--device_type=speaker`, and try commands like `volume-current` to see if you have any success. If not, and if specifying different ports as mentioned above doesn't work, you will need to find a way to get the auth token during this process.
 
-Using your device's IP address, request pairing procedure:
+Using your device's IP address and port number, request pairing procedure:
 
 ```
-pyvizio --ip={ip} --device_type={device_type} pair
+pyvizio --ip={ip:port} --device_type={device_type} pair
 ```
 
 For TVs, lookup the PIN code on your TV, and note challenge token in console. It's not clear how you would obtain an auth token for a Speaker. 
@@ -52,7 +52,7 @@ turned off prior to pairing command
 
 Using these dafa finalize pairing procedure
 ```
-pyvizio --ip={ip} --device_type={device_type} pair-finish --token={challenge_token} --pin={_pin} 
+pyvizio --ip={ip:port} --device_type={device_type} pair-finish --token={challenge_token} --pin={_pin} 
 ```
 If everything done correctly, you should see new connected device named `Python Vizio` 
 in Vizio SmartCast mobile APP 
@@ -63,13 +63,13 @@ in Vizio SmartCast mobile APP
 ### Turning on/off
 
 ```
-pyvizio --ip={ip} --device_type={device_type} --auth={auth_code} power {on|off|toggle}
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} power {on|off|toggle}
 ```
 
 To get current power state simply call
 
 ```
-pyvizio --ip={ip} --device_type={device_type} --auth={auth_code} power-get
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} power-get
 ``` 
 
 ### Volume operations
@@ -77,24 +77,24 @@ pyvizio --ip={ip} --device_type={device_type} --auth={auth_code} power-get
 You could change volume
 
 ```
-pyvizio --ip={ip} --device_type={device_type} --auth={auth_code} volume {up|down} amount
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} volume {up|down} amount
 ```
 
 and get current level (0-100)
 
 ```
-pyvizio --ip={ip} --device_type={device_type} --auth={auth_code} volume-current
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} volume-current
 ```
 
 In addition mute command is available
 
 ```
-pyvizio --ip={ip} --device_type={device_type} --auth={auth_code} mute {on|off|toggle}
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} mute {on|off|toggle}
 ```
 
 ### Switching channels
 ```
-pyvizio --ip={ip} --device_type={device_type} --auth={auth_code} channel {up|down|prev} amount
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} channel {up|down|prev} amount
 ```
 
 ### Input sources
@@ -102,24 +102,24 @@ pyvizio --ip={ip} --device_type={device_type} --auth={auth_code} channel {up|dow
 You can get current source 
 
 ```
-pyvizio --ip={ip} --device_type={device_type} --auth={auth_code} input-get
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} input-get
 ```
 
 List all connected devices
 
 ```
-pyvizio --ip={ip} --device_type={device_type} --auth={auth_code} input-list
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} input-list
 ```
 
 And using `Name` column from this list, you can switch input:
 
 ```
-pyvizio --ip={ip}  --device_type={device_type} --auth={auth_code} input --name={name}
+pyvizio --ip={ip:port}  --device_type={device_type} --auth={auth_code} input --name={name}
 ```
 
 Other options is to circle through all inputs
 ```
-pyvizio --ip={ip} --device_type={device_type} --auth={auth_code} input-next
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} input-next
 ``` 
 
 ## Contribution

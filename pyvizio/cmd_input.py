@@ -1,3 +1,5 @@
+from typing import Any, Dict, List, Optional
+
 from .const import DEVICE_CLASS_SPEAKER
 from .protocol import (
     CommandBase,
@@ -9,7 +11,7 @@ from .protocol import (
 
 
 class VizioInput(object):
-    def __init__(self, json_item, is_extended_metadata):
+    def __init__(self, json_item: Dict[str, Any], is_extended_metadata: bool) -> None:
         self.id = int(get_json_obj(json_item, ProtoConstants.Item.HASHVAL))
         self.c_name = get_json_obj(json_item, ProtoConstants.Item.CNAME)
         self.type = get_json_obj(json_item, ProtoConstants.Item.TYPE)
@@ -32,12 +34,12 @@ class VizioInput(object):
 class GetInputsListCommand(InfoCommandBase):
     """Obtaining list of available inputs"""
 
-    def __init__(self, device_type):
+    def __init__(self, device_type: str) -> None:
         super(GetInputsListCommand, self).__init__()
         InfoCommandBase.url.fset(self, Endpoints.ENDPOINTS[device_type]["INPUTS"])
         self._device_type = device_type
 
-    def process_response(self, json_obj):
+    def process_response(self, json_obj: Dict[str, Any]) -> Optional[List[VizioInput]]:
         items = get_json_obj(json_obj, ProtoConstants.RESPONSE_ITEMS)
 
         # Last input for sound bar is the current input so it needs to be removed before processing
@@ -57,11 +59,11 @@ class GetInputsListCommand(InfoCommandBase):
 class GetCurrentInputCommand(InfoCommandBase):
     """Obtaining current input"""
 
-    def __init__(self, device_type):
+    def __init__(self, device_type: str) -> None:
         super(GetCurrentInputCommand, self).__init__()
         InfoCommandBase.url.fset(self, Endpoints.ENDPOINTS[device_type]["CURR_INPUT"])
 
-    def process_response(self, json_obj):
+    def process_response(self, json_obj: Dict[str, Any]) -> Optional[VizioInput]:
         items = get_json_obj(json_obj, ProtoConstants.RESPONSE_ITEMS)
         v_input = None
         if len(items) > 0:
@@ -70,7 +72,7 @@ class GetCurrentInputCommand(InfoCommandBase):
 
 
 class ChangeInputCommand(CommandBase):
-    def __init__(self, id_, name, device_type):
+    def __init__(self, id_, name: str, device_type: str) -> None:
         super(ChangeInputCommand, self).__init__()
         CommandBase.url.fset(self, Endpoints.ENDPOINTS[device_type]["SET_INPUT"])
         self.VALUE = str(name)
@@ -78,5 +80,5 @@ class ChangeInputCommand(CommandBase):
         self.HASHVAL = int(id_)
         self.REQUEST = ProtoConstants.ACTION_MODIFY
 
-    def process_response(self, json_obj):
+    def process_response(self, json_obj: Dict[str, Any]) -> bool:
         return True

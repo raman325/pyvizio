@@ -1,7 +1,6 @@
+from pyvizio.version import __version__
 from setuptools import setup
 
-with open("pyvizio/version.py") as f:
-    exec(f.read())
 with open("README.md", "r") as myfile:
     longdescription = myfile.read()
 
@@ -27,9 +26,9 @@ setup(
         "aiohttp",
         "asyncio",
         "click",
-        "requests",
         "jsonpickle",
-        "xmltodict",
+        "tabulate",
+        "zeroconf",
     ],
     entry_points={"console_scripts": ["pyvizio=pyvizio.cli:cli"]},
 )
