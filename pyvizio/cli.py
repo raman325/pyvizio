@@ -1,4 +1,5 @@
 import asyncio
+from functools import wraps
 import logging
 import sys
 
@@ -13,8 +14,8 @@ from .const import (
     DEVICE_CLASS_TV,
 )
 
-if sys.version_info < (3, 4):
-    print("To use this script you need python 3.4 or newer, got %s" % sys.version_info)
+if sys.version_info < (3, 7):
+    print("To use this script you need python 3.7 or newer, got %s" % sys.version_info)
     sys.exit(1)
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,6 +23,14 @@ DEVICE_ID = "pyvizio"
 DEVICE_NAME = "Python Vizio"
 
 pass_vizio = click.make_pass_decorator(VizioAsync)
+
+
+def coro(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        return asyncio.run(f(*args, **kwargs))
+
+    return wrapper
 
 
 @click.group(invoke_without_command=False)
@@ -62,28 +71,24 @@ def discover() -> None:
 
 
 @cli.command()
+@coro
 @pass_vizio
-def pair(vizio: VizioAsync) -> None:
+async def pair(vizio: VizioAsync) -> None:
     _LOGGER.info(
         "Initiating pairing process, please check your device for pin upon success"
     )
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    pair_data = loop.run_until_complete(loop.create_task(vizio.start_pair()))
-    loop.close()
+    pair_data = await vizio.start_pair()
     if pair_data is not None:
         _LOGGER.info("Challenge type: %s", pair_data.ch_type)
         _LOGGER.info("Challenge token: %s", pair_data.token)
 
 
 @cli.command()
+@coro
 @pass_vizio
-def pair_stop(vizio: VizioAsync) -> None:
+async def pair_stop(vizio: VizioAsync) -> None:
     _LOGGER.info("Sending stop pair command")
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(loop.create_task(vizio.stop_pair()))
-    loop.close()
+    await vizio.stop_pair()
 
 
 @cli.command()
@@ -99,26 +104,20 @@ def pair_stop(vizio: VizioAsync) -> None:
 @click.option(
     "--pin", required=True, help="PIN obtained from device after running pair command"
 )
+@coro
 @pass_vizio
-def pair_finish(vizio: VizioAsync, ch_type: str, token: str, pin: str) -> None:
+async def pair_finish(vizio: VizioAsync, ch_type: str, token: str, pin: str) -> None:
     _LOGGER.info("Finishing pairing")
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    pair_data = loop.run_until_complete(
-        loop.create_task(vizio.pair(ch_type, token, pin))
-    )
-    loop.close()
+    pair_data = await vizio.pair(ch_type, token, pin)
     if pair_data is not None:
         _LOGGER.info("Authorization token: %s", pair_data.auth_token)
 
 
 @cli.command()
+@coro
 @pass_vizio
-def input_list(vizio: VizioAsync) -> None:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    inputs = loop.run_until_complete(loop.create_task(vizio.get_inputs()))
-    loop.close()
+async def input_list(vizio: VizioAsync) -> None:
+    inputs = await vizio.get_inputs()
     if inputs:
         table = tabulate(
             [[input.name, input.meta_name, input.type, input.id] for input in inputs],
@@ -130,12 +129,10 @@ def input_list(vizio: VizioAsync) -> None:
 
 
 @cli.command()
+@coro
 @pass_vizio
-def input_get(vizio: VizioAsync) -> None:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    data = loop.run_until_complete(loop.create_task(vizio.get_current_input()))
-    loop.close()
+async def input_get(vizio: VizioAsync) -> None:
+    data = await vizio.get_current_input()
     if data:
         _LOGGER.info("Current input: %s", data.meta_name)
     else:
@@ -143,12 +140,10 @@ def input_get(vizio: VizioAsync) -> None:
 
 
 @cli.command()
+@coro
 @pass_vizio
-def power_get(vizio: VizioAsync) -> None:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    is_on = loop.run_until_complete(loop.create_task(vizio.get_power_state()))
-    loop.close()
+async def power_get(vizio: VizioAsync) -> None:
+    is_on = await vizio.get_power_state()
     _LOGGER.info("Device is on" if is_on else "Device is off")
 
 
@@ -159,20 +154,18 @@ def power_get(vizio: VizioAsync) -> None:
     default="toggle",
     type=click.Choice(["toggle", "on", "off"]),
 )
+@coro
 @pass_vizio
-def power(vizio: VizioAsync, state: str) -> None:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+async def power(vizio: VizioAsync, state: str) -> None:
     if "on" == state:
         txt = "Turning ON"
-        result = loop.run_until_complete(loop.create_task(vizio.pow_on()))
+        result = await vizio.pow_on()
     elif "off" == state:
         txt = "Turning OFF"
-        result = loop.run_until_complete(loop.create_task(vizio.pow_off()))
+        result = await vizio.pow_off()
     else:
         txt = "Toggling power"
-        result = loop.run_until_complete(loop.create_task(vizio.pow_toggle()))
-    loop.close()
+        result = await vizio.pow_toggle()
     _LOGGER.info(txt)
     _LOGGER.info("OK" if result else "ERROR")
 
@@ -184,44 +177,32 @@ def power(vizio: VizioAsync, state: str) -> None:
 @click.argument(
     "amount", required=False, default=1, type=click.IntRange(1, 100, clamp=True)
 )
+@coro
 @pass_vizio
-def volume(vizio: VizioAsync, state: str, amount: str) -> None:
+async def volume(vizio: VizioAsync, state: str, amount: str) -> None:
     amount = int(amount)
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
     if "up" == state:
         txt = "Increasing volume"
-        result = loop.run_until_complete(loop.create_task(vizio.vol_up(amount)))
+        result = await vizio.vol_up(amount)
     else:
         txt = "Decreasing volume"
-        result = loop.run_until_complete(loop.create_task(vizio.vol_down(amount)))
-    loop.close()
+        result = await vizio.vol_down(amount)
     _LOGGER.info(txt)
     _LOGGER.info("OK" if result else "ERROR")
 
 
 @cli.command()
+@coro
 @pass_vizio
-def volume_current(vizio: VizioAsync) -> None:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    _LOGGER.info(
-        "Current volume: %s",
-        loop.run_until_complete(loop.create_task(vizio.get_current_volume())),
-    )
-    loop.close()
+async def volume_current(vizio: VizioAsync) -> None:
+    _LOGGER.info("Current volume: %s", await vizio.get_current_volume())
 
 
 @cli.command()
+@coro
 @pass_vizio
-def volume_max(vizio: VizioAsync) -> None:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    _LOGGER.info(
-        "Max volume: %s",
-        loop.run_until_complete(loop.create_task(vizio.get_max_volume())),
-    )
-    loop.close()
+async def volume_max(vizio: VizioAsync) -> None:
+    _LOGGER.info("Max volume: %s", await vizio.get_max_volume())
 
 
 @cli.command()
@@ -234,21 +215,19 @@ def volume_max(vizio: VizioAsync) -> None:
 @click.argument(
     "amount", required=False, default=1, type=click.IntRange(1, 100, clamp=True)
 )
+@coro
 @pass_vizio
-def channel(vizio: VizioAsync, state: str, amount: str) -> None:
+async def channel(vizio: VizioAsync, state: str, amount: str) -> None:
     amount = int(amount)
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
     if "up" == state:
         txt = "Channel up"
-        result = loop.run_until_complete(loop.create_task(vizio.ch_up(amount)))
+        result = await vizio.ch_up(amount)
     elif "down" == state:
         txt = "Channel down"
-        result = loop.run_until_complete(loop.create_task(vizio.ch_down(amount)))
+        result = await vizio.ch_down(amount)
     else:
         txt = "Previous channel"
-        result = loop.run_until_complete(loop.create_task(vizio.ch_prev()))
-    loop.close()
+        result = await vizio.ch_prev()
     _LOGGER.info(txt)
     _LOGGER.info("OK" if result else "ERROR")
 
@@ -260,76 +239,64 @@ def channel(vizio: VizioAsync, state: str, amount: str) -> None:
     default="toggle",
     type=click.Choice(["toggle", "on", "off"]),
 )
+@coro
 @pass_vizio
-def mute(vizio: VizioAsync, state: str) -> None:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+async def mute(vizio: VizioAsync, state: str) -> None:
     if "on" == state:
         txt = "Muting"
-        result = loop.run_until_complete(loop.create_task(vizio.mute_on()))
+        result = await vizio.mute_on()
     elif "off" == state:
         txt = "Un-muting"
-        result = loop.run_until_complete(loop.create_task(vizio.mute_off()))
+        result = await vizio.mute_off()
     else:
         txt = "Toggling mute"
-        result = loop.run_until_complete(loop.create_task(vizio.mute_toggle()))
-    loop.close()
+        result = await vizio.mute_toggle()
     _LOGGER.info(txt)
     _LOGGER.info("OK" if result else "ERROR")
 
 
 @cli.command()
+@coro
 @pass_vizio
-def input_next(vizio: VizioAsync) -> None:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    result = loop.run_until_complete(loop.create_task(vizio.input_next()))
-    loop.close()
+async def input_next(vizio: VizioAsync) -> None:
+    result = await vizio.input_next()
     _LOGGER.info("Circling input")
     _LOGGER.info("OK" if result else "ERROR")
 
 
 @cli.command(name="input")
 @click.option("--name", required=True)
+@coro
 @pass_vizio
-def input(vizio: VizioAsync, name: str) -> None:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    result = loop.run_until_complete(loop.create_task(vizio.input_switch(name)))
-    loop.close()
+async def input(vizio: VizioAsync, name: str) -> None:
+    result = await vizio.input_switch(name)
     _LOGGER.info("Switching input")
     _LOGGER.info("OK" if result else "ERROR")
 
 
 @cli.command()
+@coro
 @pass_vizio
-def play(vizio: VizioAsync) -> None:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    result = loop.run_until_complete(loop.create_task(vizio.play()))
-    loop.close()
+async def play(vizio: VizioAsync) -> None:
+    result = await vizio.play()
     _LOGGER.info("OK" if result else "ERROR")
 
 
 @cli.command()
+@coro
 @pass_vizio
-def pause(vizio: VizioAsync) -> None:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    result = loop.run_until_complete(loop.create_task(vizio.pause()))
-    loop.close()
+async def pause(vizio: VizioAsync) -> None:
+    result = await vizio.pause()
     _LOGGER.info("OK" if result else "ERROR")
 
 
 @cli.command()
 @click.argument("key", required=True)
+@coro
 @pass_vizio
-def key_press(vizio: VizioAsync, key: str) -> None:
+async def key_press(vizio: VizioAsync, key: str) -> None:
     _LOGGER.info("Emulating pressing of '%s' key", key)
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    result = loop.run_until_complete(loop.create_task(vizio.remote(key)))
-    loop.close()
+    result = await vizio.remote(key)
     _LOGGER.info("OK" if result else "ERROR")
 
 
