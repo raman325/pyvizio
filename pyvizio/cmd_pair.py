@@ -43,15 +43,15 @@ class PairChallengeCommand(PairCommandBase):
     def __init__(
         self,
         device_id: str,
-        challenge_type: str,
-        pairing_token: str,
+        challenge_type: int,
+        pairing_token: int,
         pin: str,
         device_type: str,
     ) -> None:
         super().__init__(device_id, device_type, "FINISH_PAIR")
         self.CHALLENGE_TYPE = int(challenge_type)
-        self.RESPONSE_VALUE = str(pin)
         self.PAIRING_REQ_TOKEN = int(pairing_token)
+        self.RESPONSE_VALUE = str(pin)
 
     def process_response(self, json_obj: Dict[str, Any]) -> PairChallengeResponse:
         item = get_json_obj(json_obj, ProtoConstants.RESPONSE_ITEM)
