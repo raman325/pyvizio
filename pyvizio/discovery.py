@@ -21,17 +21,25 @@ class ZeroconfListener:
         self._func(zeroconf.get_service_info(type, name))
 
 
-def discover(service_type: str, timeout: int = 3) -> List[ZeroconfDevice]:
+def discover(service_type: str, timeout: int = 10) -> List[ZeroconfDevice]:
     services = []
 
     def append_service(info: ServiceInfo) -> None:
-        service = ZeroconfDevice(
-            info.name[: -(len(info.type) + 1)],
-            info.parsed_addresses(IPVersion.V4Only)[0],
-            info.port,
-            info.properties[b"name"].decode("utf-8"),
-            info.properties[b"id"].hex(),
-        )
+        name = info.name[: -(len(info.type) + 1)]
+        ip = info.parsed_addresses(IPVersion.V4Only)[0]
+        port = info.port
+        model = info.properties[b"name"].decode("utf-8")
+        # id = info.properties[b"id"]
+        # # handle id decode for various discovered use cases
+        # if isinstance(id, bytes):
+        #     try:
+        #         int(id, 16)
+        #     except Exception:
+        #         id = id.hex()
+        # else:
+        #     id = None
+
+        service = ZeroconfDevice(name, ip, port, model, None)
         services.append(service)
 
     zeroconf = Zeroconf()
