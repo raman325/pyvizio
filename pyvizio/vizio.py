@@ -224,7 +224,7 @@ class VizioAsync(object):
         )
 
     async def pair(
-        self, ch_type: str, token: str, pin: str, log_api_exception: bool = True
+        self, ch_type: int, token: int, pin: str, log_api_exception: bool = True
     ) -> Optional[PairChallengeResponse]:
         return await self.__invoke_api(
             PairChallengeCommand(

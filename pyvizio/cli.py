@@ -60,9 +60,16 @@ def cli(ctx, ip: str, auth: str, device_type: str) -> None:
 
 
 @cli.command()
-def discover() -> None:
+@click.option(
+    "--timeout",
+    required=False,
+    default=10,
+    type=click.IntRange(min=1),
+    help="Number of seconds to wait for devices to be discovered",
+)
+def discover(timeout: int) -> None:
     logging.basicConfig(level=logging.INFO)
-    devices = VizioAsync.discovery()
+    devices = VizioAsync.discovery(timeout)
     table = tabulate(
         [[dev.ip, dev.port, dev.model, dev.name] for dev in devices],
         headers=["IP", "Port", "Model", "Name"],
@@ -96,17 +103,24 @@ async def pair_stop(vizio: VizioAsync) -> None:
     "--ch_type",
     required=False,
     default=1,
+    type=click.INT,
     help="Challenge type obtained from pair command",
 )
 @click.option(
-    "--token", required=True, help="Challenge token obtained from pair command"
+    "--token",
+    required=True,
+    type=click.INT,
+    help="Challenge token obtained from pair command",
 )
 @click.option(
-    "--pin", required=True, help="PIN obtained from device after running pair command"
+    "--pin",
+    required=True,
+    type=click.STRING,
+    help="PIN obtained from device after running pair command",
 )
 @coro
 @pass_vizio
-async def pair_finish(vizio: VizioAsync, ch_type: str, token: str, pin: str) -> None:
+async def pair_finish(vizio: VizioAsync, ch_type: int, token: int, pin: str) -> None:
     _LOGGER.info("Finishing pairing")
     pair_data = await vizio.pair(ch_type, token, pin)
     if pair_data is not None:
@@ -153,6 +167,7 @@ async def power_get(vizio: VizioAsync) -> None:
     required=False,
     default="toggle",
     type=click.Choice(["toggle", "on", "off"]),
+    help="Type of power action",
 )
 @coro
 @pass_vizio
@@ -172,15 +187,22 @@ async def power(vizio: VizioAsync, state: str) -> None:
 
 @cli.command()
 @click.argument(
-    "state", required=False, default="up", type=click.Choice(["up", "down"])
+    "state",
+    required=False,
+    default="up",
+    type=click.Choice(["up", "down"]),
+    help="Direction to change the volume",
 )
 @click.argument(
-    "amount", required=False, default=1, type=click.IntRange(1, 100, clamp=True)
+    "amount",
+    required=False,
+    default=1,
+    type=click.IntRange(1, 100, clamp=True),
+    help="Number of steps to change the volume by",
 )
 @coro
 @pass_vizio
-async def volume(vizio: VizioAsync, state: str, amount: str) -> None:
-    amount = int(amount)
+async def volume(vizio: VizioAsync, state: str, amount: int) -> None:
     if "up" == state:
         txt = "Increasing volume"
         result = await vizio.vol_up(amount)
@@ -211,9 +233,14 @@ async def volume_max(vizio: VizioAsync) -> None:
     required=False,
     default="previous",
     type=click.Choice(["up", "down", "previous"]),
+    help="Type of channel action",
 )
 @click.argument(
-    "amount", required=False, default=1, type=click.IntRange(1, 100, clamp=True)
+    "amount",
+    required=False,
+    default=1,
+    type=click.IntRange(1, 100, clamp=True),
+    help="Number of steps to change the channel by",
 )
 @coro
 @pass_vizio
@@ -238,6 +265,7 @@ async def channel(vizio: VizioAsync, state: str, amount: str) -> None:
     required=False,
     default="toggle",
     type=click.Choice(["toggle", "on", "off"]),
+    help="Type of mute action",
 )
 @coro
 @pass_vizio
@@ -265,7 +293,9 @@ async def input_next(vizio: VizioAsync) -> None:
 
 
 @cli.command(name="input")
-@click.option("--name", required=True)
+@click.option(
+    "--name", required=True, type=click.STRING, help="Input name to switch to"
+)
 @coro
 @pass_vizio
 async def input(vizio: VizioAsync, name: str) -> None:
@@ -291,12 +321,14 @@ async def pause(vizio: VizioAsync) -> None:
 
 
 @cli.command()
-@click.argument("key", required=True)
+@click.argument(
+    "key", required=True, type=click.STRING, help="Name of the key to press"
+)
 @coro
 @pass_vizio
 async def key_press(vizio: VizioAsync, key: str) -> None:
     _LOGGER.info("Emulating pressing of '%s' key", key)
-    result = await vizio.remote(key)
+    result = await vizio.remote(key.upper())
     _LOGGER.info("OK" if result else "ERROR")
 
 
