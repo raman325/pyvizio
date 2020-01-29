@@ -328,7 +328,7 @@ async def pause(vizio: VizioAsync) -> None:
 @pass_vizio
 async def key_press(vizio: VizioAsync, key: str) -> None:
     _LOGGER.info("Emulating pressing of '%s' key", key)
-    result = await vizio.remote(key)
+    result = await vizio.remote(key.upper())
     _LOGGER.info("OK" if result else "ERROR")
 
 
