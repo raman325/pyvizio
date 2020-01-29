@@ -167,7 +167,6 @@ async def power_get(vizio: VizioAsync) -> None:
     required=False,
     default="toggle",
     type=click.Choice(["toggle", "on", "off"]),
-    help="Type of power action",
 )
 @coro
 @pass_vizio
@@ -187,18 +186,10 @@ async def power(vizio: VizioAsync, state: str) -> None:
 
 @cli.command()
 @click.argument(
-    "state",
-    required=False,
-    default="up",
-    type=click.Choice(["up", "down"]),
-    help="Direction to change the volume",
+    "state", required=False, default="up", type=click.Choice(["up", "down"])
 )
 @click.argument(
-    "amount",
-    required=False,
-    default=1,
-    type=click.IntRange(1, 100, clamp=True),
-    help="Number of steps to change the volume by",
+    "amount", required=False, default=1, type=click.IntRange(1, 100, clamp=True)
 )
 @coro
 @pass_vizio
@@ -233,14 +224,9 @@ async def volume_max(vizio: VizioAsync) -> None:
     required=False,
     default="previous",
     type=click.Choice(["up", "down", "previous"]),
-    help="Type of channel action",
 )
 @click.argument(
-    "amount",
-    required=False,
-    default=1,
-    type=click.IntRange(1, 100, clamp=True),
-    help="Number of steps to change the channel by",
+    "amount", required=False, default=1, type=click.IntRange(1, 100, clamp=True)
 )
 @coro
 @pass_vizio
@@ -265,7 +251,6 @@ async def channel(vizio: VizioAsync, state: str, amount: str) -> None:
     required=False,
     default="toggle",
     type=click.Choice(["toggle", "on", "off"]),
-    help="Type of mute action",
 )
 @coro
 @pass_vizio
@@ -321,9 +306,7 @@ async def pause(vizio: VizioAsync) -> None:
 
 
 @cli.command()
-@click.argument(
-    "key", required=True, type=click.STRING, help="Name of the key to press"
-)
+@click.argument("key", required=True, type=click.STRING)
 @coro
 @pass_vizio
 async def key_press(vizio: VizioAsync, key: str) -> None:
