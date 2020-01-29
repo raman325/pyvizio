@@ -60,13 +60,7 @@ def cli(ctx, ip: str, auth: str, device_type: str) -> None:
 
 
 @cli.command()
-@click.option(
-    "--timeout",
-    required=False,
-    default=10,
-    type=click.IntRange(min=1),
-    help="Number of seconds to wait for devices to be discovered",
-)
+@click.argument("timeout", required=False, default=10, type=click.IntRange(min=1))
 def discover(timeout: int) -> None:
     logging.basicConfig(level=logging.INFO)
     devices = VizioAsync.discovery(timeout)
@@ -259,7 +253,7 @@ async def mute(vizio: VizioAsync, state: str) -> None:
         txt = "Muting"
         result = await vizio.mute_on()
     elif "off" == state:
-        txt = "Un-muting"
+        txt = "Unmuting"
         result = await vizio.mute_off()
     else:
         txt = "Toggling mute"
