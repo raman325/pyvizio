@@ -29,17 +29,17 @@ def discover(service_type: str, timeout: int = 10) -> List[ZeroconfDevice]:
         ip = info.parsed_addresses(IPVersion.V4Only)[0]
         port = info.port
         model = info.properties[b"name"].decode("utf-8")
-        id = info.properties[b"id"]
-        # handle id decode for various discovered use cases
-        if isinstance(id, bytes):
-            try:
-                int(id, 16)
-            except Exception:
-                id = id.hex()
-        else:
-            id = None
+        # id = info.properties[b"id"]
+        # # handle id decode for various discovered use cases
+        # if isinstance(id, bytes):
+        #     try:
+        #         int(id, 16)
+        #     except Exception:
+        #         id = id.hex()
+        # else:
+        #     id = None
 
-        service = ZeroconfDevice(name, ip, port, model, id)
+        service = ZeroconfDevice(name, ip, port, model, None)
         services.append(service)
 
     zeroconf = Zeroconf()
