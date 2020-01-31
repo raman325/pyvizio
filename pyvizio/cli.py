@@ -6,9 +6,10 @@ import sys
 import click
 from tabulate import tabulate
 
-from . import VizioAsync
+from . import VizioAsync, guess_device_type
 from .const import (
     DEFAULT_DEVICE_CLASS,
+    DEFAULT_TIMEOUT,
     DEVICE_CLASS_SOUNDBAR,
     DEVICE_CLASS_SPEAKER,
     DEVICE_CLASS_TV,
@@ -39,12 +40,16 @@ def coro(f):
     envvar="VIZIO_IP",
     required=True,
     help="IP of the device to connect to (optionally add custom port by specifying '<IP>:<PORT>')",
+    show_default=True,
+    show_envvar=True,
 )
 @click.option(
     "--auth",
     envvar="VIZIO_AUTH",
     required=False,
     help="Auth token for the device to connect to (refer to documentation on how to obtain auth token)",
+    show_default=True,
+    show_envvar=True,
 )
 @click.option(
     "--device_type",
@@ -52,6 +57,8 @@ def coro(f):
     required=False,
     default=DEFAULT_DEVICE_CLASS,
     type=click.Choice([DEVICE_CLASS_TV, DEVICE_CLASS_SPEAKER, DEVICE_CLASS_SOUNDBAR]),
+    show_default=True,
+    show_envvar=True,
 )
 @click.pass_context
 def cli(ctx, ip: str, auth: str, device_type: str) -> None:
@@ -60,14 +67,46 @@ def cli(ctx, ip: str, auth: str, device_type: str) -> None:
 
 
 @cli.command()
-@click.argument("timeout", required=False, default=10, type=click.IntRange(min=1))
-def discover(timeout: int) -> None:
+@click.option(
+    "--include_device_type",
+    required=False,
+    default=False,
+    type=click.BOOL,
+    help="Include guessed device type (not guaranteed to be correct)",
+    show_default=True,
+    show_envvar=True,
+)
+@click.option(
+    "--timeout",
+    required=False,
+    default=DEFAULT_TIMEOUT,
+    type=click.IntRange(min=1),
+    help="Number of seconds to wait for devices to be discovered",
+    show_default=True,
+    show_envvar=True,
+)
+def discover(include_device_type: bool, timeout: int) -> None:
     logging.basicConfig(level=logging.INFO)
     devices = VizioAsync.discovery(timeout)
-    table = tabulate(
-        [[dev.ip, dev.port, dev.model, dev.name] for dev in devices],
-        headers=["IP", "Port", "Model", "Name"],
-    )
+    if include_device_type:
+        table = tabulate(
+            [
+                [
+                    dev.ip,
+                    dev.port,
+                    dev.model,
+                    dev.name,
+                    guess_device_type(dev.ip, dev.port),
+                ]
+                for dev in devices
+            ],
+            headers=["IP", "Port", "Model", "Name", "Guessed Device Type"],
+        )
+    else:
+        table = tabulate(
+            [[dev.ip, dev.port, dev.model, dev.name] for dev in devices],
+            headers=["IP", "Port", "Model", "Name"],
+        )
     _LOGGER.info("\n%s", table)
 
 
@@ -99,18 +138,24 @@ async def pair_stop(vizio: VizioAsync) -> None:
     default=1,
     type=click.INT,
     help="Challenge type obtained from pair command",
+    show_default=True,
+    show_envvar=True,
 )
 @click.option(
     "--token",
     required=True,
     type=click.INT,
     help="Challenge token obtained from pair command",
+    show_default=True,
+    show_envvar=True,
 )
 @click.option(
     "--pin",
     required=True,
     type=click.STRING,
     help="PIN obtained from device after running pair command",
+    show_default=True,
+    show_envvar=True,
 )
 @coro
 @pass_vizio
@@ -272,8 +317,8 @@ async def input_next(vizio: VizioAsync) -> None:
 
 
 @cli.command(name="input")
-@click.option(
-    "--name", required=True, type=click.STRING, help="Input name to switch to"
+@click.argument(
+    "name", required=True, type=click.STRING, help="Name of input to switch to"
 )
 @coro
 @pass_vizio

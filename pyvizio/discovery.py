@@ -3,6 +3,8 @@ from typing import Callable, List
 
 from zeroconf import IPVersion, ServiceBrowser, ServiceInfo, Zeroconf
 
+from .const import DEFAULT_TIMEOUT
+
 
 class ZeroconfDevice:
     def __init__(self, name: str, ip: str, port: int, model: str, id: str) -> None:
@@ -21,7 +23,7 @@ class ZeroconfListener:
         self._func(zeroconf.get_service_info(type, name))
 
 
-def discover(service_type: str, timeout: int = 10) -> List[ZeroconfDevice]:
+def discover(service_type: str, timeout: int = DEFAULT_TIMEOUT) -> List[ZeroconfDevice]:
     services = []
 
     def append_service(info: ServiceInfo) -> None:
