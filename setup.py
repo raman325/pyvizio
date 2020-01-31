@@ -24,7 +24,6 @@ setup(
     packages=["pyvizio"],
     install_requires=[
         "aiohttp",
-        "asyncio",
         "click",
         "jsonpickle",
         "tabulate",
