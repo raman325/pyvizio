@@ -8,17 +8,27 @@ speakers.
 
 ## Installation
 
-Either through pip
+Use `pip`: 
+```
+pip3 install pyvizio
+```
+or
+```
+pip install pyvizio
+```
+if `pip3` is not found.
 
-```
-pip3 install git+https://github.com/vkorn/pyvizio.git@master
-```
+## Upgrade
 
-or checkout repo and run 
-
+Use `pip`: 
 ```
-pip3 install -I .
+pip3 install --upgrade pyvizio
 ```
+or
+```
+pip install --upgrade pyvizio
+```
+if `pip3` is not found.
 
 ## CLI Usage
 
@@ -33,7 +43,7 @@ First, find your device (yeah, I'm too lazy to add another cli group)
 pyvizio --ip=0 discover
 ```
 
-and note its IP address and port number.
+and note its IP address and port number. If you have trouble finding a device, you can try adjusting the timeout period by adding the `--timeout` option. If you have a large number of vizio devices, you can add `--include_device_type true` to the command and `pyvizio` will attempt to guess the device type of each device discovered.
 
 ### Pairing
 
