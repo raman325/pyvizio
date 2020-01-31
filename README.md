@@ -43,7 +43,7 @@ First, find your device (yeah, I'm too lazy to add another cli group)
 pyvizio --ip=0 discover
 ```
 
-and note its IP address and port number. If you have trouble finding a device, you can try adjusting the timeout period by adding the `--timeout` option. If you have a large number of vizio devices, you can add `--include_device_type true` to the command and `pyvizio` will attempt to guess the device type of each device discovered.
+and note its IP address and port number. If you have trouble finding a device you were expecting to, you can try increasing the discovery timeout period by adding the `--timeout` option.
 
 ### Pairing
 
