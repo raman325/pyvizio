@@ -4,10 +4,11 @@ name = "pypi"
 verify_ssl = true
 
 [packages]
+aiohttp = "*"
 click = "*"
-requests = "*"
 jsonpickle = "*"
-xmltodict = "*"
+tabulate = "*"
+zeroconf = "*"
 
 [dev-packages]
 pylint = "*"

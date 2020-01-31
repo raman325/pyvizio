@@ -1,5 +1,4 @@
 aiohttp
-asyncio
 click
 jsonpickle
 tabulate
