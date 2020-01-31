@@ -1,6 +1,7 @@
-from pyvizio.version import __version__
 from setuptools import setup
 
+with open("pyvizio/version.py") as f:
+    exec(f.read())
 with open("README.md", "r") as myfile:
     longdescription = myfile.read()
 
@@ -22,12 +23,6 @@ setup(
     ],
     keywords="vizio smartcast",
     packages=["pyvizio"],
-    install_requires=[
-        "aiohttp",
-        "click",
-        "jsonpickle",
-        "tabulate",
-        "zeroconf",
-    ],
+    install_requires=["aiohttp", "click", "jsonpickle", "tabulate", "zeroconf"],
     entry_points={"console_scripts": ["pyvizio=pyvizio.cli:cli"]},
 )
