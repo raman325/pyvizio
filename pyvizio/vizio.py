@@ -170,7 +170,7 @@ class VizioAsync(object):
         return await self.__remote(key_codes, log_api_exception=log_api_exception)
 
     @staticmethod
-    def discovery(timeout: int = 10) -> List[ZeroconfDevice]:
+    def discovery(timeout: int = DEFAULT_TIMEOUT) -> List[ZeroconfDevice]:
         return discover("_viziocast._tcp.local.", timeout)
 
     @staticmethod
@@ -406,7 +406,7 @@ class Vizio(VizioAsync):
         self.loop.close()
 
     @staticmethod
-    def discovery(timeout: int = 10) -> List[ZeroconfDevice]:
+    def discovery(timeout: int = DEFAULT_TIMEOUT) -> List[ZeroconfDevice]:
         return VizioAsync.discovery(timeout)
 
     @staticmethod
