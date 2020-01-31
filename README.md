@@ -47,22 +47,20 @@ and note its IP address and port number. If you have trouble finding a device yo
 
 ### Pairing
 
-> For a Speaker, it is unclear how the device would notify you of a valid auth token, so it's best to first skip the pairing process entirely, specify `--device_type=speaker`, and try commands like `volume-current` to see if you have any success. If not, and if specifying different ports as mentioned above doesn't work, you will need to find a way to get the auth token during this process.
-
 Using your device's IP address and port number, request pairing procedure:
 
 ```
 pyvizio --ip={ip:port} --device_type={device_type} pair
 ```
+After running the above command:
+- For TVs, lookup the PIN code on your TV and note challenge token and type in console
+- For speakers, press the physical "Volume Up" and note challenge token and type in console
 
-For TVs, lookup the PIN code on your TV, and note challenge token in console. It's not clear how you would obtain an auth token for a Speaker. 
+> It's better to have your device turned on as it's "forgetting" the PIN sometimes if it was turned off prior to pairing command.
 
-> Better to have device turned on as it's "forgetting" PIN sometimes if it was 
-turned off prior to pairing command
-
-Using these dafa finalize pairing procedure
+Using these data points, finalize pairing procedure: (a pin is not necessary for speakers as they appear to always use `0000`)
 ```
-pyvizio --ip={ip:port} --device_type={device_type} pair-finish --token={challenge_token} --pin={_pin} 
+pyvizio --ip={ip:port} --device_type={device_type} pair-finish --token={challenge_token} --pin={pin} 
 ```
 If everything done correctly, you should see new connected device named `Python Vizio` 
 in Vizio SmartCast mobile APP 
@@ -72,38 +70,35 @@ in Vizio SmartCast mobile APP
 
 ### Turning on/off
 
-```
+```bash
 pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} power {on|off|toggle}
 ```
 
 To get current power state simply call
 
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-power-state
 ```
-pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} power-get
-``` 
 
 ### Volume operations
 
 You could change volume
-
-```
+```bash
 pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} volume {up|down} amount
 ```
 
 and get current level (0-100)
-
-```
-pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} volume-current
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-volume-level
 ```
 
 In addition mute command is available
-
-```
+```bash
 pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} mute {on|off|toggle}
 ```
 
 ### Switching channels
-```
+```bash
 pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} channel {up|down|prev} amount
 ```
 
@@ -111,26 +106,43 @@ pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} channel {u
 
 You can get current source 
 
-```
-pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} input-get
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-current-input
 ```
 
 List all connected devices
 
-```
-pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} input-list
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-inputs-list
 ```
 
 And using `Name` column from this list, you can switch input:
 
-```
-pyvizio --ip={ip:port}  --device_type={device_type} --auth={auth_code} input --name={name}
+```bash
+pyvizio --ip={ip:port}  --device_type={device_type} --auth={auth_code} input {name}
 ```
 
 Other options is to circle through all inputs
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} next-input
 ```
-pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} input-next
-``` 
+
+### Managing audio settings
+> You may have to experiment to find the available options for a given setting. For example, numeric settings have a finite range.
+
+List available audio setting options
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-audio-settings-list
+```
+
+Get the current value of a given audio setting
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-audio-setting {setting_name}
+```
+Set a new value for a given audio setting
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} audio-setting {setting_name} {new_value}
+```
 
 ## Contribution
 
