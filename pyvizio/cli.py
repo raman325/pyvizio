@@ -318,7 +318,7 @@ async def input_next(vizio: VizioAsync) -> None:
 
 @cli.command(name="input")
 @click.argument(
-    "name", required=True, type=click.STRING, help="Name of input to switch to"
+    "name", required=True, type=click.STRING
 )
 @coro
 @pass_vizio
