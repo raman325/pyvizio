@@ -7,7 +7,7 @@ from aiohttp.client import DEFAULT_TIMEOUT as AIOHTTP_DEFAULT_TIMEOUT
 import jsonpickle
 from pyvizio._api.base import CommandBase
 from pyvizio.const import DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV
-from pyvizio.helpers import dict_get_case_insensitive, nullcontext
+from pyvizio.helpers import dict_get_case_insensitive
 
 HTTP_OK = 200
 
@@ -191,24 +191,32 @@ async def async_invoke_api(
     else:
         timeout = ClientTimeout(total=custom_timeout)
 
-    # If using existing session, don't close it after use
-    if session:
-        cm = nullcontext(session)
-    else:
-        cm = ClientSession()
-
     try:
-        async with cm as local_session:
+        if session:
             if "get" == method.lower():
-                response = await local_session.get(
+                response = await session.get(
                     url=url, headers=headers, ssl=False, timeout=timeout
                 )
             else:
                 timeout = AIOHTTP_DEFAULT_TIMEOUT
                 headers["Content-Type"] = "application/json"
-                response = await local_session.put(
+                response = await session.put(
                     url=url, data=str(data), headers=headers, ssl=False, timeout=timeout
                 )
+
+            json_obj = await async_validate_response(response)
+        else:
+            async with ClientSession() as local_session:
+                if "get" == method.lower():
+                    response = await local_session.get(
+                        url=url, headers=headers, ssl=False, timeout=timeout
+                    )
+                else:
+                    timeout = AIOHTTP_DEFAULT_TIMEOUT
+                    headers["Content-Type"] = "application/json"
+                    response = await local_session.put(
+                        url=url, data=str(data), headers=headers, ssl=False, timeout=timeout
+                    )
 
             json_obj = await async_validate_response(response)
 
