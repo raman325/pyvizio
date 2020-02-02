@@ -1,9 +1,12 @@
-from setuptools import setup
+from pyvizio.version import __version__
+from setuptools import find_packages, setup
 
-with open("pyvizio/version.py") as f:
-    exec(f.read())
+# with open("pyvizio/version.py") as f:
+#     exec(f.read())
 with open("README.md", "r") as myfile:
     longdescription = myfile.read()
+
+PACKAGES = find_packages(exclude=["tests", "tests.*"])
 
 setup(
     name="pyvizio",
@@ -22,7 +25,7 @@ setup(
         "Programming Language :: Python :: 3",
     ],
     keywords="vizio smartcast",
-    packages=["pyvizio"],
-    install_requires=["aiohttp", "click", "jsonpickle", "tabulate", "zeroconf"],
+    packages=PACKAGES,
+    install_requires=["aiohttp", "click", "jsonpickle", "requests", "tabulate", "xmltodict", "zeroconf"],
     entry_points={"console_scripts": ["pyvizio=pyvizio.cli:cli"]},
 )
