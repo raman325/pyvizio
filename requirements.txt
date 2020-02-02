@@ -1,5 +1,7 @@
 aiohttp
 click
 jsonpickle
+requests
 tabulate
+xmltodict
 zeroconf
