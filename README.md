@@ -60,7 +60,7 @@ After running the above command:
 
 Using these data points, finalize pairing procedure: (a pin is not necessary for speakers as they appear to always use `0000`)
 ```
-pyvizio --ip={ip:port} --device_type={device_type} pair-finish --token={challenge_token} --pin={pin} 
+pyvizio --ip={ip:port} --device_type={device_type} pair-finish --ch_type={challenge_type} --token={challenge_token} --pin={pin} 
 ```
 If everything done correctly, you should see new connected device named `Python Vizio` 
 in Vizio SmartCast mobile APP 
