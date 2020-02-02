@@ -1,8 +1,7 @@
-from pyvizio.version import __version__
 from setuptools import find_packages, setup
 
-# with open("pyvizio/version.py") as f:
-#     exec(f.read())
+with open("pyvizio/version.py") as f:
+    exec(f.read())
 with open("README.md", "r") as myfile:
     longdescription = myfile.read()
 
