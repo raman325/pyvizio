@@ -327,11 +327,11 @@ async def next_input(vizio: VizioAsync) -> None:
 
 
 @cli.command(name="input")
-@click.argument("name", required=True, type=click.STRING)
+@click.argument("input_name", required=True, type=click.STRING)
 @async_to_sync
 @pass_vizio
-async def input(vizio: VizioAsync, name: str) -> None:
-    result = await vizio.set_input(name)
+async def input(vizio: VizioAsync, input_name: str) -> None:
+    result = await vizio.set_input(input_name)
 
     _LOGGER.info("Switching input")
     _LOGGER.info("OK" if result else "ERROR")

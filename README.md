@@ -119,7 +119,7 @@ pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-inputs
 And using `Name` column from this list, you can switch input:
 
 ```bash
-pyvizio --ip={ip:port}  --device_type={device_type} --auth={auth_code} input {name}
+pyvizio --ip={ip:port}  --device_type={device_type} --auth={auth_code} input {input_name}
 ```
 
 Other options is to circle through all inputs
