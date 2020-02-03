@@ -17,6 +17,7 @@ HEADER_AUTH = "AUTH"
 
 STATUS_SUCCESS = "success"
 STATUS_URI_NOT_FOUND = "uri_not_found"
+STATUS_INVALID_PARAMETER = "invalid_parameter"
 
 TYPE_EQ_SLIDER = "t_value_abs_v1"
 TYPE_EQ_LIST = "t_list_v1"
@@ -163,9 +164,11 @@ async def async_validate_response(web_response: ClientResponse) -> Dict[str, Any
 
     result_status = dict_get_case_insensitive(status_obj, "result")
 
-    if not result_status or result_status.lower() != STATUS_SUCCESS:
+    if result_status and result_status.lower() == STATUS_INVALID_PARAMETER:
+        raise Exception("invalid value specified")
+    elif not result_status or result_status.lower() != STATUS_SUCCESS:
         raise Exception(
-            "Unexpected response {0}: {1}".format(
+            "unexpected status {0}: {1}".format(
                 result_status, dict_get_case_insensitive(status_obj, "detail")
             )
         )

@@ -1,14 +1,12 @@
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 from pyvizio._api._protocol import (
-    ACTION_MODIFY,
     ENDPOINT,
     TYPE_EQ_LIST,
     TYPE_EQ_SLIDER,
     ResponseKey,
 )
-from pyvizio._api.base import CommandBase, InfoCommandBase
-from pyvizio._api.item import Item, ItemInfoCommandBase
+from pyvizio._api.item import Item, ItemCommandBase, ItemInfoCommandBase
 from pyvizio.helpers import dict_get_case_insensitive
 
 
@@ -17,10 +15,9 @@ class GetCurrentVolumeCommand(ItemInfoCommandBase):
         super(GetCurrentVolumeCommand, self).__init__(device_type, "VOLUME", 0)
 
 
-class GetAudioSettingNamesCommand(InfoCommandBase):
+class GetAudioSettingNamesCommand(ItemInfoCommandBase):
     def __init__(self, device_type: str):
-        super(GetAudioSettingNamesCommand, self).__init__()
-        CommandBase.url.fset(self, ENDPOINT[device_type]["AUDIO_SETTINGS"])
+        super(GetAudioSettingNamesCommand, self).__init__(device_type, "AUDIO_SETTINGS")
 
     def process_response(self, json_obj: Dict[str, Any]) -> Any:
         items = [
@@ -35,23 +32,19 @@ class GetAudioSettingNamesCommand(InfoCommandBase):
 
 
 class GetAudioSettingCommand(ItemInfoCommandBase):
-    def __init__(self, device_type: str, item_name: str) -> None:
+    def __init__(self, device_type: str, setting_name: str) -> None:
         super(GetAudioSettingCommand, self).__init__(device_type, "AUDIO_SETTINGS", 0)
-        self.item_name = item_name.lower()
-        InfoCommandBase.url.fset(
-            self, f"{ENDPOINT[device_type]['AUDIO_SETTINGS']}/{self.item_name}"
+        self.item_name = setting_name.lower()
+        ItemInfoCommandBase.url.fset(
+            self, f"{ENDPOINT[device_type]['AUDIO_SETTINGS']}/{setting_name}"
         )
 
 
-class ChangeAudioSettingCommand(CommandBase):
-    def __init__(self, device_type: str, id: int, item_name: str, value: int) -> None:
-        super(ChangeAudioSettingCommand, self).__init__()
-        self.item_name = item_name.lower()
-        CommandBase.url.fset(
-            self, f"{ENDPOINT[device_type]['AUDIO_SETTINGS']}/{self.item_name}"
+class ChangeAudioSettingCommand(ItemCommandBase):
+    def __init__(
+        self, device_type: str, id: int, setting_name: str, value: Union[int, str]
+    ) -> None:
+        super(ChangeAudioSettingCommand, self).__init__(device_type, "AUDIO_SETTINGS", id, value)
+        ItemCommandBase.url.fset(
+            self, f"{ENDPOINT[device_type]['AUDIO_SETTINGS']}/{setting_name}"
         )
-
-        self.VALUE = value
-        # noinspection SpellCheckingInspection
-        self.HASHVAL = int(id)
-        self.REQUEST = ACTION_MODIFY.upper()

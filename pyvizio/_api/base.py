@@ -26,7 +26,7 @@ class CommandBase(object):
 
     @abstractmethod
     def process_response(self, json_obj: Dict[str, Any]) -> None:
-        return None
+        return True
 
 
 class InfoCommandBase(CommandBase):
@@ -46,4 +46,4 @@ class InfoCommandBase(CommandBase):
         CommandBase.url.fset(self, new_url)
 
     def process_response(self, json_obj: Dict[str, Any]) -> bool:
-        return True
+        return None
