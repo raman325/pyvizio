@@ -409,8 +409,7 @@ async def audio_setting(vizio: VizioAsync, setting_name: str, new_value: Union[i
     _LOGGER.info("Attemping to set '%s' to '%s'", setting_name, new_value)
 
     try:
-        temp_value = int(new_value)
-        result = await vizio.set_audio_setting(setting_name, temp_value)
+        result = await vizio.set_audio_setting(setting_name, int(new_value))
     except ValueError:
         result = await vizio.set_audio_setting(setting_name, new_value)
 
