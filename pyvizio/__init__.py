@@ -123,6 +123,19 @@ class VizioAsync(object):
             session=self._session,
         )
 
+    async def __invoke_api_may_need_auth(
+        self, cmd: CommandBase, log_api_exception: bool = True
+    ) -> Any:
+        if not self._auth_token:
+            if self.device_type == DEVICE_CLASS_SPEAKER:
+                return await self.__invoke_api(cmd, log_api_exception=log_api_exception)
+            else:
+                raise Exception(
+                    f"Empty auth token. To target a speaker and bypass auth "
+                    f"requirements, pass '{DEVICE_CLASS_SPEAKER}' as device_type"
+                )
+        return await self.__invoke_api_auth(cmd, log_api_exception=log_api_exception)
+
     async def __remote(
         self, key_list: Union[List[str], str], log_api_exception: bool = True
     ) -> bool:
@@ -141,7 +154,7 @@ class VizioAsync(object):
             else:
                 key_codes.append(KEY_CODE[self.device_type][key])
 
-        result = await self.__invoke_api_auth(
+        result = await self.__invoke_api_may_need_auth(
             EmulateRemoteCommand(key_codes, self.device_type),
             log_api_exception=log_api_exception,
         )
@@ -217,7 +230,7 @@ class VizioAsync(object):
 
     async def can_connect(self) -> bool:
         if (
-            await self.__invoke_api_auth(
+            await self.__invoke_api_may_need_auth(
                 GetCurrentPowerStateCommand(self.device_type), log_api_exception=False
             )
             is not None
@@ -227,7 +240,7 @@ class VizioAsync(object):
             return False
 
     async def get_esn(self, log_api_exception: bool = True) -> Optional[str]:
-        item = await self.__invoke_api_auth(
+        item = await self.__invoke_api_may_need_auth(
             GetESNCommand(self.device_type), log_api_exception=log_api_exception
         )
 
@@ -237,7 +250,7 @@ class VizioAsync(object):
         return None
 
     async def get_serial_number(self, log_api_exception: bool = True) -> Optional[str]:
-        item = await self.__invoke_api_auth(
+        item = await self.__invoke_api_may_need_auth(
             GetSerialNumberCommand(self.device_type),
             log_api_exception=log_api_exception,
         )
@@ -248,7 +261,7 @@ class VizioAsync(object):
         return None
 
     async def get_version(self, log_api_exception: bool = True) -> Optional[str]:
-        item = await self.__invoke_api_auth(
+        item = await self.__invoke_api_may_need_auth(
             GetVersionCommand(self.device_type), log_api_exception=log_api_exception
         )
 
@@ -289,12 +302,12 @@ class VizioAsync(object):
     async def get_inputs_list(
         self, log_api_exception: bool = True
     ) -> Optional[List[InputItem]]:
-        return await self.__invoke_api_auth(
+        return await self.__invoke_api_may_need_auth(
             GetInputsListCommand(self.device_type), log_api_exception=log_api_exception
         )
 
     async def get_current_input(self, log_api_exception: bool = True) -> Optional[str]:
-        item = await self.__invoke_api_auth(
+        item = await self.__invoke_api_may_need_auth(
             GetCurrentInputCommand(self.device_type),
             log_api_exception=log_api_exception,
         )
@@ -313,7 +326,7 @@ class VizioAsync(object):
     async def set_input(
         self, name: str, log_api_exception: bool = True
     ) -> Optional[bool]:
-        curr_input_item = await self.__invoke_api_auth(
+        curr_input_item = await self.__invoke_api_may_need_auth(
             GetCurrentInputCommand(self.device_type),
             log_api_exception=log_api_exception,
         )
@@ -322,13 +335,13 @@ class VizioAsync(object):
             _LOGGER.error("Couldn't detect current input")
             return None
 
-        return await self.__invoke_api_auth(
+        return await self.__invoke_api_may_need_auth(
             ChangeInputCommand(self.device_type, curr_input_item.id, name),
             log_api_exception=log_api_exception,
         )
 
     async def get_power_state(self, log_api_exception: bool = True) -> Optional[bool]:
-        item = await self.__invoke_api_auth(
+        item = await self.__invoke_api_may_need_auth(
             GetCurrentPowerStateCommand(self.device_type),
             log_api_exception=log_api_exception,
         )
@@ -362,7 +375,7 @@ class VizioAsync(object):
         )
 
     async def get_current_volume(self, log_api_exception: bool = True) -> Optional[int]:
-        item = await self.__invoke_api_auth(
+        item = await self.__invoke_api_may_need_auth(
             GetCurrentVolumeCommand(self.device_type),
             log_api_exception=log_api_exception,
         )
@@ -416,7 +429,7 @@ class VizioAsync(object):
     async def get_audio_settings_list(
         self, log_api_exception: bool = True
     ) -> Optional[List[str]]:
-        item = await self.__invoke_api_auth(
+        item = await self.__invoke_api_may_need_auth(
             GetAudioSettingNamesCommand(self.device_type),
             log_api_exception=log_api_exception,
         )
@@ -429,7 +442,7 @@ class VizioAsync(object):
     async def get_audio_setting(
         self, setting_name: str, log_api_exception: bool = True
     ) -> Optional[Union[int, str]]:
-        item = await self.__invoke_api_auth(
+        item = await self.__invoke_api_may_need_auth(
             GetAudioSettingCommand(self.device_type, setting_name),
             log_api_exception=log_api_exception,
         )
@@ -445,7 +458,7 @@ class VizioAsync(object):
         new_value: Union[int, str],
         log_api_exception: bool = True,
     ) -> Optional[bool]:
-        audio_setting_item = await self.__invoke_api_auth(
+        audio_setting_item = await self.__invoke_api_may_need_auth(
             GetAudioSettingCommand(self.device_type, setting_name),
             log_api_exception=log_api_exception,
         )
@@ -454,7 +467,7 @@ class VizioAsync(object):
             _LOGGER.error("Couldn't detect setting for %s", setting_name)
             return None
 
-        return await self.__invoke_api_auth(
+        return await self.__invoke_api_may_need_auth(
             ChangeAudioSettingCommand(
                 self.device_type, audio_setting_item.id, setting_name, new_value
             ),
