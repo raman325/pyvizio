@@ -191,6 +191,9 @@ async def async_invoke_api(
     else:
         timeout = ClientTimeout(total=custom_timeout)
 
+    if not headers:
+        headers = {}
+
     try:
         if session:
             if "get" == method.lower():
@@ -215,10 +218,14 @@ async def async_invoke_api(
                     timeout = AIOHTTP_DEFAULT_TIMEOUT
                     headers["Content-Type"] = "application/json"
                     response = await local_session.put(
-                        url=url, data=str(data), headers=headers, ssl=False, timeout=timeout
+                        url=url,
+                        data=str(data),
+                        headers=headers,
+                        ssl=False,
+                        timeout=timeout,
                     )
 
-            json_obj = await async_validate_response(response)
+                json_obj = await async_validate_response(response)
 
         return command.process_response(json_obj)
     except Exception as e:

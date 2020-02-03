@@ -40,6 +40,7 @@ pass_vizio = click.make_pass_decorator(VizioAsync)
     "--auth",
     envvar="VIZIO_AUTH",
     required=False,
+    default="",
     help=(
         "Auth token for the device to connect to (refer to documentation on how to "
         "obtain auth token)"
@@ -372,7 +373,10 @@ async def key_press(vizio: VizioAsync, key: str) -> None:
 async def get_audio_settings_list(vizio: VizioAsync) -> None:
     my_list = await vizio.get_audio_settings_list()
     if my_list:
-        table = tabulate(my_list, headers=["Audio Setting Name"])
+        table = tabulate(
+            [{"Audio Setting Name": setting_name} for setting_name in my_list],
+            headers="keys",
+        )
         _LOGGER.info("\n%s", table)
     else:
         _LOGGER.error("Couldn't get list of audio settings")
