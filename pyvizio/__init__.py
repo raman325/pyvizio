@@ -166,6 +166,7 @@ class VizioAsync(object):
         key_codes = []
         for ii in range(0, num):
             key_codes.append(key_code)
+
         return await self.__remote(key_codes, log_api_exception=log_api_exception)
 
     @staticmethod

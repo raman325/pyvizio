@@ -77,6 +77,3 @@ class CancelPairCommand(PairCommandBase):
         super().__init__(device_id, device_type, "CANCEL_PAIR")
 
         self.DEVICE_NAME = str(device_name)
-
-    def process_response(self, json_obj: Dict[str, Any]) -> bool:
-        return True

@@ -1,8 +1,7 @@
 from typing import Any, Dict, List, Optional
 
-from pyvizio._api._protocol import ACTION_MODIFY, ENDPOINT, ResponseKey
-from pyvizio._api.base import CommandBase, InfoCommandBase
-from pyvizio._api.item import Item, ItemInfoCommandBase
+from pyvizio._api._protocol import ResponseKey
+from pyvizio._api.item import Item, ItemCommandBase, ItemInfoCommandBase
 from pyvizio.helpers import dict_get_case_insensitive
 
 
@@ -35,14 +34,11 @@ class InputItem(Item):
         )
 
 
-class GetInputsListCommand(InfoCommandBase):
+class GetInputsListCommand(ItemInfoCommandBase):
     """Obtaining list of available inputs"""
 
     def __init__(self, device_type: str) -> None:
-        super(GetInputsListCommand, self).__init__()
-        InfoCommandBase.url.fset(self, ENDPOINT[device_type]["INPUTS"])
-
-        self._device_type = device_type
+        super(GetInputsListCommand, self).__init__(device_type, "INPUTS")
 
     def process_response(self, json_obj: Dict[str, Any]) -> Optional[List[InputItem]]:
         items = dict_get_case_insensitive(json_obj, ResponseKey.ITEMS)
@@ -62,7 +58,6 @@ class GetCurrentInputCommand(ItemInfoCommandBase):
 
     def __init__(self, device_type: str) -> None:
         super(GetCurrentInputCommand, self).__init__(device_type, "CURRENT_INPUT")
-        InfoCommandBase.url.fset(self, ENDPOINT[device_type]["CURRENT_INPUT"])
 
     def process_response(self, json_obj: Dict[str, Any]) -> Optional[InputItem]:
         items = dict_get_case_insensitive(json_obj, ResponseKey.ITEMS)
@@ -75,12 +70,6 @@ class GetCurrentInputCommand(ItemInfoCommandBase):
         return v_input
 
 
-class ChangeInputCommand(CommandBase):
+class ChangeInputCommand(ItemCommandBase):
     def __init__(self, device_type: str, id: int, name: str) -> None:
-        super(ChangeInputCommand, self).__init__()
-        CommandBase.url.fset(self, ENDPOINT[device_type]["SET_INPUT"])
-
-        self.VALUE = str(name)
-        # noinspection SpellCheckingInspection
-        self.HASHVAL = int(id)
-        self.REQUEST = ACTION_MODIFY
+        super(ChangeInputCommand, self).__init__(device_type, "SET_INPUT", id, name)

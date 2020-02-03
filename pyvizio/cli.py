@@ -1,5 +1,6 @@
 import logging
 import sys
+from typing import Union
 
 import click
 from pyvizio import VizioAsync, guess_device_type
@@ -120,6 +121,8 @@ async def pair(vizio: VizioAsync) -> None:
     if pair_data is not None:
         _LOGGER.info("Challenge type: %s", pair_data.ch_type)
         _LOGGER.info("Challenge token: %s", pair_data.token)
+    else:
+        _LOGGER.info("ERROR")
 
 
 @cli.command()
@@ -128,7 +131,9 @@ async def pair(vizio: VizioAsync) -> None:
 async def pair_stop(vizio: VizioAsync) -> None:
     _LOGGER.info("Sending stop pair command")
 
-    await vizio.stop_pair()
+    result = await vizio.stop_pair()
+
+    _LOGGER.info("OK" if result else "ERROR")
 
 
 @cli.command()
@@ -166,13 +171,15 @@ async def pair_finish(vizio: VizioAsync, ch_type: int, token: int, pin: str) -> 
 
     if pair_data is not None:
         _LOGGER.info("Authorization token: %s", pair_data.auth_token)
+    else:
+        _LOGGER.info("ERROR")
 
 
 @cli.command()
 @async_to_sync
 @pass_vizio
 async def get_inputs_list(vizio: VizioAsync) -> None:
-    inputs = await vizio.get_inputs()
+    inputs = await vizio.get_inputs_list()
 
     if inputs:
         table = tabulate(
@@ -191,7 +198,7 @@ async def get_inputs_list(vizio: VizioAsync) -> None:
 async def get_current_input(vizio: VizioAsync) -> None:
     data = await vizio.get_current_input()
 
-    if data:
+    if data is not None:
         _LOGGER.info("Current input: %s", data)
     else:
         _LOGGER.error("Couldn't get current input")
@@ -218,16 +225,15 @@ async def get_power_state(vizio: VizioAsync) -> None:
 @pass_vizio
 async def power(vizio: VizioAsync, state: str) -> None:
     if "on" == state:
-        txt = "Turning ON"
+        _LOGGER.info("Turning ON")
         result = await vizio.pow_on()
     elif "off" == state:
-        txt = "Turning OFF"
+        _LOGGER.info("Turning OFF")
         result = await vizio.pow_off()
     else:
-        txt = "Toggling power"
+        _LOGGER.info("Toggling Power")
         result = await vizio.pow_toggle()
 
-    _LOGGER.info(txt)
     _LOGGER.info("OK" if result else "ERROR")
 
 
@@ -242,13 +248,12 @@ async def power(vizio: VizioAsync, state: str) -> None:
 @pass_vizio
 async def volume(vizio: VizioAsync, state: str, amount: int) -> None:
     if "up" == state:
-        txt = "Increasing volume"
+        _LOGGER.info("Increasing volume")
         result = await vizio.vol_up(amount)
     else:
-        txt = "Decreasing volume"
+        _LOGGER.info("Decreasing volume")
         result = await vizio.vol_down(amount)
 
-    _LOGGER.info(txt)
     _LOGGER.info("OK" if result else "ERROR")
 
 
@@ -280,16 +285,15 @@ async def get_volume_max(vizio: VizioAsync) -> None:
 @pass_vizio
 async def channel(vizio: VizioAsync, state: str, amount: int) -> None:
     if "up" == state:
-        txt = "Channel up"
+        _LOGGER.info("Channel up")
         result = await vizio.ch_up(amount)
     elif "down" == state:
-        txt = "Channel down"
+        _LOGGER.info("Channel down")
         result = await vizio.ch_down(amount)
     else:
-        txt = "Previous channel"
+        _LOGGER.info("Previous channel")
         result = await vizio.ch_prev()
 
-    _LOGGER.info(txt)
     _LOGGER.info("OK" if result else "ERROR")
 
 
@@ -304,16 +308,15 @@ async def channel(vizio: VizioAsync, state: str, amount: int) -> None:
 @pass_vizio
 async def mute(vizio: VizioAsync, state: str) -> None:
     if "on" == state:
-        txt = "Muting"
+        _LOGGER.info("Muting")
         result = await vizio.mute_on()
     elif "off" == state:
-        txt = "Unmuting"
+        _LOGGER.info("Unmuting")
         result = await vizio.mute_off()
     else:
-        txt = "Toggling mute"
+        _LOGGER.info("Toggling mute")
         result = await vizio.mute_toggle()
 
-    _LOGGER.info(txt)
     _LOGGER.info("OK" if result else "ERROR")
 
 
@@ -321,9 +324,10 @@ async def mute(vizio: VizioAsync, state: str) -> None:
 @async_to_sync
 @pass_vizio
 async def next_input(vizio: VizioAsync) -> None:
+    _LOGGER.info("Circling input")
+
     result = await vizio.next_input()
 
-    _LOGGER.info("Circling input")
     _LOGGER.info("OK" if result else "ERROR")
 
 
@@ -332,9 +336,10 @@ async def next_input(vizio: VizioAsync) -> None:
 @async_to_sync
 @pass_vizio
 async def input(vizio: VizioAsync, input_name: str) -> None:
+    _LOGGER.info("Switching input")
+
     result = await vizio.set_input(input_name)
 
-    _LOGGER.info("Switching input")
     _LOGGER.info("OK" if result else "ERROR")
 
 
@@ -361,9 +366,10 @@ async def pause(vizio: VizioAsync) -> None:
 @async_to_sync
 @pass_vizio
 async def key_press(vizio: VizioAsync, key: str) -> None:
+    _LOGGER.info("Emulating pressing of '%s' key", key)
+
     result = await vizio.remote(key.upper())
 
-    _LOGGER.info("Emulating pressing of '%s' key", key)
     _LOGGER.info("OK" if result else "ERROR")
 
 
@@ -374,8 +380,7 @@ async def get_audio_settings_list(vizio: VizioAsync) -> None:
     my_list = await vizio.get_audio_settings_list()
     if my_list:
         table = tabulate(
-            [{"Audio Setting Name": setting_name} for setting_name in my_list],
-            headers="keys",
+            [[setting_name] for setting_name in my_list], headers=["Audio Setting Name"]
         )
         _LOGGER.info("\n%s", table)
     else:
@@ -389,7 +394,7 @@ async def get_audio_settings_list(vizio: VizioAsync) -> None:
 async def get_audio_setting(vizio: VizioAsync, setting_name: str) -> None:
     value = await vizio.get_audio_setting(setting_name)
 
-    if value:
+    if value is not None:
         _LOGGER.info("Current '%s' setting: %s", setting_name, value)
     else:
         _LOGGER.error("Couldn't get value for '%s' setting", setting_name)
@@ -397,13 +402,17 @@ async def get_audio_setting(vizio: VizioAsync, setting_name: str) -> None:
 
 @cli.command()
 @click.argument("setting_name", required=True, type=click.STRING)
-@click.argument("new_value", required=True)
+@click.argument("new_value", required=True, type=click.STRING)
 @async_to_sync
 @pass_vizio
-async def audio_setting(vizio: VizioAsync, setting_name: str, new_value) -> None:
-    result = await vizio.set_audio_setting(setting_name, new_value)
-
+async def audio_setting(vizio: VizioAsync, setting_name: str, new_value: Union[int, str]) -> None:
     _LOGGER.info("Attemping to set '%s' to '%s'", setting_name, new_value)
+
+    try:
+        result = await vizio.set_audio_setting(setting_name, int(new_value))
+    except ValueError:
+        result = await vizio.set_audio_setting(setting_name, new_value)
+
     _LOGGER.info("OK" if result else "ERROR")
 
 
