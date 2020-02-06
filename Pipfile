@@ -8,9 +8,9 @@ aiohttp = "*"
 click = "*"
 jsonpickle = "*"
 requests = "*"
-tabulate = "*"
+tabulate = ">=0.8.0"
 xmltodict = "*"
-zeroconf = "*"
+zeroconf = ">=0.24.0"
 
 [dev-packages]
 pylint = "*"
