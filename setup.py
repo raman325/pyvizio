@@ -25,6 +25,14 @@ setup(
     ],
     keywords="vizio smartcast",
     packages=PACKAGES,
-    install_requires=["aiohttp", "click", "jsonpickle", "requests", "tabulate", "xmltodict", "zeroconf"],
+    install_requires=[
+        "aiohttp",
+        "click",
+        "jsonpickle",
+        "requests",
+        "tabulate",
+        "xmltodict",
+        "zeroconf",
+    ],
     entry_points={"console_scripts": ["pyvizio=pyvizio.cli:cli"]},
 )

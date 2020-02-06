@@ -2,7 +2,16 @@ import time
 from typing import Callable, List
 
 from pyvizio.const import DEFAULT_TIMEOUT
-from zeroconf import IPVersion, ServiceBrowser, ServiceInfo, Zeroconf
+from zeroconf import ServiceBrowser, ServiceInfo, Zeroconf
+
+try:
+    from zeroconf import IPVersion
+
+    parse_ip_with_zc = True
+except ImportError:
+    from ipaddress import ip_address
+
+    parse_ip_with_zc = False
 
 
 class ZeroconfDevice:
@@ -30,7 +39,10 @@ def discover(service_type: str, timeout: int = DEFAULT_TIMEOUT) -> List[Zeroconf
 
     def append_service(info: ServiceInfo) -> None:
         name = info.name[: -(len(info.type) + 1)]
-        ip = info.parsed_addresses(IPVersion.V4Only)[0]
+        if parse_ip_with_zc:
+            ip = info.parsed_addresses(IPVersion.V4Only)[0]
+        else:
+            ip = ip_address(info.addresses[0])
         port = info.port
         model = info.properties.get(b"name", "").decode("utf-8")
         id = info.properties.get(b"id")

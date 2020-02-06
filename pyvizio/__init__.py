@@ -41,8 +41,8 @@ from pyvizio.const import (
     DEVICE_CLASS_TV,
     MAX_VOLUME,
 )
-from pyvizio.discovery._ssdp import SSDPDevice, discover as discover_ssdp
-from pyvizio.discovery._zeroconf import ZeroconfDevice, discover as discover_zc
+from pyvizio.discovery.ssdp import SSDPDevice, discover as discover_ssdp
+from pyvizio.discovery.zeroconf import ZeroconfDevice, discover as discover_zc
 from pyvizio.helpers import async_to_sync, open_port
 import requests
 import xmltodict
