@@ -213,11 +213,10 @@ class VizioAsync(object):
         device_type: str,
         session: Optional[ClientSession] = None,
         timeout: int = DEFAULT_TIMEOUT,
-        log_api_exception: bool = True,
     ) -> bool:
         return await VizioAsync(
             "", ip, "", auth_token, device_type, session=session, timeout=timeout
-        ).can_connect(log_api_exception=log_api_exception)
+        ).can_connect()
 
     @staticmethod
     async def get_unique_id(
@@ -550,15 +549,9 @@ class Vizio(VizioAsync):
         device_type: str,
         session: Optional[ClientSession] = None,
         timeout: int = DEFAULT_TIMEOUT,
-        log_api_exception: bool = True,
     ) -> bool:
         return await super(Vizio, Vizio).validate_ha_config(
-            ip,
-            auth_token,
-            device_type,
-            session=session,
-            timeout=timeout,
-            log_api_exception=log_api_exception,
+            ip, auth_token, device_type, session=session, timeout=timeout
         )
 
     @staticmethod
