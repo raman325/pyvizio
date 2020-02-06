@@ -376,11 +376,12 @@ async def key_press(vizio: VizioAsync, key: str) -> None:
 @cli.command()
 @async_to_sync
 @pass_vizio
-async def get_audio_settings_list(vizio: VizioAsync) -> None:
-    my_list = await vizio.get_audio_settings_list()
-    if my_list:
+async def get_all_audio_settings(vizio: VizioAsync) -> None:
+    audio_settings = await vizio.get_all_audio_settings()
+    if audio_settings:
         table = tabulate(
-            [[setting_name] for setting_name in my_list], headers=["Audio Setting Name"]
+            [[k, v] for k, v in audio_settings.items()],
+            headers=["Name", "Value"],
         )
         _LOGGER.info("\n%s", table)
     else:
@@ -405,7 +406,9 @@ async def get_audio_setting(vizio: VizioAsync, setting_name: str) -> None:
 @click.argument("new_value", required=True, type=click.STRING)
 @async_to_sync
 @pass_vizio
-async def audio_setting(vizio: VizioAsync, setting_name: str, new_value: Union[int, str]) -> None:
+async def audio_setting(
+    vizio: VizioAsync, setting_name: str, new_value: Union[int, str]
+) -> None:
     _LOGGER.info("Attemping to set '%s' to '%s'", setting_name, new_value)
 
     try:

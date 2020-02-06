@@ -1,13 +1,13 @@
 import logging
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlsplit
 
 from aiohttp import ClientSession
 from pyvizio._api._protocol import KEY_CODE, async_invoke_api, async_invoke_api_auth
 from pyvizio._api.audio import (
     ChangeAudioSettingCommand,
+    GetAllAudioSettingsCommand,
     GetAudioSettingCommand,
-    GetAudioSettingNamesCommand,
     GetCurrentVolumeCommand,
 )
 from pyvizio._api.base import CommandBase
@@ -41,8 +41,8 @@ from pyvizio.const import (
     DEVICE_CLASS_TV,
     MAX_VOLUME,
 )
-from pyvizio.discovery.ssdp import SSDPDevice, discover as discover_ssdp
-from pyvizio.discovery.zeroconf import ZeroconfDevice, discover as discover_zc
+from pyvizio.discovery._ssdp import SSDPDevice, discover as discover_ssdp
+from pyvizio.discovery._zeroconf import ZeroconfDevice, discover as discover_zc
 from pyvizio.helpers import async_to_sync, open_port
 import requests
 import xmltodict
@@ -427,11 +427,11 @@ class VizioAsync(object):
     def get_device_keys(self) -> List[str]:
         return KEY_CODE[self.device_type].keys()
 
-    async def get_audio_settings_list(
+    async def get_all_audio_settings(
         self, log_api_exception: bool = True
-    ) -> Optional[List[str]]:
+    ) -> Optional[Dict[str, Union[int, str]]]:
         item = await self.__invoke_api_may_need_auth(
-            GetAudioSettingNamesCommand(self.device_type),
+            GetAllAudioSettingsCommand(self.device_type),
             log_api_exception=log_api_exception,
         )
 
@@ -715,10 +715,10 @@ class Vizio(VizioAsync):
         return super(Vizio, self).get_device_keys()
 
     @async_to_sync
-    async def get_audio_settings_list(
+    async def get_all_audio_settings(
         self, log_api_exception: bool = True
-    ) -> Optional[List[str]]:
-        return await super(Vizio, self).get_audio_settings_list(
+    ) -> Optional[Dict[str, Union[int, str]]]:
+        return await super(Vizio, self).get_all_audio_settings(
             log_api_exception=log_api_exception
         )
 
