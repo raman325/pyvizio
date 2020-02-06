@@ -380,8 +380,7 @@ async def get_all_audio_settings(vizio: VizioAsync) -> None:
     audio_settings = await vizio.get_all_audio_settings()
     if audio_settings:
         table = tabulate(
-            [[k, v] for k, v in audio_settings.items()],
-            headers=["Name", "Value"],
+            [[k, v] for k, v in audio_settings.items()], headers=["Name", "Value"]
         )
         _LOGGER.info("\n%s", table)
     else:
