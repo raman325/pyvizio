@@ -13,19 +13,35 @@ from pyvizio._api.base import CommandBase, InfoCommandBase
 from pyvizio.helpers import dict_get_case_insensitive, get_value_from_path
 
 
-class GetModelNameCommand(InfoCommandBase):
+class GetDeviceInfoCommand(InfoCommandBase):
+    """Command to get device info."""
+
+    def __init__(self, device_type: str) -> None:
+        """Initialize command to get device info."""
+        super(GetDeviceInfoCommand, self).__init__(ENDPOINT[device_type]["DEVICE_INFO"])
+        self.paths = PATH_MODEL[device_type]
+
+    def process_response(self, json_obj: Dict[str, Any]) -> bool:
+        """Return response to command to get device info."""
+        return dict_get_case_insensitive(json_obj, ResponseKey.ITEMS, [{}])[0]
+
+
+class GetModelNameCommand(GetDeviceInfoCommand):
     """Command to get device model name."""
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get device model name."""
-        super(GetModelNameCommand, self).__init__(ENDPOINT[device_type]["MODEL_NAME"])
-        self.paths = PATH_MODEL[device_type]
+        super(GetModelNameCommand, self).__init__(device_type)
 
     def process_response(self, json_obj: Dict[str, Any]) -> bool:
         """Return response to command to get device model name."""
-        items = dict_get_case_insensitive(json_obj, ResponseKey.ITEMS)
         return get_value_from_path(
-            dict_get_case_insensitive(items[0], ResponseKey.VALUE, {}), self.paths
+            dict_get_case_insensitive(
+                super(GetModelNameCommand, self).process_response(json_obj),
+                ResponseKey.VALUE,
+                {},
+            ),
+            self.paths,
         )
 
 

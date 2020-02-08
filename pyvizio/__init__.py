@@ -28,6 +28,7 @@ from pyvizio._api.input import (
 )
 from pyvizio._api.item import (
     GetCurrentPowerStateCommand,
+    GetDeviceInfoCommand,
     GetESNCommand,
     GetModelNameCommand,
     GetSerialNumberCommand,
@@ -265,16 +266,21 @@ class VizioAsync(object):
         )
 
     async def can_connect(self) -> bool:
-        """Asynchronously return whether or not device can be connected to."""
-        if (
-            await self.__invoke_api_may_need_auth(
-                GetCurrentPowerStateCommand(self.device_type), log_api_exception=False
-            )
-            is not None
+        """Asynchronously return whether or not device API is reachable with valid authorization."""
+        if await self.vol_up(log_api_exception=False):
+            await self.vol_down(log_api_exception=False)
+            return True
+
+        return False
+
+    async def is_reachable(self) -> bool:
+        """Asynchronously return whether or not device API is reachable regardless of authorization."""
+        if await self.__invoke_api(
+            GetDeviceInfoCommand(self.device_type), log_api_exception=False
         ):
             return True
-        else:
-            return False
+
+        return False
 
     async def get_esn(self, log_api_exception: bool = True) -> Optional[str]:
         """Asynchronously get device's ESN (electronic serial number?)."""
@@ -310,7 +316,7 @@ class VizioAsync(object):
 
         return None
 
-    async def get_model(self, log_api_exception: bool = True) -> Optional[str]:
+    async def get_model_name(self, log_api_exception: bool = True) -> Optional[str]:
         """Asynchronously get device's model number."""
         return await self.__invoke_api(
             GetModelNameCommand(self.device_type), log_api_exception=log_api_exception
@@ -705,8 +711,13 @@ class Vizio(VizioAsync):
 
     @async_to_sync
     async def can_connect(self) -> bool:
-        """Return whether or not device can be connected to."""
+        """Return whether or not device API is reachable with valid authorization."""
         return await super(Vizio, self).can_connect()
+
+    @async_to_sync
+    async def is_reachable(self) -> bool:
+        """Return whether or not device API is reachable regardless of auth config."""
+        return await super(Vizio, self).is_reachable()
 
     @async_to_sync
     async def get_esn(self, log_api_exception: bool = True) -> Optional[str]:
@@ -726,9 +737,9 @@ class Vizio(VizioAsync):
         return await super(Vizio, self).get_version(log_api_exception=log_api_exception)
 
     @async_to_sync
-    async def get_model(self, log_api_exception: bool = True) -> Optional[str]:
+    async def get_model_name(self, log_api_exception: bool = True) -> Optional[str]:
         """Get device's model number."""
-        return await super(Vizio, self).get_model(log_api_exception=log_api_exception)
+        return await super(Vizio, self).get_model_name(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def start_pair(
