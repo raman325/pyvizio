@@ -4,6 +4,7 @@ from typing import Union
 
 import click
 from pyvizio import VizioAsync, guess_device_type
+from pyvizio._api.apps import AppConfig
 from pyvizio.const import (
     DEFAULT_DEVICE_CLASS,
     DEFAULT_DEVICE_ID,
@@ -12,6 +13,7 @@ from pyvizio.const import (
     DEVICE_CLASS_SOUNDBAR,
     DEVICE_CLASS_SPEAKER,
     DEVICE_CLASS_TV,
+    NO_APP_RUNNING,
 )
 from pyvizio.helpers import async_to_sync
 from tabulate import tabulate
@@ -376,6 +378,14 @@ async def key_press(vizio: VizioAsync, key: str) -> None:
 @cli.command()
 @async_to_sync
 @pass_vizio
+async def get_remote_keys_list(vizio: VizioAsync) -> None:
+    table = tabulate(vizio.get_remote_keys_list(), headers=["App Name"])
+    _LOGGER.info("\n%s", table)
+
+
+@cli.command()
+@async_to_sync
+@pass_vizio
 async def get_all_audio_settings(vizio: VizioAsync) -> None:
     audio_settings = await vizio.get_all_audio_settings()
     if audio_settings:
@@ -416,6 +426,87 @@ async def audio_setting(
         result = await vizio.set_audio_setting(setting_name, new_value)
 
     _LOGGER.info("OK" if result else "ERROR")
+
+
+@cli.command()
+@click.option(
+    "--country",
+    required=False,
+    type=click.Choice(["usa", "can", "mexico", "all"]),
+    default="all",
+    help="Only apps supported in the specified country will be returned",
+    show_default=True,
+    show_envvar=True,
+)
+@pass_vizio
+def get_apps_list(vizio: VizioAsync, country: str = "all") -> None:
+    apps = vizio.get_apps_list(country)
+    if apps:
+        table = tabulate([{"Name": app} for app in apps], headers="keys")
+        _LOGGER.info("\n%s", table)
+    else:
+        _LOGGER.error("Couldn't get list of apps")
+
+
+@cli.command()
+@click.argument("app_name", required=True, type=click.STRING)
+@async_to_sync
+@pass_vizio
+async def launch_app(vizio: VizioAsync, app_name: str) -> None:
+    _LOGGER.info("Attempting to launch '%s' app", app_name)
+
+    result = await vizio.launch_app(app_name)
+
+    _LOGGER.info("OK" if result else "ERROR")
+
+
+@cli.command()
+@click.argument("APP_ID", required=True, type=click.STRING)
+@click.argument("NAME_SPACE", required=True, type=click.IntRange(min=0))
+@click.argument("MESSAGE", required=False, type=click.STRING, default=None)
+@async_to_sync
+@pass_vizio
+async def launch_app_config(
+    vizio: VizioAsync, APP_ID: str, NAME_SPACE: int, MESSAGE: str
+) -> None:
+    _LOGGER.info(
+        "Attempting to launch app using config %s",
+        {"APP_ID": APP_ID, "NAME_SPACE": NAME_SPACE, "MESSAGE": MESSAGE},
+    )
+
+    result = await vizio.launch_app_config(APP_ID, NAME_SPACE, MESSAGE)
+
+    _LOGGER.info("OK" if result else "ERROR")
+
+
+@cli.command()
+@async_to_sync
+@pass_vizio
+async def get_current_app(vizio: VizioAsync) -> None:
+    app_name = await vizio.get_current_app()
+
+    if app_name:
+        if app_name == NO_APP_RUNNING:
+            _LOGGER.info("No currently running app")
+        else:
+            _LOGGER.info("Currently running app: %s", app_name)
+    else:
+        _LOGGER.error("Couldn't get currently running app")
+
+
+@cli.command()
+@async_to_sync
+@pass_vizio
+async def get_current_app_config(vizio: VizioAsync) -> None:
+    app_config = await vizio.get_current_app_config()
+
+    if app_config:
+        if app_config == AppConfig():
+            _LOGGER.info("No currently running app")
+        else:
+            _LOGGER.info("Currently running app's config: %s", app_config)
+    else:
+        _LOGGER.error("Couldn't get currently running app")
 
 
 if __name__ == "__main__":

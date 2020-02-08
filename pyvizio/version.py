@@ -1,1 +1,3 @@
-__version__ = "0.1.24"
+"""pyvizio version."""
+
+__version__ = "0.1.25"

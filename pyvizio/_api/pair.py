@@ -1,3 +1,5 @@
+"""Vizio SmartCast API commands and class for pairing."""
+
 from typing import Any, Dict
 
 from pyvizio._api._protocol import ENDPOINT, PairingResponseKey, ResponseKey
@@ -6,29 +8,39 @@ from pyvizio.helpers import dict_get_case_insensitive
 
 
 class PairCommandBase(CommandBase):
+    """Base pairing command."""
+
     def __init__(self, device_id: str, device_type: str, endpoint: str) -> None:
-        super(PairCommandBase, self).__init__()
-        CommandBase.url.fset(self, ENDPOINT[device_type][endpoint])
+        """Initialize base pairing command."""
+        super(PairCommandBase, self).__init__(ENDPOINT[device_type][endpoint])
         self.DEVICE_ID = device_id
 
 
 class BeginPairResponse(object):
+    """Response from command to begin pairing process."""
+
     def __init__(self, ch_type: str, token: str) -> None:
+        """Initialize response from command to begin pairing process."""
         self.ch_type = ch_type
         self.token = token
 
-    def __repr__(self) -> Dict[str, str]:
-        return f"BeginPairResponse(ch_type='{self.ch_type}', token='{self.token}')"
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.__dict__})"
+
+    def __eq__(self, other) -> bool:
+        return self is other or self.__dict__ == other.__dict__
 
 
 class BeginPairCommand(PairCommandBase):
-    """Initiating pairing process."""
+    """Command to begin pairing process."""
 
     def __init__(self, device_id: str, device_name: str, device_type: str) -> None:
+        """Initialize command to begin pairing process."""
         super().__init__(device_id, device_type, "BEGIN_PAIR")
         self.DEVICE_NAME = str(device_name)
 
     def process_response(self, json_obj: Dict[str, Any]) -> BeginPairResponse:
+        """Return response to command to begin pairing process."""
         item = dict_get_case_insensitive(json_obj, ResponseKey.ITEM)
 
         return BeginPairResponse(
@@ -38,15 +50,21 @@ class BeginPairCommand(PairCommandBase):
 
 
 class PairChallengeResponse(object):
+    """Response from command to complete pairing process."""
+
     def __init__(self, auth_token: str) -> None:
+        """Initialize response from command to complete pairing process."""
         self.auth_token = auth_token
 
-    def __repr__(self) -> Dict[str, str]:
-        return f"PairChallengeResponse(auth_token='{self.auth_token}')"
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.__dict__})"
+
+    def __eq__(self, other) -> bool:
+        return self is other or self.__dict__ == other.__dict__
 
 
 class PairChallengeCommand(PairCommandBase):
-    """Finish pairing."""
+    """Command to complete pairing process."""
 
     def __init__(
         self,
@@ -56,6 +74,7 @@ class PairChallengeCommand(PairCommandBase):
         pin: str,
         device_type: str,
     ) -> None:
+        """Initialize command to complete pairing process."""
         super().__init__(device_id, device_type, "FINISH_PAIR")
 
         self.CHALLENGE_TYPE = int(challenge_type)
@@ -63,6 +82,7 @@ class PairChallengeCommand(PairCommandBase):
         self.RESPONSE_VALUE = str(pin)
 
     def process_response(self, json_obj: Dict[str, Any]) -> PairChallengeResponse:
+        """Return response to command to complete pairing process."""
         item = dict_get_case_insensitive(json_obj, ResponseKey.ITEM)
 
         return PairChallengeResponse(
@@ -71,9 +91,10 @@ class PairChallengeCommand(PairCommandBase):
 
 
 class CancelPairCommand(PairCommandBase):
-    """Cancel pairing process."""
+    """Command to cancel pairing process."""
 
     def __init__(self, device_id, device_name: str, device_type: str) -> None:
+        """Initialize command to cancel pairing process."""
         super().__init__(device_id, device_type, "CANCEL_PAIR")
 
         self.DEVICE_NAME = str(device_name)

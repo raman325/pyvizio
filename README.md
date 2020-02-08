@@ -9,11 +9,11 @@ speakers.
 ## Installation
 
 Use `pip`: 
-```
+```bash
 pip3 install pyvizio
 ```
 or
-```
+```bash
 pip install pyvizio
 ```
 if `pip3` is not found.
@@ -21,11 +21,11 @@ if `pip3` is not found.
 ## Upgrade
 
 Use `pip`: 
-```
+```bash
 pip3 install --upgrade pyvizio
 ```
 or
-```
+```bash
 pip install --upgrade pyvizio
 ```
 if `pip3` is not found.
@@ -39,7 +39,7 @@ To avoid repeating IP (`--ip`), Auth (`--auth`), and Device Type (`--device_type
 ### Find your device
 
 First, find your device (yeah, I'm too lazy to add another cli group)
-```
+```bash
 pyvizio --ip=0 discover
 ```
 
@@ -49,7 +49,7 @@ and note its IP address and port number. If you have trouble finding a device yo
 
 Using your device's IP address and port number, request pairing procedure:
 
-```
+```bash
 pyvizio --ip={ip:port} --device_type={device_type} pair
 ```
 After running the above command:
@@ -59,8 +59,8 @@ After running the above command:
 > It's better to have your device turned on as it's "forgetting" the PIN sometimes if it was turned off prior to pairing command.
 
 Using these data points, finalize pairing procedure: (a pin is not necessary for speakers as they appear to always use `0000`)
-```
-pyvizio --ip={ip:port} --device_type={device_type} pair-finish --ch_type={challenge_type} --token={challenge_token} --pin={pin} 
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} pair-finish --ch_type={challenge_type} --token={challenge_token} --pin={pin}
 ```
 If everything done correctly, you should see new connected device named `Python Vizio` 
 in Vizio SmartCast mobile APP 
@@ -97,14 +97,14 @@ In addition mute command is available
 pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} mute {on|off|toggle}
 ```
 
-### Switching channels
+### Switching channels (TVs only)
 ```bash
 pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} channel {up|down|prev} amount
 ```
 
 ### Input sources
 
-You can get current source 
+You can get current source (if the value is SMARTCAST, then an app is currently runniing)
 
 ```bash
 pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-current-input
@@ -142,6 +142,33 @@ pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-audio-
 Set a new value for a given audio setting
 ```bash
 pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} audio-setting {setting_name} {new_value}
+```
+
+### Apps (TVs with app support only)
+
+Get a list of available apps by name (this list is static and is from the Vizio SmartCast Android source code. If you would like to add apps to this list and can retrieve the latest source code, you can use `pyvizio.util.gen_apps_list_from_src("path/to/root/of/source")` to retrieve the latest list. The list is stored in `APPS` in `pyvizio/_api/apps.py` and you are welcome to submit a PR with updates)
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-apps-list
+```
+
+Get currently running app (if value is `_NO_APP_RUNNING` then no app is currently running, and if the value is `_UNKNOWN_APP` then the app name couldn't be determined from the current `APPS` list)
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-current-app
+```
+
+Launch an app (app names must match the names listed in the `get-apps-list` command but are not case sensitive. Be sure to use quotes if the app name has a space)
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} launch-app "{app_name}"
+```
+
+If an app isn't found by name, but you know the config required to launch it, you can specify the config
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} launch-app-config {APP_ID} {NAME_SPACE} {MESSAGE}
+```
+
+One way to get the config of an app that is not already stored in the APPS list is to launch the app on your device and then run
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-current-app-config
 ```
 
 ## Contribution
