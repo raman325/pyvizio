@@ -390,11 +390,12 @@ class VizioAsync(object):
     async def is_muted(self, log_api_exception: bool = True) -> Optional[bool]:
         # If None is returned lower() will fail, if not we can do a simple boolean check
         try:
-            mute_val = await self.get_audio_setting(
-                "mute", log_api_exception=log_api_exception
-            ).lower()
-
-            return mute_val == "on"
+            return (
+                await self.get_audio_setting(
+                    "mute", log_api_exception=log_api_exception
+                ).lower()
+                == "on"
+            )
         except AttributeError:
             return None
 
