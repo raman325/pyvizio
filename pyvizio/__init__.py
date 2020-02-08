@@ -244,7 +244,7 @@ class VizioAsync(object):
         """Asynchronously return whether or not HomeAssistant config will allow HomeAssistant to make successful calls to Vizio SmartCast API."""
         return await VizioAsync(
             "", ip, "", auth_token, device_type, session=session, timeout=timeout
-        ).can_connect_and_auth_valid()
+        ).can_connect_with_auth_check()
 
     @staticmethod
     async def get_unique_id(
@@ -265,7 +265,7 @@ class VizioAsync(object):
             or dev.ip  # noqa: W503
         )
 
-    async def can_connect_and_auth_valid(self) -> bool:
+    async def can_connect_with_auth_check(self) -> bool:
         """Asynchronously return whether or not device API can be connected to with valid authorization."""
         if await self.vol_up(log_api_exception=False):
             await self.vol_down(log_api_exception=False)
@@ -273,7 +273,7 @@ class VizioAsync(object):
 
         return False
 
-    async def can_connect(self) -> bool:
+    async def can_connect_no_auth_check(self) -> bool:
         """Asynchronously return whether or not device API can be connected to regardless of authorization."""
         if await self.__invoke_api(
             GetDeviceInfoCommand(self.device_type), log_api_exception=False
@@ -643,7 +643,7 @@ async def async_guess_device_type(
             "test", ip, "test", "", DEVICE_CLASS_SPEAKER, timeout=timeout
         )
 
-    if await device.can_connect_and_auth_valid():
+    if await device.can_connect_with_auth_check():
         return DEVICE_CLASS_SPEAKER
     else:
         return DEVICE_CLASS_TV
@@ -710,14 +710,14 @@ class Vizio(VizioAsync):
         )
 
     @async_to_sync
-    async def can_connect_and_auth_valid(self) -> bool:
+    async def can_connect_with_auth_check(self) -> bool:
         """Return whether or not device API can be connected to with valid authorization."""
-        return await super(Vizio, self).can_connect_and_auth_valid()
+        return await super(Vizio, self).can_connect_with_auth_check()
 
     @async_to_sync
-    async def can_connect(self) -> bool:
+    async def can_connect_no_auth_check(self) -> bool:
         """Return whether or not device API can be connected to regardless of auth config."""
-        return await super(Vizio, self).can_connect()
+        return await super(Vizio, self).can_connect_no_auth_check()
 
     @async_to_sync
     async def get_esn(self, log_api_exception: bool = True) -> Optional[str]:
