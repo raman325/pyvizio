@@ -4,6 +4,7 @@ from typing import Union
 
 import click
 from pyvizio import VizioAsync, guess_device_type
+from pyvizio._api.apps import AppConfig
 from pyvizio.const import (
     DEFAULT_DEVICE_CLASS,
     DEFAULT_DEVICE_ID,
@@ -12,6 +13,7 @@ from pyvizio.const import (
     DEVICE_CLASS_SOUNDBAR,
     DEVICE_CLASS_SPEAKER,
     DEVICE_CLASS_TV,
+    NO_APP_RUNNING,
 )
 from pyvizio.helpers import async_to_sync
 from tabulate import tabulate
@@ -459,13 +461,50 @@ async def launch_app(vizio: VizioAsync, app_name: str) -> None:
 
 
 @cli.command()
+@click.argument("APP_ID", required=True, type=click.STRING)
+@click.argument("NAME_SPACE", required=True, type=click.IntRange(min=0))
+@click.argument("MESSAGE", required=False, type=click.STRING, default=None)
+@async_to_sync
+@pass_vizio
+async def launch_app_config(
+    vizio: VizioAsync, APP_ID: str, NAME_SPACE: int, MESSAGE: str
+) -> None:
+    _LOGGER.info(
+        "Attempting to launch app using config %s",
+        {"APP_ID": APP_ID, "NAME_SPACE": NAME_SPACE, "MESSAGE": MESSAGE},
+    )
+
+    result = await vizio.launch_app_config(APP_ID, NAME_SPACE, MESSAGE)
+
+    _LOGGER.info("OK" if result else "ERROR")
+
+
+@cli.command()
 @async_to_sync
 @pass_vizio
 async def get_current_app(vizio: VizioAsync) -> None:
     app_name = await vizio.get_current_app()
 
     if app_name:
-        _LOGGER.info("Currently running app: %s", app_name)
+        if app_name == NO_APP_RUNNING:
+            _LOGGER.info("No currently running app")
+        else:
+            _LOGGER.info("Currently running app: %s", app_name)
+    else:
+        _LOGGER.error("Couldn't get currently running app")
+
+
+@cli.command()
+@async_to_sync
+@pass_vizio
+async def get_current_app_config(vizio: VizioAsync) -> None:
+    app_config = await vizio.get_current_app_config()
+
+    if app_config:
+        if app_config == AppConfig():
+            _LOGGER.info("No currently running app")
+        else:
+            _LOGGER.info("Currently running app's config: %s", app_config)
     else:
         _LOGGER.error("Couldn't get currently running app")
 

@@ -1,3 +1,5 @@
+"""pyvizio constants."""
+
 DEVICE_CLASS_SOUNDBAR = "soundbar"  # Deprecated
 DEVICE_CLASS_SPEAKER = "speaker"
 DEVICE_CLASS_TV = "tv"

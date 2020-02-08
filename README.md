@@ -161,6 +161,16 @@ Launch an app (app names must match the names listed in the `get-apps-list` comm
 pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} launch-app "{app_name}"
 ```
 
+If an app isn't found by name, but you know the config required to launch it, you can specify the config
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} launch-app-config {APP_ID} {NAME_SPACE} {MESSAGE}
+```
+
+One way to get the config of an app that is not already stored in the APPS list is to launch the app on your device and then run
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-current-app-config
+```
+
 ## Contribution
 
 Thanks for great research uploaded [here](https://github.com/exiva/Vizio_SmartCast_API) and 

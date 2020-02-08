@@ -1,3 +1,5 @@
+"""Vizio SmartCast API protocol constants and get and set functions."""
+
 import json
 from logging import Logger
 from typing import Any, Dict
@@ -122,12 +124,16 @@ PATH_MODEL = {
 
 
 class PairingResponseKey(object):
+    """Key names in responses to pairing commands."""
+
     AUTH_TOKEN = "auth_token"
     CHALLENGE_TYPE = "challenge_type"
     PAIRING_REQ_TOKEN = "pairing_req_token"
 
 
 class ResponseKey(object):
+    """Key names in responses to API commands."""
+
     HASHVAL = "hashval"
     CNAME = "cname"
     TYPE = "type"
@@ -140,6 +146,7 @@ class ResponseKey(object):
 
 
 async def async_validate_response(web_response: ClientResponse) -> Dict[str, Any]:
+    """Validate response to API command is as expected and return response."""
     if HTTP_OK != web_response.status:
         raise Exception(
             "Device is unreachable? Status code: {0}".format(web_response.status)
@@ -178,6 +185,7 @@ async def async_invoke_api(
     log_api_exception: bool = True,
     session: ClientSession = None,
 ) -> Any:
+    """Call API endpoints with appropriate request bodies and headers."""
     method = command.get_method()
     url = f"https://{ip}{command.get_url()}"
     data = jsonpickle.encode(command, unpicklable=False)
@@ -245,6 +253,7 @@ async def async_invoke_api_auth(
     log_api_exception: bool = True,
     session: ClientSession = None,
 ) -> Any:
+    """Call auth protected API endpoints using CommandBase and subclass request bodies."""
 
     return await async_invoke_api(
         ip,

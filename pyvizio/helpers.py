@@ -1,5 +1,6 @@
+"""pyvizio helper functions."""
+
 import asyncio
-from contextlib import asynccontextmanager
 from functools import wraps
 from typing import Any, Dict, List, Optional
 
@@ -26,6 +27,7 @@ def dict_get_case_insensitive(
 def get_value_from_path(
     device_info: Dict[str, Any], paths: List[List[str]]
 ) -> Optional[Any]:
+    """Iterate through known paths to return first valid path with value from Vizio device_info."""
     for path in paths:
         temp = ""
         for step in path:
@@ -37,15 +39,9 @@ def get_value_from_path(
     return None
 
 
-@asynccontextmanager
-def nullcontext(obj: Any) -> Any:
-    """Creates context manager with no exit/cleanup."""
-    yield obj
-
-
 # Adapted from https://gist.github.com/betrcode/0248f0fda894013382d7#gistcomment-3161499
 async def open_port(host, port):
-    """Repeatedly try if a port on a host is open until duration seconds passed
+    """Return whether or not host's port is open.
 
     Parameters
     ----------

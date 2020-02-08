@@ -1,3 +1,5 @@
+"""Vizio SmartCast device SSDP discovery function and classes."""
+
 #   Copyright 2014 Dan Krause
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,28 +17,37 @@
 import http.client
 import io
 import socket
-from typing import Dict
 
 from pyvizio.const import DEFAULT_TIMEOUT
 
 
 class SSDPDevice(object):
+    """Representation of Vizio device discovered via SSDP."""
+
     def __init__(self, ip, name, model, udn) -> None:
         self.ip = ip
         self.name = name
         self.model = model
         self.udn = udn
 
-    def __repr__(self) -> Dict[str, str]:
-        return f"SSDPDevice(ip='{self.ip}', name='{self.name}', model='{self.model}', udn='{self.udn}')"
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.__dict__})"
+
+    def __eq__(self, other) -> bool:
+        return self is other or self.__dict__ == other.__dict__
 
 
 class SSDPResponse(object):
+    """SSDP discovery response."""
+
     class _FakeSocket(io.BytesIO):
+        """Fake socket to retrieve SSDP response."""
+
         def makefile(self, *args, **kw):
             return self
 
     def __init__(self, response):
+        """Initialize SSDP response."""
         r = http.client.HTTPResponse(self._FakeSocket(response))
         r.begin()
         self.location = r.getheader("location")
@@ -44,11 +55,15 @@ class SSDPResponse(object):
         self.st = r.getheader("st")
         self.cache = r.getheader("cache-control").split("=")[1]
 
-    def __repr__(self):
-        return f"SSDPResponse(location='{self.location}', st='{self.st}', usn='{self.usn}')"
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.__dict__})"
+
+    def __eq__(self, other) -> bool:
+        return self is other or self.__dict__ == other.__dict__
 
 
 def discover(service, timeout=DEFAULT_TIMEOUT, retries=1, mx=3):
+    """Return all discovered SSDP services of a given service name over given timeout period."""
     group = ("239.255.255.250", 1900)
     message = "\r\n".join(
         [

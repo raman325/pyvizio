@@ -1,26 +1,35 @@
-from typing import Dict, List, Tuple
+"""Vizio SmartCast API command and class for emulating remote key presses."""
+
+from typing import List, Tuple
 
 from pyvizio._api._protocol import ENDPOINT, KEY_ACTION
 from pyvizio._api.base import CommandBase
 
 
 class KeyPressEvent(object):
+    """Emulated remote key press."""
+
     def __init__(
         self, key_code: Tuple[int, int], action: str = KEY_ACTION["PRESS"]
     ) -> None:
+        """Initialize emulated remote key press."""
         self.CODESET = key_code[0]
         self.CODE = key_code[1]
         self.ACTION = action
 
-    def __repr__(self) -> Dict[str, str]:
-        return f"KeyPressEvent(CODESET='{self.CODESET}', CODE='{self.CODE}', "
-        f"ACTION='{self.ACTION}')"
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.__dict__})"
+
+    def __eq__(self, other) -> bool:
+        return self is other or self.__dict__ == other.__dict__
 
 
 class EmulateRemoteCommand(CommandBase):
+    """Command to emulate remote key press."""
+
     def __init__(self, key_codes: List[Tuple[int, int]], device_type: str) -> None:
-        super(EmulateRemoteCommand, self).__init__()
-        CommandBase.url.fset(self, ENDPOINT[device_type]["KEY_PRESS"])
+        """Initialize command to emulate remote key press."""
+        super(EmulateRemoteCommand, self).__init__(ENDPOINT[device_type]["KEY_PRESS"])
 
         # noinspection SpellCheckingInspection
         self.KEYLIST = []
