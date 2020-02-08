@@ -2,6 +2,6 @@ aiohttp
 click
 jsonpickle
 requests
-tabulate>=0.8.0
+tabulate>=0.8.6
 xmltodict
-zeroconf>=0.24.0
+zeroconf>=0.24.4

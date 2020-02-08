@@ -4,11 +4,11 @@ from urllib.parse import urlsplit
 
 from aiohttp import ClientSession
 from pyvizio._api._protocol import KEY_CODE, async_invoke_api, async_invoke_api_auth
+from pyvizio._api.apps import APP_HOME, APPS, GetCurrentAppCommand, LaunchAppCommand
 from pyvizio._api.audio import (
     ChangeAudioSettingCommand,
     GetAllAudioSettingsCommand,
     GetAudioSettingCommand,
-    GetCurrentVolumeCommand,
 )
 from pyvizio._api.base import CommandBase
 from pyvizio._api.input import (
@@ -383,15 +383,20 @@ class VizioAsync(object):
         )
 
     async def get_current_volume(self, log_api_exception: bool = True) -> Optional[int]:
-        item = await self.__invoke_api_may_need_auth(
-            GetCurrentVolumeCommand(self.device_type),
-            log_api_exception=log_api_exception,
+        return await self.get_audio_setting(
+            "volume", log_api_exception=log_api_exception
         )
 
-        if item:
-            return int(item.value)
+    async def is_muted(self, log_api_exception: bool = True) -> Optional[bool]:
+        # If None is returned lower() will fail, if not we can do a simple boolean check
+        try:
+            mute_val = await self.get_audio_setting(
+                "mute", log_api_exception=log_api_exception
+            ).lower()
 
-        return None
+            return mute_val == "on"
+        except AttributeError:
+            return None
 
     def get_max_volume(self) -> int:
         return MAX_VOLUME[self.device_type]
@@ -431,7 +436,7 @@ class VizioAsync(object):
     async def remote(self, key: str, log_api_exception: bool = True) -> Optional[bool]:
         return await self.__remote(key, log_api_exception=log_api_exception)
 
-    def get_device_keys(self) -> List[str]:
+    def get_remote_keys_list(self) -> List[str]:
         return KEY_CODE[self.device_type].keys()
 
     async def get_all_audio_settings(
@@ -455,8 +460,12 @@ class VizioAsync(object):
             log_api_exception=log_api_exception,
         )
 
+        # coerce to int if possible
         if item:
-            return item.value
+            try:
+                return int(item.value)
+            except ValueError:
+                return item.value
 
         return None
 
@@ -480,6 +489,32 @@ class VizioAsync(object):
                 self.device_type, audio_setting_item.id, setting_name, new_value
             ),
             log_api_exception=log_api_exception,
+        )
+
+    def get_apps_list(self, country: str = "all") -> List[str]:
+        # Assumes "*" means all countries are supported
+        if country.lower() != "all":
+            return sorted(
+                [
+                    app["name"]
+                    for app in (APP_HOME + APPS)
+                    if "*" in app["country"] or country.lower() in app["country"]
+                ]
+            )
+
+        return sorted([app["name"] for app in APP_HOME + APPS])
+
+    async def launch_app(
+        self, app_name: str, log_api_exception: bool = True
+    ) -> Optional[bool]:
+        return await self.__invoke_api_may_need_auth(
+            LaunchAppCommand(self.device_type, app_name),
+            log_api_exception=log_api_exception,
+        )
+
+    async def get_current_app(self, log_api_exception: bool = True) -> Optional[str]:
+        return await self.__invoke_api_may_need_auth(
+            GetCurrentAppCommand(self.device_type), log_api_exception=log_api_exception
         )
 
 
@@ -678,6 +713,10 @@ class Vizio(VizioAsync):
             log_api_exception=log_api_exception
         )
 
+    @async_to_sync
+    async def is_muted(self, log_api_exception: bool = True) -> Optional[bool]:
+        return await super(Vizio, self).is_muted(log_api_exception=log_api_exception)
+
     def get_max_volume(self) -> int:
         return super(Vizio, self).get_max_volume()
 
@@ -723,8 +762,8 @@ class Vizio(VizioAsync):
     async def remote(self, key: str, log_api_exception: bool = True) -> Optional[bool]:
         return await super(Vizio, self).remote(key, log_api_exception=log_api_exception)
 
-    def get_device_keys(self) -> List[str]:
-        return super(Vizio, self).get_device_keys()
+    def get_remote_keys_list(self) -> List[str]:
+        return super(Vizio, self).get_remote_keys_list()
 
     @async_to_sync
     async def get_all_audio_settings(
@@ -751,6 +790,23 @@ class Vizio(VizioAsync):
     ) -> Optional[bool]:
         return await super(Vizio, self).set_audio_setting(
             setting_name, new_value, log_api_exception=log_api_exception
+        )
+
+    def get_apps_list(self, country: str = None) -> List[str]:
+        return super(Vizio, self).get_apps_list(country=country)
+
+    @async_to_sync
+    async def launch_app(
+        self, app_name: str, log_api_exception: bool = True
+    ) -> Optional[bool]:
+        return await super(Vizio, self).launch_app(
+            app_name, log_api_exception=log_api_exception
+        )
+
+    @async_to_sync
+    async def get_current_app(self, log_api_exception: bool = True) -> Optional[str]:
+        return await super(Vizio, self).get_current_app(
+            log_api_exception=log_api_exception
         )
 
 

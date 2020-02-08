@@ -1,13 +1,14 @@
 from typing import Any, Dict, Union
 
-from pyvizio._api._protocol import ENDPOINT, TYPE_EQ_LIST, TYPE_EQ_SLIDER, ResponseKey
+from pyvizio._api._protocol import (
+    ENDPOINT,
+    TYPE_EQ_LIST,
+    TYPE_EQ_SLIDER,
+    TYPE_VALUE,
+    ResponseKey,
+)
 from pyvizio._api.item import Item, ItemCommandBase, ItemInfoCommandBase
 from pyvizio.helpers import dict_get_case_insensitive
-
-
-class GetCurrentVolumeCommand(ItemInfoCommandBase):
-    def __init__(self, device_type: str) -> None:
-        super(GetCurrentVolumeCommand, self).__init__(device_type, "VOLUME", 0)
 
 
 class GetAllAudioSettingsCommand(ItemInfoCommandBase):
@@ -21,7 +22,7 @@ class GetAllAudioSettingsCommand(ItemInfoCommandBase):
         ]
         audio_settings = {}
         for item in items:
-            if item.type.lower() in (TYPE_EQ_LIST, TYPE_EQ_SLIDER):
+            if item.type.lower() in (TYPE_EQ_LIST, TYPE_EQ_SLIDER, TYPE_VALUE):
                 audio_settings[item.c_name] = item.value
         return audio_settings
 

@@ -72,4 +72,4 @@ class GetCurrentInputCommand(ItemInfoCommandBase):
 
 class ChangeInputCommand(ItemCommandBase):
     def __init__(self, device_type: str, id: int, name: str) -> None:
-        super(ChangeInputCommand, self).__init__(device_type, "SET_INPUT", id, name)
+        super(ChangeInputCommand, self).__init__(device_type, "CURRENT_INPUT", id, name)

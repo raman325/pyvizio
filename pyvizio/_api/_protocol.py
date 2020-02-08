@@ -21,10 +21,7 @@ STATUS_INVALID_PARAMETER = "invalid_parameter"
 
 TYPE_EQ_SLIDER = "t_value_abs_v1"
 TYPE_EQ_LIST = "t_list_v1"
-
 TYPE_VALUE = "t_value_v1"
-
-REQUIRES_PAIRING = "requires_pairing"
 
 ENDPOINT = {
     DEVICE_CLASS_TV: {
@@ -33,15 +30,15 @@ ENDPOINT = {
         "CANCEL_PAIR": "/pairing/cancel",
         "INPUTS": "/menu_native/dynamic/tv_settings/devices/name_input",
         "CURRENT_INPUT": "/menu_native/dynamic/tv_settings/devices/current_input",
-        "SET_INPUT": "/menu_native/dynamic/tv_settings/devices/current_input",
         "ESN": "/menu_native/dynamic/tv_settings/system/system_information/uli_information/esn",
         "SERIAL_NUMBER": "/menu_native/dynamic/tv_settings/system/system_information/tv_information/serial_number",
         "VERSION": "/menu_native/dynamic/tv_settings/system/system_information/tv_information/version",
-        "MODEL_NAME": "/state/device/deviceinfo",  # return["VALUE"].get("SYSTEM_INFO", {}).get("MODEL_NAME") or return.get("VALUE", {}).get("MODEL_NAME")
+        "MODEL_NAME": "/state/device/deviceinfo",
         "POWER_MODE": "/state/device/power_mode",
         "KEY_PRESS": "/key_command/",
-        "VOLUME": "/menu_native/dynamic/tv_settings/audio/volume",
         "AUDIO_SETTINGS": "/menu_native/dynamic/tv_settings/audio",
+        "CURRENT_APP": "/app/current",
+        "LAUNCH_APP": "/app/launch",
     },
     DEVICE_CLASS_SPEAKER: {
         "BEGIN_PAIR": "/pairing/start",
@@ -49,14 +46,12 @@ ENDPOINT = {
         "CANCEL_PAIR": "/pairing/cancel",
         "INPUTS": "/menu_native/dynamic/audio_settings/input",
         "CURRENT_INPUT": "/menu_native/dynamic/audio_settings/input/current_input",
-        "SET_INPUT": "/menu_native/dynamic/audio_settings/input/current_input",
         "ESN": "/menu_native/dynamic/audio_settings/system/system_information/uli_information/esn",
         "SERIAL_NUMBER": "/menu_native/dynamic/audio_settings/system/system_information/speaker_information/serial_number",
         "VERSION": "/menu_native/dynamic/audio_settings/system/system_information/speaker_information/version",
-        "MODEL_NAME": "/state/device/deviceinfo",  # return.get("VALUE", {}).get("NAME")
+        "MODEL_NAME": "/state/device/deviceinfo",
         "POWER_MODE": "/state/device/power_mode",
         "KEY_PRESS": "/key_command/",
-        "VOLUME": "/menu_native/dynamic/audio_settings/audio/volume",
         "AUDIO_SETTINGS": "/menu_native/dynamic/audio_settings/audio",
     },
 }
@@ -68,8 +63,6 @@ ITEM_CNAME = {
     "POWER_MODE": "power_mode",
     "SERIAL_NUMBER": "serial_number",
     "VERSION": "version",
-    "VOLUME": "volume",
-    "TRUVOLUME": "",
 }
 
 KEY_ACTION = {"DOWN": "KEYDOWN", "UP": "KEYUP", "PRESS": "KEYPRESS"}
@@ -186,7 +179,7 @@ async def async_invoke_api(
     session: ClientSession = None,
 ) -> Any:
     method = command.get_method()
-    url = "https://{0}{1}".format(ip, command.get_url())
+    url = f"https://{ip}{command.get_url()}"
     data = jsonpickle.encode(command, unpicklable=False)
 
     if not custom_timeout:
@@ -207,7 +200,12 @@ async def async_invoke_api(
                 timeout = AIOHTTP_DEFAULT_TIMEOUT
                 headers["Content-Type"] = "application/json"
                 response = await session.put(
-                    url=url, data=str(data), headers=headers, ssl=False, timeout=timeout
+                    # url=url, data=str(data), headers=headers, ssl=False, timeout=timeout
+                    url=url,
+                    data=str(data),
+                    headers=headers,
+                    ssl=False,
+                    timeout=timeout,
                 )
 
             json_obj = await async_validate_response(response)
