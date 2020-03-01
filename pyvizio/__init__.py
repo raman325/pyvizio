@@ -740,7 +740,9 @@ class Vizio(VizioAsync):
     @async_to_sync
     async def get_model_name(self, log_api_exception: bool = True) -> Optional[str]:
         """Get device's model number."""
-        return await super(Vizio, self).get_model_name(log_api_exception=log_api_exception)
+        return await super(Vizio, self).get_model_name(
+            log_api_exception=log_api_exception
+        )
 
     @async_to_sync
     async def start_pair(

@@ -14,6 +14,7 @@ from pyvizio.const import (
     DEVICE_CLASS_SPEAKER,
     DEVICE_CLASS_TV,
     NO_APP_RUNNING,
+    UNKNOWN_APP,
 )
 from pyvizio.helpers import async_to_sync
 from tabulate import tabulate
@@ -488,6 +489,11 @@ async def get_current_app(vizio: VizioAsync) -> None:
     if app_name:
         if app_name == NO_APP_RUNNING:
             _LOGGER.info("No currently running app")
+        elif app_name == UNKNOWN_APP:
+            _LOGGER.info(
+                "Can't determine the name of the app, the currently running app's config is %s",
+                vizio.get_current_app_config(),
+            )
         else:
             _LOGGER.info("Currently running app: %s", app_name)
     else:
