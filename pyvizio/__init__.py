@@ -560,7 +560,8 @@ class VizioAsync(object):
             log_api_exception=log_api_exception,
         )
 
-    def get_apps_list(self, country: str = "all") -> List[str]:
+    @staticmethod
+    def get_apps_list(country: str = "all") -> List[str]:
         """Get list of known apps by name optionally filtered by supported country."""
         # Assumes "*" means all countries are supported
         if country.lower() != "all":
