@@ -40,13 +40,22 @@ def gen_apps_list_from_src(
         if app_config:
             config_json = app_config["chipsets"]["*"][0]["app_type_payload"]
             config = json.loads(config_json)
-            pyvizio_apps.append(
-                {
-                    "name": app_name["name"],
-                    "country": [country.lower() for country in app_name["country"]],
-                    "id": app_name["id"],
-                    "config": config,
-                }
-            )
+            app_already_exists = False
+            for pyvizio_app in pyvizio_apps:
+                if pyvizio_app["name"].lower() == app_name["name"].lower():
+                    pyvizio_app["id"].append(app_name["id"])
+                    pyvizio_app["config"].append(config)
+                    app_already_exists = True
+                    break
+
+            if not app_already_exists:
+                pyvizio_apps.append(
+                    {
+                        "name": app_name["name"],
+                        "country": [country.lower() for country in app_name["country"]],
+                        "id": [app_name["id"]],
+                        "config": [config],
+                    }
+                )
 
     return pyvizio_apps
