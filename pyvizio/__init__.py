@@ -934,9 +934,10 @@ class Vizio(VizioAsync):
             setting_name, new_value, log_api_exception=log_api_exception
         )
 
-    def get_apps_list(self, country: str = None) -> List[str]:
+    @staticmethod
+    def get_apps_list(country: str = None) -> List[str]:
         """Get list of known apps by name optionally filtered by supported country."""
-        return super(Vizio, self).get_apps_list(country=country)
+        return super(Vizio, Vizio).get_apps_list(country=country)
 
     @async_to_sync
     async def launch_app(
