@@ -13,7 +13,7 @@ DEFAULT_TIMEOUT = 5
 MAX_VOLUME = {DEVICE_CLASS_TV: 100, DEVICE_CLASS_SPEAKER: 31}
 
 # Current Input when app is active
-INPUT_APP = "CAST"
+INPUT_APPS = ["SMARTCAST", "CAST"]
 
 # App name returned when it is not in app dictionary
 UNKNOWN_APP = "_UNKNOWN_APP"
