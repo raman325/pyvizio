@@ -102,11 +102,13 @@ APP_HOME = [
     {
         "name": "SmartCast Home",
         "country": ["*"],
-        "config": {
-            "NAME_SPACE": 4,
-            "APP_ID": "1",
-            "MESSAGE": "http://127.0.0.1:12345/scfs/sctv/main.html",
-        },
+        "config": [
+            {
+                "NAME_SPACE": 4,
+                "APP_ID": "1",
+                "MESSAGE": "http://127.0.0.1:12345/scfs/sctv/main.html",
+            }
+        ],
     }
 ]
 
@@ -176,12 +178,12 @@ APPS = [
         "country": ["usa"],
         "id": ["19"],
         "config": [
-            {"NAME_SPACE": 2, "APP_ID": "3", "MESSAGE": "None"},
             {
                 "APP_ID": "3",
                 "NAME_SPACE": 4,
                 "MESSAGE": "https://viziosmartcast.app.hulu.com/livingroom/viziosmartcast/1/index.html#initialize",
             },
+            {"NAME_SPACE": 2, "APP_ID": "3", "MESSAGE": "None"},
         ],
     },
     {
