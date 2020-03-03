@@ -41,20 +41,20 @@ def get_value_from_path(
     return None
 
 
-def find_app_name(app_to_check: Dict[str, Any], app_list: List[Dict[str, Any]]):
+def find_app_name(config_to_check: Dict[str, Any], app_list: List[Dict[str, Any]]):
     for app_def in app_list:
         if isinstance(app_def["config"], list):
             for config in app_def["config"]:
                 if (
-                    config["APP_ID"] == app_to_check.APP_ID
-                    and config["NAME_SPACE"] == app_to_check.NAME_SPACE
+                    config["APP_ID"] == config_to_check.APP_ID
+                    and config["NAME_SPACE"] == config_to_check.NAME_SPACE
                 ):
                     # Return name of app or UNKNOWN_APP if app name can't be found for given config
                     return app_def["name"]
         elif (
             isinstance(app_def["config"], dict)
-            and app_def["config"]["APP_ID"] == app_to_check.APP_ID
-            and app_def["config"]["NAME_SPACE"] == app_to_check.NAME_SPACE
+            and app_def["config"]["APP_ID"] == config_to_check.APP_ID
+            and app_def["config"]["NAME_SPACE"] == config_to_check.NAME_SPACE
         ):
             return app_def["name"]
 
