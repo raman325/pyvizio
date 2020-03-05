@@ -18,3 +18,4 @@ INPUT_APPS = ["SMARTCAST", "CAST"]
 # App name returned when it is not in app dictionary
 UNKNOWN_APP = "_UNKNOWN_APP"
 NO_APP_RUNNING = "_NO_APP_RUNNING"
+SMARTCAST_HOME = "SmartCast Home"

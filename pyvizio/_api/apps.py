@@ -5,7 +5,7 @@ from typing import Any, Dict
 from pyvizio._api._protocol import ENDPOINT, ResponseKey
 from pyvizio._api.base import CommandBase
 from pyvizio._api.input import ItemInfoCommandBase
-from pyvizio.const import NO_APP_RUNNING
+from pyvizio.const import NO_APP_RUNNING, SMARTCAST_HOME
 from pyvizio.helpers import dict_get_case_insensitive, find_app_name
 
 
@@ -100,7 +100,7 @@ class GetCurrentAppNameCommand(GetCurrentAppConfigCommand):
 
 APP_HOME = [
     {
-        "name": "SmartCast Home",
+        "name": SMARTCAST_HOME,
         "country": ["*"],
         "config": [
             {
