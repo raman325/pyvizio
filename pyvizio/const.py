@@ -20,19 +20,17 @@ UNKNOWN_APP = "_UNKNOWN_APP"
 NO_APP_RUNNING = "_NO_APP_RUNNING"
 SMARTCAST_HOME = "SmartCast Home"
 
-APP_HOME = [
-    {
-        "name": SMARTCAST_HOME,
-        "country": ["*"],
-        "config": [
-            {
-                "NAME_SPACE": 4,
-                "APP_ID": "1",
-                "MESSAGE": "http://127.0.0.1:12345/scfs/sctv/main.html",
-            }
-        ],
-    }
-]
+APP_HOME = {
+    "name": SMARTCAST_HOME,
+    "country": ["*"],
+    "config": [
+        {
+            "NAME_SPACE": 4,
+            "APP_ID": "1",
+            "MESSAGE": "http://127.0.0.1:12345/scfs/sctv/main.html",
+        }
+    ],
+}
 
 APPS = [
     {
