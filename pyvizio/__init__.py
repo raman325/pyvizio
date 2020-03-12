@@ -6,8 +6,6 @@ from urllib.parse import urlsplit
 from aiohttp import ClientSession
 from pyvizio._api._protocol import KEY_CODE, async_invoke_api, async_invoke_api_auth
 from pyvizio._api.apps import (
-    APP_HOME,
-    APPS,
     AppConfig,
     GetCurrentAppConfigCommand,
     GetCurrentAppNameCommand,
@@ -43,6 +41,8 @@ from pyvizio._api.pair import (
 )
 from pyvizio._api.remote import EmulateRemoteCommand
 from pyvizio.const import (
+    APP_HOME,
+    APPS,
     DEFAULT_DEVICE_CLASS,
     DEFAULT_PORTS,
     DEFAULT_TIMEOUT,
@@ -565,15 +565,15 @@ class VizioAsync(object):
         """Get list of known apps by name optionally filtered by supported country."""
         # Assumes "*" means all countries are supported
         if country.lower() != "all":
-            return sorted(
+            return APP_HOME + sorted(
                 [
                     app["name"]
-                    for app in (APP_HOME + APPS)
+                    for app in APPS
                     if "*" in app["country"] or country.lower() in app["country"]
                 ]
             )
 
-        return sorted([app["name"] for app in APP_HOME + APPS])
+        return APP_HOME + sorted([app["name"] for app in APPS])
 
     async def launch_app(
         self, app_name: str, log_api_exception: bool = True
