@@ -48,7 +48,7 @@ class LaunchAppNameCommand(LaunchAppConfigCommand):
         app_def = next(
             (
                 app_def
-                for app_def in (APP_HOME + APPS)
+                for app_def in [APP_HOME, *APPS]
                 if app_def["name"].lower() == app_name.lower()
             ),
             dict(),
@@ -92,7 +92,7 @@ class GetCurrentAppNameCommand(GetCurrentAppConfigCommand):
         )
 
         if current_app_config != AppConfig():
-            return find_app_name(current_app_config, APP_HOME + APPS)
+            return find_app_name(current_app_config, [APP_HOME, *APPS])
 
-        # Return NO_APP_RUNNING if value from response was "null"
+        # Return NO_APP_RUNNING if value from response was None
         return NO_APP_RUNNING

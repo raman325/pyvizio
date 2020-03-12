@@ -565,15 +565,18 @@ class VizioAsync(object):
         """Get list of known apps by name optionally filtered by supported country."""
         # Assumes "*" means all countries are supported
         if country.lower() != "all":
-            return APP_HOME + sorted(
-                [
-                    app["name"]
-                    for app in APPS
-                    if "*" in app["country"] or country.lower() in app["country"]
-                ]
-            )
+            return [
+                APP_HOME,
+                *sorted(
+                    [
+                        app["name"]
+                        for app in APPS
+                        if "*" in app["country"] or country.lower() in app["country"]
+                    ]
+                ),
+            ]
 
-        return APP_HOME + sorted([app["name"] for app in APPS])
+        return [APP_HOME, *sorted([app["name"] for app in APPS])]
 
     async def launch_app(
         self, app_name: str, log_api_exception: bool = True
