@@ -4,7 +4,6 @@ from typing import Union
 
 import click
 from pyvizio import VizioAsync, guess_device_type
-from pyvizio._api.apps import AppConfig
 from pyvizio.const import (
     DEFAULT_DEVICE_CLASS,
     DEFAULT_DEVICE_ID,
@@ -506,13 +505,12 @@ async def get_current_app(vizio: VizioAsync) -> None:
 async def get_current_app_config(vizio: VizioAsync) -> None:
     app_config = await vizio.get_current_app_config()
 
-    if app_config:
-        if app_config == AppConfig():
-            _LOGGER.info("No currently running app")
-        else:
-            _LOGGER.info("Currently running app's config: %s", app_config)
-    else:
+    if app_config is None:
         _LOGGER.error("Couldn't get currently running app")
+    elif app_config:
+        _LOGGER.info("Currently running app's config: %s", app_config)
+    else:
+        _LOGGER.info("No currently running app")
 
 
 if __name__ == "__main__":

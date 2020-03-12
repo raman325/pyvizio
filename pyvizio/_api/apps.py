@@ -25,6 +25,9 @@ class AppConfig(object):
     def __eq__(self, other) -> bool:
         return self is other or self.__dict__ == other.__dict__
 
+    def __bool__(self) -> bool:
+        return self != AppConfig()
+
 
 class LaunchAppConfigCommand(CommandBase):
     """Command to launch app by config."""
@@ -91,7 +94,7 @@ class GetCurrentAppNameCommand(GetCurrentAppConfigCommand):
             json_obj
         )
 
-        if current_app_config != AppConfig():
+        if current_app_config:
             return find_app_name(current_app_config, [APP_HOME, *APPS])
 
         # Return NO_APP_RUNNING if value from response was None
