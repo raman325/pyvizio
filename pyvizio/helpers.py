@@ -4,7 +4,7 @@ import asyncio
 from functools import wraps
 from typing import Any, Dict, List, Optional
 
-from pyvizio.const import UNKNOWN_APP
+from pyvizio.const import NO_APP_RUNNING, UNKNOWN_APP
 
 
 def async_to_sync(f):
@@ -41,7 +41,10 @@ def get_value_from_path(
     return None
 
 
-def find_app_name(config_to_check: Dict[str, Any], app_list: List[Dict[str, Any]]):
+def find_app_name(config_to_check, app_list: List[Dict[str, Any]]):
+    if not config_to_check:
+        return NO_APP_RUNNING
+
     for app_def in app_list:
         if isinstance(app_def["config"], list):
             for config in app_def["config"]:
