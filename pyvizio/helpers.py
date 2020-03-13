@@ -41,7 +41,7 @@ def get_value_from_path(
     return None
 
 
-def find_app_name(config_to_check: Dict[str, Any], app_list: List[Dict[str, Any]]):
+def find_app_name(config_to_check, app_list: List[Dict[str, Any]]):
     if not config_to_check:
         return NO_APP_RUNNING
 
