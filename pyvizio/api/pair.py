@@ -2,8 +2,8 @@
 
 from typing import Any, Dict
 
-from pyvizio._api._protocol import ENDPOINT, PairingResponseKey, ResponseKey
-from pyvizio._api.base import CommandBase
+from pyvizio.api._protocol import ENDPOINT, PairingResponseKey, ResponseKey
+from pyvizio.api.base import CommandBase
 from pyvizio.helpers import dict_get_case_insensitive
 
 

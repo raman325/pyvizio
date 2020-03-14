@@ -4,27 +4,29 @@ from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlsplit
 
 from aiohttp import ClientSession
-from pyvizio._api._protocol import KEY_CODE, async_invoke_api, async_invoke_api_auth
-from pyvizio._api.apps import (
+from pyvizio.api._protocol import KEY_CODE, async_invoke_api, async_invoke_api_auth
+from pyvizio.api.apps import (
     AppConfig,
     GetCurrentAppConfigCommand,
     GetCurrentAppNameCommand,
     LaunchAppConfigCommand,
     LaunchAppNameCommand,
 )
-from pyvizio._api.audio import (
+from pyvizio.api.audio import (
     ChangeAudioSettingCommand,
     GetAllAudioSettingsCommand,
+    GetAllAudioSettingsOptionsCommand,
     GetAudioSettingCommand,
+    GetAudioSettingOptionsCommand,
 )
-from pyvizio._api.base import CommandBase
-from pyvizio._api.input import (
+from pyvizio.api.base import CommandBase
+from pyvizio.api.input import (
     ChangeInputCommand,
     GetCurrentInputCommand,
     GetInputsListCommand,
     InputItem,
 )
-from pyvizio._api.item import (
+from pyvizio.api.item import (
     GetCurrentPowerStateCommand,
     GetDeviceInfoCommand,
     GetESNCommand,
@@ -32,14 +34,14 @@ from pyvizio._api.item import (
     GetSerialNumberCommand,
     GetVersionCommand,
 )
-from pyvizio._api.pair import (
+from pyvizio.api.pair import (
     BeginPairCommand,
     BeginPairResponse,
     CancelPairCommand,
     PairChallengeCommand,
     PairChallengeResponse,
 )
-from pyvizio._api.remote import EmulateRemoteCommand
+from pyvizio.api.remote import EmulateRemoteCommand
 from pyvizio.const import (
     APP_HOME,
     APPS,
@@ -519,6 +521,20 @@ class VizioAsync(object):
 
         return None
 
+    async def get_all_audio_settings_options(
+        self, log_api_exception: bool = True
+    ) -> Optional[Dict[str, Union[int, str]]]:
+        """Asynchronously get all audio setting names and corresponding options."""
+        item = await self.__invoke_api_may_need_auth(
+            GetAllAudioSettingsOptionsCommand(self.device_type),
+            log_api_exception=log_api_exception,
+        )
+
+        if item:
+            return item
+
+        return None
+
     async def get_audio_setting(
         self, setting_name: str, log_api_exception: bool = True
     ) -> Optional[Union[int, str]]:
@@ -536,6 +552,15 @@ class VizioAsync(object):
                 return item.value
 
         return None
+
+    async def get_audio_setting_options(
+        self, setting_name: str, log_api_exception: bool = True
+    ) -> Optional[Union[int, str]]:
+        """Asynchronously get options of named audio setting."""
+        return await self.__invoke_api_may_need_auth(
+            GetAudioSettingOptionsCommand(self.device_type, setting_name),
+            log_api_exception=log_api_exception,
+        )
 
     async def set_audio_setting(
         self,
@@ -919,11 +944,29 @@ class Vizio(VizioAsync):
         )
 
     @async_to_sync
+    async def get_all_audio_settings_options(
+        self, log_api_exception: bool = True
+    ) -> Optional[Dict[str, Union[int, str]]]:
+        """Get all audio setting names and corresponding options."""
+        return await super(Vizio, self).get_all_audio_settings_options(
+            log_api_exception=log_api_exception
+        )
+
+    @async_to_sync
     async def get_audio_setting(
         self, setting_name: str, log_api_exception: bool = True
     ) -> Optional[Union[int, str]]:
         """Get current value of named audio setting."""
         return await super(Vizio, self).get_audio_setting(
+            setting_name, log_api_exception=log_api_exception
+        )
+
+    @async_to_sync
+    async def get_audio_setting_options(
+        self, setting_name: str, log_api_exception: bool = True
+    ) -> Optional[Union[int, str]]:
+        """Get options of named audio setting."""
+        return await super(Vizio, self).get_audio_setting_options(
             setting_name, log_api_exception=log_api_exception
         )
 

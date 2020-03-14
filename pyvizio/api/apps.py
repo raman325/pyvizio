@@ -1,12 +1,12 @@
 """Vizio SmartCast API commands for apps."""
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 
-from pyvizio._api._protocol import ENDPOINT, ResponseKey
-from pyvizio._api.base import CommandBase
-from pyvizio._api.input import ItemInfoCommandBase
-from pyvizio.const import APPS, APP_HOME, NO_APP_RUNNING
-from pyvizio.helpers import dict_get_case_insensitive, find_app_name
+from pyvizio.api._protocol import ENDPOINT, ResponseKey
+from pyvizio.api.base import CommandBase
+from pyvizio.api.input import ItemInfoCommandBase
+from pyvizio.const import APP_HOME, APPS, NO_APP_RUNNING, UNKNOWN_APP
+from pyvizio.helpers import dict_get_case_insensitive
 
 
 class AppConfig(object):
@@ -27,6 +27,30 @@ class AppConfig(object):
 
     def __bool__(self) -> bool:
         return self != AppConfig()
+
+
+def find_app_name(config_to_check: AppConfig, app_list: List[Dict[str, Any]]):
+    """Return the app name for a given AppConfig based on a list of apps."""
+    if not config_to_check:
+        return NO_APP_RUNNING
+
+    for app_def in app_list:
+        if isinstance(app_def["config"], list):
+            for config in app_def["config"]:
+                if (
+                    config["APP_ID"] == config_to_check.APP_ID
+                    and config["NAME_SPACE"] == config_to_check.NAME_SPACE
+                ):
+                    # Return name of app or UNKNOWN_APP if app name can't be found for given config
+                    return app_def["name"]
+        elif (
+            isinstance(app_def["config"], dict)
+            and app_def["config"]["APP_ID"] == config_to_check.APP_ID
+            and app_def["config"]["NAME_SPACE"] == config_to_check.NAME_SPACE
+        ):
+            return app_def["name"]
+
+    return UNKNOWN_APP
 
 
 class LaunchAppConfigCommand(CommandBase):

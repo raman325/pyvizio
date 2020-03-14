@@ -398,6 +398,24 @@ async def get_all_audio_settings(vizio: VizioAsync) -> None:
 
 
 @cli.command()
+@async_to_sync
+@pass_vizio
+async def get_all_audio_settings_options(vizio: VizioAsync) -> None:
+    audio_settings_options = await vizio.get_all_audio_settings_options()
+    if audio_settings_options:
+        options = []
+        for k, v in audio_settings_options.items():
+            if isinstance(v, dict):
+                options.append([k, v.get("default"), v["min"], v["max"], None])
+            else:
+                options.append([k, None, None, None, ", ".join(v)])
+        table = tabulate(options, headers=["Name", "Default", "Min", "Max", "Choices"])
+        _LOGGER.info("\n%s", table)
+    else:
+        _LOGGER.error("Couldn't get list of audio settings options")
+
+
+@cli.command()
 @click.argument("setting_name", required=True, type=click.STRING)
 @async_to_sync
 @pass_vizio
@@ -408,6 +426,30 @@ async def get_audio_setting(vizio: VizioAsync, setting_name: str) -> None:
         _LOGGER.info("Current '%s' setting: %s", setting_name, value)
     else:
         _LOGGER.error("Couldn't get value for '%s' setting", setting_name)
+
+
+@cli.command()
+@click.argument("setting_name", required=True, type=click.STRING)
+@async_to_sync
+@pass_vizio
+async def get_audio_setting_options(vizio: VizioAsync, setting_name: str) -> None:
+    value = await vizio.get_audio_setting_options(setting_name)
+
+    _LOGGER.error(value)
+    if value is not None:
+        if isinstance(value, dict):
+            if value.get("default") is not None:
+                table = tabulate(
+                    [[value["default"], value["min"], value["max"]]],
+                    headers=["Default", "Min", "Max"],
+                )
+            else:
+                table = tabulate([[value["min"], value["max"]]], headers=["Min", "Max"])
+            _LOGGER.info("For '%s' setting:\n%s", setting_name, table)
+        else:
+            _LOGGER.info("Options for '%s' setting: %s", setting_name, ", ".join(value))
+    else:
+        _LOGGER.error("Couldn't get options for '%s' setting", setting_name)
 
 
 @cli.command()
