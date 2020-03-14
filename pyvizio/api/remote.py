@@ -2,8 +2,8 @@
 
 from typing import List, Tuple
 
-from pyvizio._api._protocol import ENDPOINT, KEY_ACTION
-from pyvizio._api.base import CommandBase
+from pyvizio.api._protocol import ENDPOINT, KEY_ACTION
+from pyvizio.api.base import CommandBase
 
 
 class KeyPressEvent(object):

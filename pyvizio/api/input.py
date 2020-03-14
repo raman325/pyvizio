@@ -2,8 +2,8 @@
 
 from typing import Any, Dict, List, Optional
 
-from pyvizio._api._protocol import ResponseKey
-from pyvizio._api.item import Item, ItemCommandBase, ItemInfoCommandBase
+from pyvizio.api._protocol import ResponseKey
+from pyvizio.api.item import Item, ItemCommandBase, ItemInfoCommandBase
 from pyvizio.helpers import dict_get_case_insensitive
 
 

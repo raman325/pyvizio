@@ -128,7 +128,7 @@ pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} next-input
 ```
 
 ### Managing audio settings
-> You may have to experiment to find the available options for a given setting. For example, numeric settings have a finite range.
+> You may have to experiment to find the available options for a given setting. For example, numeric settings have a finite range. I've also found that certain ranges returned by the API aren't correct
 
 List available audio setting options and their current values
 ```bash
@@ -139,6 +139,17 @@ Get the current value of a given audio setting
 ```bash
 pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-audio-setting {setting_name}
 ```
+
+List available audio setting options and their available choices/ranges
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-all-audio-settings-options
+```
+
+Get the choices/range of a given audio setting
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-audio-setting-options {setting_name}
+```
+
 Set a new value for a given audio setting
 ```bash
 pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} audio-setting {setting_name} {new_value}

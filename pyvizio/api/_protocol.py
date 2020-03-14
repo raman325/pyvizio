@@ -7,7 +7,7 @@ from typing import Any, Dict
 from aiohttp import ClientResponse, ClientSession, ClientTimeout
 from aiohttp.client import DEFAULT_TIMEOUT as AIOHTTP_DEFAULT_TIMEOUT
 import jsonpickle
-from pyvizio._api.base import CommandBase
+from pyvizio.api.base import CommandBase
 from pyvizio.const import DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV
 from pyvizio.helpers import dict_get_case_insensitive
 
@@ -21,8 +21,8 @@ STATUS_SUCCESS = "success"
 STATUS_URI_NOT_FOUND = "uri_not_found"
 STATUS_INVALID_PARAMETER = "invalid_parameter"
 
-TYPE_EQ_SLIDER = "t_value_abs_v1"
-TYPE_EQ_LIST = "t_list_v1"
+TYPE_SLIDER = "t_value_abs_v1"
+TYPE_LIST = "t_list_v1"
 TYPE_VALUE = "t_value_v1"
 
 ENDPOINT = {
@@ -39,6 +39,7 @@ ENDPOINT = {
         "POWER_MODE": "/state/device/power_mode",
         "KEY_PRESS": "/key_command/",
         "AUDIO_SETTINGS": "/menu_native/dynamic/tv_settings/audio",
+        "AUDIO_SETTINGS_OPTIONS": "/menu_native/static/tv_settings/audio",
         "CURRENT_APP": "/app/current",
         "LAUNCH_APP": "/app/launch",
     },
@@ -55,6 +56,7 @@ ENDPOINT = {
         "POWER_MODE": "/state/device/power_mode",
         "KEY_PRESS": "/key_command/",
         "AUDIO_SETTINGS": "/menu_native/dynamic/audio_settings/audio",
+        "AUDIO_SETTINGS_OPTIONS": "/menu_native/static/audio_settings/audio",
     },
 }
 
@@ -143,6 +145,9 @@ class ResponseKey(object):
     ELEMENTS = "elements"
     ITEM = "item"
     ITEMS = "items"
+    MINIMUM = "minimum"
+    MAXIMUM = "maximum"
+    CENTER = "center"
 
 
 async def async_validate_response(web_response: ClientResponse) -> Dict[str, Any]:
