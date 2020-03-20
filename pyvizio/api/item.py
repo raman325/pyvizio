@@ -125,13 +125,14 @@ class ItemInfoCommandBase(InfoCommandBase):
             if itm.c_name.lower() in (
                 ITEM_CNAME.get(self.item_name, ""),
                 self.item_name,
-            ):
-                if (
+            ) and (
+                (
                     itm.value is not None
                     or itm.center is not None
                     or itm.choices is not None
-                ):
-                    return itm
+                )
+            ):
+                return itm
 
         if self.default_return is not None:
             return DefaultReturnItem(self.default_return)

@@ -193,10 +193,7 @@ class VizioAsync(object):
         self, key_code: str, num: int, log_api_exception: bool = True
     ) -> bool:
         """Asynchronously call key press API with list of same key repeated multiple times."""
-        key_codes = []
-        for ii in range(0, num):
-            key_codes.append(key_code)
-
+        key_codes = [key_code for _ in range(num)]
         return await self.__remote(key_codes, log_api_exception=log_api_exception)
 
     @staticmethod
@@ -280,12 +277,9 @@ class VizioAsync(object):
 
     async def can_connect_no_auth_check(self) -> bool:
         """Asynchronously return whether or not device API can be connected to regardless of authorization."""
-        if await self.__invoke_api(
-            GetDeviceInfoCommand(self.device_type), log_api_exception=False
-        ):
-            return True
-
-        return False
+        return bool(await self.__invoke_api(
+                GetDeviceInfoCommand(self.device_type), log_api_exception=False
+            ))
 
     async def get_esn(self, log_api_exception: bool = True) -> Optional[str]:
         """Asynchronously get device's ESN (electronic serial number?)."""

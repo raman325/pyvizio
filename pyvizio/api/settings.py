@@ -54,11 +54,11 @@ class GetAllSettingsCommand(ItemInfoCommandBase):
             Item(item)
             for item in dict_get_case_insensitive(json_obj, ResponseKey.ITEMS, [])
         ]
-        settings = {}
-        for item in items:
-            if item.type.lower() in (TYPE_LIST, TYPE_SLIDER, TYPE_VALUE):
-                settings[item.c_name] = item.value
-        return settings
+        return {
+            item.c_name: item.value
+            for item in items
+            if item.type.lower() in (TYPE_LIST, TYPE_SLIDER, TYPE_VALUE)
+        }
 
 
 class GetSettingCommand(ItemInfoCommandBase):
@@ -143,11 +143,7 @@ class GetAllSettingsOptionsXListCommand(ItemInfoCommandBase):
             if item.type.lower() == TYPE_X_LIST
         ]
 
-        settings_options = {}
-        for item in items:
-            settings_options[item.c_name] = item.choices
-
-        return settings_options
+        return {item.c_name: item.choices for item in items}
 
 
 class GetSettingOptionsXListCommand(GetAllSettingsOptionsXListCommand):
