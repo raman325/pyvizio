@@ -130,7 +130,7 @@ pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} next-input
 ### Managing audio settings
 > You may have to experiment to find the available options for a given setting. For example, numeric settings have a finite range. I've also found that certain ranges returned by the API aren't correct
 
-List available audio setting options and their current values
+List available audio setting names and their current values
 ```bash
 pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-all-audio-settings
 ```
@@ -140,7 +140,7 @@ Get the current value of a given audio setting
 pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-audio-setting {setting_name}
 ```
 
-List available audio setting options and their available choices/ranges
+List available audio setting names and their available choices/ranges
 ```bash
 pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-all-audio-settings-options
 ```
@@ -153,6 +153,37 @@ pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-audio-
 Set a new value for a given audio setting
 ```bash
 pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} audio-setting {setting_name} {new_value}
+```
+
+### Managing any setting type
+List all available setting types
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-setting-types-list
+```
+
+List available setting names and their current values for a given setting type
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-all-settings {setting_type}
+```
+
+Get the current value of a given setting (must specify setting type)
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-setting {setting_type} {setting_name}
+```
+
+List available setting names and their available choices/ranges for a given setting type
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-all-settings-options {setting_type}
+```
+
+Get the choices/range of a given setting (must specify setting type)
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-setting-options {setting_type} {setting_name}
+```
+
+Set a new value for a given setting (must specify setting type)
+```bash
+pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} setting {setting_type} {setting_name} {new_value}
 ```
 
 ### Apps (TVs with app support only)

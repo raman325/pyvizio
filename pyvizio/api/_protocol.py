@@ -24,6 +24,8 @@ STATUS_INVALID_PARAMETER = "invalid_parameter"
 TYPE_SLIDER = "t_value_abs_v1"
 TYPE_LIST = "t_list_v1"
 TYPE_VALUE = "t_value_v1"
+TYPE_MENU = "t_menu_v1"
+TYPE_X_LIST = "t_list_x_v1"
 
 ENDPOINT = {
     DEVICE_CLASS_TV: {
@@ -38,8 +40,8 @@ ENDPOINT = {
         "DEVICE_INFO": "/state/device/deviceinfo",
         "POWER_MODE": "/state/device/power_mode",
         "KEY_PRESS": "/key_command/",
-        "AUDIO_SETTINGS": "/menu_native/dynamic/tv_settings/audio",
-        "AUDIO_SETTINGS_OPTIONS": "/menu_native/static/tv_settings/audio",
+        "SETTINGS": "/menu_native/dynamic/tv_settings",
+        "SETTINGS_OPTIONS": "/menu_native/static/tv_settings",
         "CURRENT_APP": "/app/current",
         "LAUNCH_APP": "/app/launch",
     },
@@ -55,8 +57,8 @@ ENDPOINT = {
         "DEVICE_INFO": "/state/device/deviceinfo",
         "POWER_MODE": "/state/device/power_mode",
         "KEY_PRESS": "/key_command/",
-        "AUDIO_SETTINGS": "/menu_native/dynamic/audio_settings/audio",
-        "AUDIO_SETTINGS_OPTIONS": "/menu_native/static/audio_settings/audio",
+        "SETTINGS": "/menu_native/dynamic/audio_settings",
+        "SETTINGS_OPTIONS": "/menu_native/static/audio_settings",
     },
 }
 
