@@ -126,11 +126,9 @@ class ItemInfoCommandBase(InfoCommandBase):
                 ITEM_CNAME.get(self.item_name, ""),
                 self.item_name,
             ) and (
-                (
-                    itm.value is not None
-                    or itm.center is not None
-                    or itm.choices is not None
-                )
+                itm.value is not None
+                or itm.center is not None
+                or itm.choices is not None
             ):
                 return itm
 

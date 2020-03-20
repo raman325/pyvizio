@@ -277,9 +277,11 @@ class VizioAsync(object):
 
     async def can_connect_no_auth_check(self) -> bool:
         """Asynchronously return whether or not device API can be connected to regardless of authorization."""
-        return bool(await self.__invoke_api(
+        return bool(
+            await self.__invoke_api(
                 GetDeviceInfoCommand(self.device_type), log_api_exception=False
-            ))
+            )
+        )
 
     async def get_esn(self, log_api_exception: bool = True) -> Optional[str]:
         """Asynchronously get device's ESN (electronic serial number?)."""
