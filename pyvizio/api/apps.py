@@ -113,7 +113,12 @@ class GetCurrentAppNameCommand(GetCurrentAppConfigCommand):
         super(GetCurrentAppNameCommand, self).__init__(device_type)
 
     def process_response(self, json_obj: Dict[str, Any]) -> str:
-        """Return response to command to get currently running app's name. Returns NO_APP_RUNNING if no app is currently running and UNKNOWN_APP if app name can't be retrieved from APPS."""
+        """
+        Return response to command to get currently running app's name.
+
+        Returns NO_APP_RUNNING if no app is currently running and UNKNOWN_APP
+        if app name can't be retrieved from APPS.
+        """
         current_app_config = super(GetCurrentAppNameCommand, self).process_response(
             json_obj
         )

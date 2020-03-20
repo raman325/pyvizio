@@ -4,7 +4,10 @@ from typing import Union
 
 import click
 from pyvizio import VizioAsync, guess_device_type
+from pyvizio.api.apps import find_app_name
 from pyvizio.const import (
+    APP_HOME,
+    APPS,
     DEFAULT_DEVICE_CLASS,
     DEFAULT_DEVICE_ID,
     DEFAULT_DEVICE_NAME,
@@ -376,7 +379,6 @@ async def key_press(vizio: VizioAsync, key: str) -> None:
 
 
 @cli.command()
-@async_to_sync
 @pass_vizio
 async def get_remote_keys_list(vizio: VizioAsync) -> None:
     table = tabulate(vizio.get_remote_keys_list(), headers=["App Name"])
@@ -464,7 +466,7 @@ async def get_setting_options(
 async def setting(
     vizio: VizioAsync, setting_type: str, setting_name: str, new_value: Union[int, str]
 ) -> None:
-    _LOGGER.info("Attemping to set '%s' to '%s'", setting_name, new_value)
+    _LOGGER.info("Attempting to set '%s' to '%s'", setting_name, new_value)
 
     try:
         result = await vizio.set_setting(setting_type, setting_name, int(new_value))
@@ -575,7 +577,7 @@ async def get_audio_setting_options(vizio: VizioAsync, setting_name: str) -> Non
 async def audio_setting(
     vizio: VizioAsync, setting_name: str, new_value: Union[int, str]
 ) -> None:
-    _LOGGER.info("Attemping to set '%s' to '%s'", setting_name, new_value)
+    _LOGGER.info("Attempting to set '%s' to '%s'", setting_name, new_value)
 
     try:
         result = await vizio.set_audio_setting(setting_name, int(new_value))
@@ -640,7 +642,8 @@ async def launch_app_config(
 @async_to_sync
 @pass_vizio
 async def get_current_app(vizio: VizioAsync) -> None:
-    app_name = await vizio.get_current_app()
+    app_config = await vizio.get_current_app_config()
+    app_name = find_app_name(app_config, [APP_HOME, *APPS])
 
     if app_name:
         if app_name == NO_APP_RUNNING:
@@ -648,7 +651,7 @@ async def get_current_app(vizio: VizioAsync) -> None:
         elif app_name == UNKNOWN_APP:
             _LOGGER.info(
                 "Can't determine the name of the app, the currently running app's config is %s",
-                vizio.get_current_app_config(),
+                app_config,
             )
         else:
             _LOGGER.info("Currently running app: %s", app_name)
