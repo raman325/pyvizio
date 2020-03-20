@@ -429,6 +429,121 @@ async def get_audio_setting(vizio: VizioAsync, setting_name: str) -> None:
 
 
 @cli.command()
+@click.argument("setting_type", required=True, type=click.STRING)
+@click.argument("setting_name", required=True, type=click.STRING)
+@async_to_sync
+@pass_vizio
+async def get_setting_options(
+    vizio: VizioAsync, setting_type: str, setting_name: str
+) -> None:
+    value = await vizio.get_setting_options(setting_type, setting_name)
+
+    _LOGGER.error(value)
+    if value is not None:
+        if isinstance(value, dict):
+            if value.get("default") is not None:
+                table = tabulate(
+                    [[value["default"], value["min"], value["max"]]],
+                    headers=["Default", "Min", "Max"],
+                )
+            else:
+                table = tabulate([[value["min"], value["max"]]], headers=["Min", "Max"])
+            _LOGGER.info("For '%s' setting:\n%s", setting_name, table)
+        else:
+            _LOGGER.info("Options for '%s' setting: %s", setting_name, ", ".join(value))
+    else:
+        _LOGGER.error("Couldn't get options for '%s' setting", setting_name)
+
+
+@cli.command()
+@click.argument("setting_type", required=True, type=click.STRING)
+@click.argument("setting_name", required=True, type=click.STRING)
+@click.argument("new_value", required=True, type=click.STRING)
+@async_to_sync
+@pass_vizio
+async def setting(
+    vizio: VizioAsync, setting_type: str, setting_name: str, new_value: Union[int, str]
+) -> None:
+    _LOGGER.info("Attemping to set '%s' to '%s'", setting_name, new_value)
+
+    try:
+        result = await vizio.set_setting(setting_type, setting_name, int(new_value))
+    except ValueError:
+        result = await vizio.set_setting(setting_type, setting_name, new_value)
+
+    _LOGGER.info("OK" if result else "ERROR")
+
+
+@cli.command()
+@click.argument("setting_type", required=True, type=click.STRING)
+@async_to_sync
+@pass_vizio
+async def get_all_settings(vizio: VizioAsync, setting_type: str) -> None:
+    settings = await vizio.get_all_settings(setting_type)
+    if settings:
+        table = tabulate(
+            [[k, v] for k, v in settings.items()], headers=["Name", "Value"]
+        )
+        _LOGGER.info("\n%s", table)
+    else:
+        _LOGGER.error("Couldn't get list of settings for %s setting type", setting_type)
+
+
+@cli.command()
+@click.argument("setting_type", required=True, type=click.STRING)
+@async_to_sync
+@pass_vizio
+async def get_all_settings_options(vizio: VizioAsync, setting_type: str) -> None:
+    settings_options = await vizio.get_all_settings_options(setting_type)
+    if settings_options:
+        options = []
+        for k, v in settings_options.items():
+            if isinstance(v, dict):
+                options.append([k, v.get("default"), v["min"], v["max"], None])
+            else:
+                options.append([k, None, None, None, ", ".join(v)])
+        table = tabulate(options, headers=["Name", "Default", "Min", "Max", "Choices"])
+        _LOGGER.info("\n%s", table)
+    else:
+        _LOGGER.error(
+            "Couldn't get list of settings options for %s setting type", setting_type
+        )
+
+
+@cli.command()
+@click.argument("setting_type", required=True, type=click.STRING)
+@click.argument("setting_name", required=True, type=click.STRING)
+@async_to_sync
+@pass_vizio
+async def get_setting(vizio: VizioAsync, setting_type: str, setting_name: str) -> None:
+    value = await vizio.get_setting(setting_type, setting_name)
+
+    if value is not None:
+        _LOGGER.info("Current '%s' setting: %s", setting_name, value)
+    else:
+        _LOGGER.error(
+            "Couldn't get value for '%s' setting of %s setting type",
+            setting_name,
+            setting_type,
+        )
+
+
+@cli.command()
+@async_to_sync
+@pass_vizio
+async def get_setting_types_list(vizio: VizioAsync) -> None:
+    value = await vizio.get_setting_types_list()
+
+    if value is not None:
+        table = tabulate(
+            [[setting_type] for setting_type in value], headers=["Setting Type"]
+        )
+        _LOGGER.info("\n%s", table)
+    else:
+        _LOGGER.error("Couldn't get setting types")
+
+
+@cli.command()
 @click.argument("setting_name", required=True, type=click.STRING)
 @async_to_sync
 @pass_vizio

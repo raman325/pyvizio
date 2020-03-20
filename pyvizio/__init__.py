@@ -12,13 +12,6 @@ from pyvizio.api.apps import (
     LaunchAppConfigCommand,
     LaunchAppNameCommand,
 )
-from pyvizio.api.audio import (
-    ChangeAudioSettingCommand,
-    GetAllAudioSettingsCommand,
-    GetAllAudioSettingsOptionsCommand,
-    GetAudioSettingCommand,
-    GetAudioSettingOptionsCommand,
-)
 from pyvizio.api.base import CommandBase
 from pyvizio.api.input import (
     ChangeInputCommand,
@@ -42,6 +35,16 @@ from pyvizio.api.pair import (
     PairChallengeResponse,
 )
 from pyvizio.api.remote import EmulateRemoteCommand
+from pyvizio.api.settings import (
+    ChangeSettingCommand,
+    GetAllSettingsCommand,
+    GetAllSettingsOptionsCommand,
+    GetAllSettingsOptionsXListCommand,
+    GetAllSettingTypesCommand,
+    GetSettingCommand,
+    GetSettingOptionsCommand,
+    GetSettingOptionsXListCommand,
+)
 from pyvizio.const import (
     APP_HOME,
     APPS,
@@ -507,12 +510,26 @@ class VizioAsync(object):
         """Get list of remote key names."""
         return KEY_CODE[self.device_type].keys()
 
-    async def get_all_audio_settings(
+    async def get_setting_types_list(
         self, log_api_exception: bool = True
+    ) -> Optional[List[str]]:
+        """Asynchronously get list of all setting types."""
+        items = await self.__invoke_api_may_need_auth(
+            GetAllSettingTypesCommand(self.device_type),
+            log_api_exception=log_api_exception,
+        )
+
+        if items:
+            return items
+
+        return None
+
+    async def get_all_settings(
+        self, setting_type: str, log_api_exception: bool = True
     ) -> Optional[Dict[str, Union[int, str]]]:
-        """Asynchronously get all audio setting names and corresponding values."""
+        """Asynchronously get all setting names and corresponding values."""
         item = await self.__invoke_api_may_need_auth(
-            GetAllAudioSettingsCommand(self.device_type),
+            GetAllSettingsCommand(self.device_type, setting_type),
             log_api_exception=log_api_exception,
         )
 
@@ -521,12 +538,12 @@ class VizioAsync(object):
 
         return None
 
-    async def get_all_audio_settings_options(
-        self, log_api_exception: bool = True
+    async def get_all_settings_options(
+        self, setting_type: str, log_api_exception: bool = True
     ) -> Optional[Dict[str, Union[int, str]]]:
-        """Asynchronously get all audio setting names and corresponding options."""
+        """Asynchronously get all setting names and corresponding options."""
         item = await self.__invoke_api_may_need_auth(
-            GetAllAudioSettingsOptionsCommand(self.device_type),
+            GetAllSettingsOptionsCommand(self.device_type, setting_type),
             log_api_exception=log_api_exception,
         )
 
@@ -535,12 +552,26 @@ class VizioAsync(object):
 
         return None
 
-    async def get_audio_setting(
-        self, setting_name: str, log_api_exception: bool = True
+    async def get_all_settings_options_xlist(
+        self, setting_type: str, log_api_exception: bool = True
+    ) -> Optional[Dict[str, Union[int, str]]]:
+        """Asynchronously get all setting names and corresponding options for settings that are based on a user defined list."""
+        item = await self.__invoke_api_may_need_auth(
+            GetAllSettingsOptionsXListCommand(self.device_type, setting_type),
+            log_api_exception=log_api_exception,
+        )
+
+        if item:
+            return item
+
+        return None
+
+    async def get_setting(
+        self, setting_type: str, setting_name: str, log_api_exception: bool = True
     ) -> Optional[Union[int, str]]:
-        """Asynchronously get current value of named audio setting."""
+        """Asynchronously get current value of named setting."""
         item = await self.__invoke_api_may_need_auth(
-            GetAudioSettingCommand(self.device_type, setting_name),
+            GetSettingCommand(self.device_type, setting_type, setting_name),
             log_api_exception=log_api_exception,
         )
 
@@ -553,13 +584,80 @@ class VizioAsync(object):
 
         return None
 
+    async def get_setting_options(
+        self, setting_type: str, setting_name: str, log_api_exception: bool = True
+    ) -> Optional[Union[int, str]]:
+        """Asynchronously get options of named setting."""
+        return await self.__invoke_api_may_need_auth(
+            GetSettingOptionsCommand(self.device_type, setting_type, setting_name),
+            log_api_exception=log_api_exception,
+        )
+
+    async def get_setting_options_xlist(
+        self, setting_type: str, setting_name: str, log_api_exception: bool = True
+    ) -> Optional[Union[int, str]]:
+        """Asynchronously get options of named setting for settings based on a user defined list."""
+        return await self.__invoke_api_may_need_auth(
+            GetSettingOptionsXListCommand(self.device_type, setting_type, setting_name),
+            log_api_exception=log_api_exception,
+        )
+
+    async def set_setting(
+        self,
+        setting_type: str,
+        setting_name: str,
+        new_value: Union[int, str],
+        log_api_exception: bool = True,
+    ) -> Optional[bool]:
+        """Asynchronously set new value for setting."""
+        setting_item = await self.__invoke_api_may_need_auth(
+            GetSettingCommand(self.device_type, setting_type, setting_name),
+            log_api_exception=log_api_exception,
+        )
+
+        if not setting_item:
+            _LOGGER.error(
+                "Couldn't detect setting for %s of setting type %s",
+                setting_name,
+                setting_type,
+            )
+            return None
+
+        return await self.__invoke_api_may_need_auth(
+            ChangeSettingCommand(
+                self.device_type, setting_item.id, setting_type, setting_name, new_value
+            ),
+            log_api_exception=log_api_exception,
+        )
+
+    async def get_all_audio_settings(
+        self, log_api_exception: bool = True
+    ) -> Optional[Dict[str, Union[int, str]]]:
+        """Asynchronously get all audio setting names and corresponding values."""
+        return await self.get_all_settings("audio", log_api_exception=log_api_exception)
+
+    async def get_all_audio_settings_options(
+        self, log_api_exception: bool = True
+    ) -> Optional[Dict[str, Union[int, str]]]:
+        """Asynchronously get all audio setting names and corresponding options."""
+        return await self.get_all_settings_options(
+            "audio", log_api_exception=log_api_exception
+        )
+
+    async def get_audio_setting(
+        self, setting_name: str, log_api_exception: bool = True
+    ) -> Optional[Union[int, str]]:
+        """Asynchronously get current value of named audio setting."""
+        return await self.get_setting(
+            "audio", setting_name, log_api_exception=log_api_exception
+        )
+
     async def get_audio_setting_options(
         self, setting_name: str, log_api_exception: bool = True
     ) -> Optional[Union[int, str]]:
         """Asynchronously get options of named audio setting."""
-        return await self.__invoke_api_may_need_auth(
-            GetAudioSettingOptionsCommand(self.device_type, setting_name),
-            log_api_exception=log_api_exception,
+        return await self.get_setting_options(
+            "audio", setting_name, log_api_exception=log_api_exception
         )
 
     async def set_audio_setting(
@@ -569,20 +667,8 @@ class VizioAsync(object):
         log_api_exception: bool = True,
     ) -> Optional[bool]:
         """Asynchronously set new value for named audio setting."""
-        audio_setting_item = await self.__invoke_api_may_need_auth(
-            GetAudioSettingCommand(self.device_type, setting_name),
-            log_api_exception=log_api_exception,
-        )
-
-        if not audio_setting_item:
-            _LOGGER.error("Couldn't detect setting for %s", setting_name)
-            return None
-
-        return await self.__invoke_api_may_need_auth(
-            ChangeAudioSettingCommand(
-                self.device_type, audio_setting_item.id, setting_name, new_value
-            ),
-            log_api_exception=log_api_exception,
+        return await self.set_setting(
+            "audio", setting_name, new_value, log_api_exception=log_api_exception
         )
 
     @staticmethod
@@ -933,6 +1019,64 @@ class Vizio(VizioAsync):
     def get_remote_keys_list(self) -> List[str]:
         """Get list of remote key names."""
         return super(Vizio, self).get_remote_keys_list()
+
+    @async_to_sync
+    async def get_setting_types_list(
+        self, setting_type: str, log_api_exception: bool = True
+    ) -> Optional[Dict[str, Union[int, str]]]:
+        """Get list of all setting types."""
+        return await super(Vizio, self).get_setting_types_list(
+            log_api_exception=log_api_exception
+        )
+
+    @async_to_sync
+    async def get_all_settings(
+        self, setting_type: str, log_api_exception: bool = True
+    ) -> Optional[Dict[str, Union[int, str]]]:
+        """Get all setting names and corresponding values."""
+        return await super(Vizio, self).get_all_settings(
+            setting_type, log_api_exception=log_api_exception
+        )
+
+    @async_to_sync
+    async def get_all_settings_options(
+        self, setting_type: str, log_api_exception: bool = True
+    ) -> Optional[Dict[str, Union[int, str]]]:
+        """Get all setting names and corresponding options."""
+        return await super(Vizio, self).get_all_settings_options(
+            setting_type, log_api_exception=log_api_exception
+        )
+
+    @async_to_sync
+    async def get_setting(
+        self, setting_type: str, setting_name: str, log_api_exception: bool = True
+    ) -> Optional[Union[int, str]]:
+        """Get current value of named setting."""
+        return await super(Vizio, self).get_setting(
+            setting_type, setting_name, log_api_exception=log_api_exception
+        )
+
+    @async_to_sync
+    async def get_setting_options(
+        self, setting_type: str, setting_name: str, log_api_exception: bool = True
+    ) -> Optional[Union[int, str]]:
+        """Get options of named setting."""
+        return await super(Vizio, self).get_setting_options(
+            setting_type, setting_name, log_api_exception=log_api_exception
+        )
+
+    @async_to_sync
+    async def set_setting(
+        self,
+        setting_type: str,
+        setting_name: str,
+        new_value: Union[int, str],
+        log_api_exception: bool = True,
+    ) -> Optional[bool]:
+        """Set new value for named setting."""
+        return await super(Vizio, self).set_setting(
+            setting_type, setting_name, new_value, log_api_exception=log_api_exception
+        )
 
     @async_to_sync
     async def get_all_audio_settings(
