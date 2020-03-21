@@ -1,6 +1,6 @@
 """Vizio SmartCast API commands for audio settings."""
 
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Optional, Union
 
 from pyvizio.api._protocol import (
     ENDPOINT,
@@ -23,7 +23,7 @@ class GetAllSettingTypesCommand(ItemInfoCommandBase):
         super(GetAllSettingTypesCommand, self).__init__(device_type, "SETTINGS")
         ItemInfoCommandBase.url.fset(self, f"{ENDPOINT[device_type]['SETTINGS']}")
 
-    def process_response(self, json_obj: Dict[str, Any]) -> Dict[str, Union[int, str]]:
+    def process_response(self, json_obj: Dict[str, Any]) -> List[str]:
         """Return response to command to get list of all setting types."""
         items = [
             Item(item)
@@ -40,7 +40,7 @@ class GetAllSettingTypesCommand(ItemInfoCommandBase):
 class GetAllSettingsCommand(ItemInfoCommandBase):
     """Command to get list of all setting names and corresponding values."""
 
-    def __init__(self, device_type: str, setting_type) -> None:
+    def __init__(self, device_type: str, setting_type: str) -> None:
         """Initialize command to get list of all setting names and corresponding values."""
         super(GetAllSettingsCommand, self).__init__(device_type, "SETTINGS")
         self.setting_type = setting_type.lower()
@@ -87,7 +87,7 @@ class GetAllSettingsOptionsCommand(ItemInfoCommandBase):
             self, f"{ENDPOINT[device_type]['SETTINGS_OPTIONS']}/{setting_type}"
         )
 
-    def process_response(self, json_obj: Dict[str, Any]) -> Dict[str, Union[int, str]]:
+    def process_response(self, json_obj: Dict[str, Any]) -> Dict[str, Union[List[str], Dict[str, Union[int, str]]]]:
         """Return response to command to get list of all setting names and corresponding options."""
         items = [
             Item(item)
@@ -115,7 +115,7 @@ class GetSettingOptionsCommand(GetAllSettingsOptionsCommand):
         self.setting_type = setting_type.lower()
         super(GetSettingOptionsCommand, self).__init__(device_type, self.setting_type)
 
-    def process_response(self, json_obj: Dict[str, Any]) -> Dict[str, Union[int, str]]:
+    def process_response(self, json_obj: Dict[str, Any]) -> Optional[Union[List[str], Dict[str, Union[int, str]]]]:
         """Return response to command to get options of a setting by name."""
         return (
             super(GetSettingOptionsCommand, self)
@@ -129,13 +129,13 @@ class GetAllSettingsOptionsXListCommand(ItemInfoCommandBase):
 
     def __init__(self, device_type: str, setting_type: str) -> None:
         """Initialize command to get list of all setting names and corresponding options for settings of type XList."""
-        super(GetAllSettingsOptionsCommand, self).__init__(device_type, "SETTINGS")
+        super(GetAllSettingsOptionsXListCommand, self).__init__(device_type, "SETTINGS")
         self.setting_type = setting_type.lower()
         ItemInfoCommandBase.url.fset(
             self, f"{ENDPOINT[device_type]['SETTINGS']}/{setting_type}"
         )
 
-    def process_response(self, json_obj: Dict[str, Any]) -> Dict[str, Union[int, str]]:
+    def process_response(self, json_obj: Dict[str, Any]) -> Dict[str, List[str]]:
         """Return response to command to get list of all setting names and corresponding options for settings of type XList."""
         items = [
             Item(item)
@@ -157,7 +157,7 @@ class GetSettingOptionsXListCommand(GetAllSettingsOptionsXListCommand):
             device_type, self.setting_type
         )
 
-    def process_response(self, json_obj: Dict[str, Any]) -> Dict[str, Union[int, str]]:
+    def process_response(self, json_obj: Dict[str, Any]) -> List[str]:
         """Return response to command to get options of an audio setting by name (used for setting of type XList)."""
         return (
             super(GetSettingOptionsXListCommand, self)

@@ -13,9 +13,9 @@ class KeyPressEvent(object):
         self, key_code: Tuple[int, int], action: str = KEY_ACTION["PRESS"]
     ) -> None:
         """Initialize emulated remote key press."""
-        self.CODESET = key_code[0]
-        self.CODE = key_code[1]
-        self.ACTION = action
+        self.CODESET: int = key_code[0]
+        self.CODE: int = key_code[1]
+        self.ACTION: str = action
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.__dict__})"
@@ -32,7 +32,7 @@ class EmulateRemoteCommand(CommandBase):
         super(EmulateRemoteCommand, self).__init__(ENDPOINT[device_type]["KEY_PRESS"])
 
         # noinspection SpellCheckingInspection
-        self.KEYLIST = []
+        self.KEYLIST: List[KeyPressEvent] = []
 
         for key_code in key_codes:
             self.KEYLIST.append(KeyPressEvent(key_code))

@@ -13,7 +13,7 @@ class PairCommandBase(CommandBase):
     def __init__(self, device_id: str, device_type: str, endpoint: str) -> None:
         """Initialize base pairing command."""
         super(PairCommandBase, self).__init__(ENDPOINT[device_type][endpoint])
-        self.DEVICE_ID = device_id
+        self.DEVICE_ID: str = device_id
 
 
 class BeginPairResponse(object):
@@ -21,8 +21,8 @@ class BeginPairResponse(object):
 
     def __init__(self, ch_type: str, token: str) -> None:
         """Initialize response from command to begin pairing process."""
-        self.ch_type = ch_type
-        self.token = token
+        self.ch_type: str = ch_type
+        self.token: str = token
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.__dict__})"
@@ -37,7 +37,7 @@ class BeginPairCommand(PairCommandBase):
     def __init__(self, device_id: str, device_name: str, device_type: str) -> None:
         """Initialize command to begin pairing process."""
         super().__init__(device_id, device_type, "BEGIN_PAIR")
-        self.DEVICE_NAME = str(device_name)
+        self.DEVICE_NAME: str = str(device_name)
 
     def process_response(self, json_obj: Dict[str, Any]) -> BeginPairResponse:
         """Return response to command to begin pairing process."""
