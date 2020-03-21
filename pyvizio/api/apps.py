@@ -29,7 +29,7 @@ class AppConfig(object):
         return self != AppConfig()
 
 
-def find_app_name(config_to_check: AppConfig, app_list: List[Dict[str, Any]]):
+def find_app_name(config_to_check: AppConfig, app_list: List[Dict[str, Any]]) -> str:
     """Return the app name for a given AppConfig based on a list of apps."""
     if not config_to_check:
         return NO_APP_RUNNING

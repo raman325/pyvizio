@@ -1,7 +1,7 @@
 """pyvizio utility module."""
 
 import json
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Union
 
 from pyvizio.util.const import (
     APK_SOURCE_PATH,
@@ -13,7 +13,7 @@ from pyvizio.util.const import (
 
 def gen_apps_list_from_src(
     apk_source_path: str = APK_SOURCE_PATH, resource_path: str = RESOURCE_PATH
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+) -> List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]]:
     """Parse JSON from VizioCast Android app source in `apk_source_path`/`resource_path` and return list of apps for use in pyvizio."""
     base_path = f"{apk_source_path}/{resource_path}"
     app_names_filepath = f"{base_path}/{APP_NAMES_FILE}"
@@ -25,7 +25,7 @@ def gen_apps_list_from_src(
     with open(app_configs_filepath) as f:
         app_configs = json.load(f)
 
-    pyvizio_apps = []
+    pyvizio_apps: List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]] = []
 
     for app_name in app_names:
         # returns first app where condition is true

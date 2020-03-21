@@ -67,6 +67,6 @@ class InfoCommandBase(CommandBase):
         """Set endpoint for command."""
         CommandBase.url.fset(self, new_url)
 
-    def process_response(self, json_obj: Dict[str, Any]) -> bool:
+    def process_response(self, json_obj: Dict[str, Any]) -> None:
         """Always return None when there is no custom process_response method for subclass."""
         return None

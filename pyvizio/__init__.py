@@ -111,7 +111,7 @@ class VizioAsync(object):
     def __eq__(self, other) -> bool:
         return self is other or self.__dict__ == other.__dict__
 
-    async def __add_port(self):
+    async def __add_port(self) -> None:
         """Asynchronously add first open port from known ports list to `ip` property."""
         for port in DEFAULT_PORTS:
             if await open_port(self.ip, port):
@@ -165,11 +165,11 @@ class VizioAsync(object):
         return await self.__invoke_api_auth(cmd, log_api_exception=log_api_exception)
 
     async def __remote(
-        self, key_list: Union[List[str], str], log_api_exception: bool = True
+        self, key_list: Union[str, List[str]], log_api_exception: bool = True
     ) -> bool:
         """Asynchronously call key press API with list of keys."""
         key_codes = []
-        if isinstance(key_list, list) is False:
+        if not isinstance(key_list, list):
             key_list = [key_list]
 
         for key in key_list:
@@ -868,7 +868,7 @@ class Vizio(VizioAsync):
 
     @async_to_sync
     async def pair(
-        self, ch_type: str, token: str, pin: str, log_api_exception: bool = True
+        self, ch_type: int, token: int, pin: str, log_api_exception: bool = True
     ) -> Optional[PairChallengeResponse]:
         """Complete pairing process to obtain auth token."""
         return await super(Vizio, self).pair(
@@ -1019,7 +1019,7 @@ class Vizio(VizioAsync):
     @async_to_sync
     async def get_setting_types_list(
         self, setting_type: str, log_api_exception: bool = True
-    ) -> Optional[Dict[str, Union[int, str]]]:
+    ) -> Optional[List[str]]:
         """Get list of all setting types."""
         return await super(Vizio, self).get_setting_types_list(
             log_api_exception=log_api_exception
