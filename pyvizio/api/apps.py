@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 from pyvizio.api._protocol import ENDPOINT, ResponseKey
 from pyvizio.api.base import CommandBase
 from pyvizio.api.input import ItemInfoCommandBase
-from pyvizio.const import APP_HOME, APPS, NO_APP_RUNNING, UNKNOWN_APP
+from pyvizio.const import APP_CAST, APP_HOME, APPS, NO_APP_RUNNING, UNKNOWN_APP
 from pyvizio.helpers import dict_get_case_insensitive
 
 
@@ -49,6 +49,9 @@ def find_app_name(config_to_check: AppConfig, app_list: List[Dict[str, Any]]) ->
             and app_def["config"]["NAME_SPACE"] == config_to_check.NAME_SPACE
         ):
             return app_def["name"]
+
+    if config_to_check.NAME_SPACE == 0:
+        return APP_CAST
 
     return UNKNOWN_APP
 
