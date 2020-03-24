@@ -20,6 +20,8 @@ UNKNOWN_APP = "_UNKNOWN_APP"
 NO_APP_RUNNING = "_NO_APP_RUNNING"
 SMARTCAST_HOME = "SmartCast Home"
 
+APP_CAST = "Cast"
+
 APP_HOME = {
     "name": SMARTCAST_HOME,
     "country": ["*"],
