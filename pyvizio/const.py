@@ -264,4 +264,10 @@ APPS = [
             }
         ],
     },
+    {
+        "name": "Disney+",
+        "country": ["usa"],
+        "id": ["51"],
+        "config": [{"NAME_SPACE": 4, "APP_ID": "75", "MESSAGE": "https://cd-dmgz.bamgrid.com/bbd/vizio_tv/index.html"}],
+    },
 ]
