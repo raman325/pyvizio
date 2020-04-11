@@ -190,11 +190,6 @@ APPS = [
                 "NAME_SPACE": 4,
                 "MESSAGE": "https://my.vudu.com/castReceiver/index.html?launch-source=app-icon",
             },
-            {
-                "NAME_SPACE": 2,
-                "APP_ID": "21",
-                "MESSAGE": "https://my.vudu.com/castReceiver/index.html?launch-source=app-icon",
-            },
         ],
     },
     {
