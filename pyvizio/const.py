@@ -22,6 +22,9 @@ SMARTCAST_HOME = "SmartCast Home"
 
 APP_CAST = "Cast"
 
+# NAME_SPACE values that appear to be equivalent
+EQUIVALENT_NAME_SPACES = (2, 4)
+
 APP_HOME = {
     "name": SMARTCAST_HOME,
     "country": ["*"],
@@ -39,7 +42,14 @@ APPS = [
         "name": "Prime Video",
         "country": ["*"],
         "id": ["33"],
-        "config": [{"NAME_SPACE": 2, "APP_ID": "4", "MESSAGE": "None"}],
+        "config": [
+            {
+                "APP_ID": "4",
+                "NAME_SPACE": 4,
+                "MESSAGE": "https://atv-ext.amazon.com/blast-app-hosting/html5/index.html?deviceTypeID=A3OI4IHTNZQWDD",
+            },
+            {"NAME_SPACE": 2, "APP_ID": "4", "MESSAGE": "None"},
+        ],
     },
     {
         "name": "CBS All Access",
@@ -130,18 +140,26 @@ APPS = [
         "name": "Plex",
         "country": ["usa", "can"],
         "id": ["40"],
-        "config": [{"NAME_SPACE": 2, "APP_ID": "9", "MESSAGE": "None"}],
+        "config": [
+            {
+                "APP_ID": "9",
+                "NAME_SPACE": 4,
+                "MESSAGE": "https://plex.tv/web/tv/vizio-smartcast",
+            },
+            {"NAME_SPACE": 2, "APP_ID": "9", "MESSAGE": "None"},
+        ],
     },
     {
         "name": "Pluto TV",
         "country": ["usa"],
         "id": ["12"],
         "config": [
+            {"APP_ID": "65", "NAME_SPACE": 4, "MESSAGE": "https://smartcast.pluto.tv"},
             {
                 "NAME_SPACE": 0,
                 "APP_ID": "E6F74C01",
                 "MESSAGE": '{"CAST_NAMESPACE":"urn:x-cast:tv.pluto","CAST_MESSAGE":{"command":"initializePlayback","channel":"","episode":"","time":0}}',
-            }
+            },
         ],
     },
     {
@@ -168,10 +186,15 @@ APPS = [
         "id": ["6"],
         "config": [
             {
+                "APP_ID": "31",
+                "NAME_SPACE": 4,
+                "MESSAGE": "https://my.vudu.com/castReceiver/index.html?launch-source=app-icon",
+            },
+            {
                 "NAME_SPACE": 2,
                 "APP_ID": "21",
                 "MESSAGE": "https://my.vudu.com/castReceiver/index.html?launch-source=app-icon",
-            }
+            },
         ],
     },
     {
@@ -268,6 +291,12 @@ APPS = [
         "name": "Disney+",
         "country": ["usa"],
         "id": ["51"],
-        "config": [{"NAME_SPACE": 4, "APP_ID": "75", "MESSAGE": "https://cd-dmgz.bamgrid.com/bbd/vizio_tv/index.html"}],
+        "config": [
+            {
+                "NAME_SPACE": 4,
+                "APP_ID": "75",
+                "MESSAGE": "https://cd-dmgz.bamgrid.com/bbd/vizio_tv/index.html",
+            }
+        ],
     },
 ]
