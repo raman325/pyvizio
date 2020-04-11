@@ -87,7 +87,9 @@ class GetAllSettingsOptionsCommand(ItemInfoCommandBase):
             self, f"{ENDPOINT[device_type]['SETTINGS_OPTIONS']}/{setting_type}"
         )
 
-    def process_response(self, json_obj: Dict[str, Any]) -> Dict[str, Union[List[str], Dict[str, Union[int, str]]]]:
+    def process_response(
+        self, json_obj: Dict[str, Any]
+    ) -> Dict[str, Union[List[str], Dict[str, Union[int, str]]]]:
         """Return response to command to get list of all setting names and corresponding options."""
         items = [
             Item(item)
@@ -115,7 +117,9 @@ class GetSettingOptionsCommand(GetAllSettingsOptionsCommand):
         self.setting_type = setting_type.lower()
         super(GetSettingOptionsCommand, self).__init__(device_type, self.setting_type)
 
-    def process_response(self, json_obj: Dict[str, Any]) -> Optional[Union[List[str], Dict[str, Union[int, str]]]]:
+    def process_response(
+        self, json_obj: Dict[str, Any]
+    ) -> Optional[Union[List[str], Dict[str, Union[int, str]]]]:
         """Return response to command to get options of a setting by name."""
         return (
             super(GetSettingOptionsCommand, self)

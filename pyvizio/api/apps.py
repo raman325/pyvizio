@@ -5,7 +5,14 @@ from typing import Any, Dict, List
 from pyvizio.api._protocol import ENDPOINT, ResponseKey
 from pyvizio.api.base import CommandBase
 from pyvizio.api.input import ItemInfoCommandBase
-from pyvizio.const import APP_CAST, APP_HOME, APPS, NO_APP_RUNNING, UNKNOWN_APP
+from pyvizio.const import (
+    APP_CAST,
+    APP_HOME,
+    APPS,
+    EQUIVALENT_NAME_SPACES,
+    NO_APP_RUNNING,
+    UNKNOWN_APP,
+)
 from pyvizio.helpers import dict_get_case_insensitive
 
 
@@ -30,7 +37,11 @@ class AppConfig(object):
 
 
 def find_app_name(config_to_check: AppConfig, app_list: List[Dict[str, Any]]) -> str:
-    """Return the app name for a given AppConfig based on a list of apps."""
+    """
+    Return the app name for a given AppConfig based on a list of apps.
+
+    Returns UNKNOWN_APP if app name can't be found in APPS list for given AppConfig.
+    """
     if not config_to_check:
         return NO_APP_RUNNING
 
@@ -41,7 +52,6 @@ def find_app_name(config_to_check: AppConfig, app_list: List[Dict[str, Any]]) ->
                     config["APP_ID"] == config_to_check.APP_ID
                     and config["NAME_SPACE"] == config_to_check.NAME_SPACE
                 ):
-                    # Return name of app or UNKNOWN_APP if app name can't be found for given config
                     return app_def["name"]
         elif (
             isinstance(app_def["config"], dict)
@@ -49,6 +59,22 @@ def find_app_name(config_to_check: AppConfig, app_list: List[Dict[str, Any]]) ->
             and app_def["config"]["NAME_SPACE"] == config_to_check.NAME_SPACE
         ):
             return app_def["name"]
+
+    if config_to_check.NAME_SPACE in EQUIVALENT_NAME_SPACES:
+        for app_def in app_list:
+            if isinstance(app_def["config"], list):
+                for config in app_def["config"]:
+                    if (
+                        config["APP_ID"] == config_to_check.APP_ID
+                        and config["NAME_SPACE"] in EQUIVALENT_NAME_SPACES
+                    ):
+                        return app_def["name"]
+            elif (
+                isinstance(app_def["config"], dict)
+                and app_def["config"]["APP_ID"] == config_to_check.APP_ID
+                and app_def["config"]["NAME_SPACE"] in EQUIVALENT_NAME_SPACES
+            ):
+                return app_def["name"]
 
     if config_to_check.NAME_SPACE == 0:
         return APP_CAST
