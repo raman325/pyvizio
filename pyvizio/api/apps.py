@@ -45,6 +45,7 @@ def find_app_name(config_to_check: AppConfig, app_list: List[Dict[str, Any]]) ->
     if not config_to_check:
         return NO_APP_RUNNING
 
+    # Attempt to find an exact match from known apps list
     for app_def in app_list:
         if isinstance(app_def["config"], list):
             for config in app_def["config"]:
@@ -60,6 +61,8 @@ def find_app_name(config_to_check: AppConfig, app_list: List[Dict[str, Any]]) ->
         ):
             return app_def["name"]
 
+    # If exact match couldn't be find, swap in equivalent name spaces
+    # and attempt to find a match
     if config_to_check.NAME_SPACE in EQUIVALENT_NAME_SPACES:
         for app_def in app_list:
             if isinstance(app_def["config"], list):
@@ -76,9 +79,11 @@ def find_app_name(config_to_check: AppConfig, app_list: List[Dict[str, Any]]) ->
             ):
                 return app_def["name"]
 
+    # So far only the SmartCast home screen appears to use the NAME_SPACE of 0
     if config_to_check.NAME_SPACE == 0:
         return APP_CAST
 
+    # If no match, app is unknown
     return UNKNOWN_APP
 
 
