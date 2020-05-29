@@ -269,11 +269,9 @@ class VizioAsync(object):
 
     async def can_connect_with_auth_check(self) -> bool:
         """Asynchronously return whether or not device API can be connected to with valid authorization."""
-        if await self.vol_up(log_api_exception=False):
-            await self.vol_down(log_api_exception=False)
-            return True
-
-        return False
+        return bool(
+            await VizioAsync.get_all_audio_settings(self, log_api_exception=False)
+        )
 
     async def can_connect_no_auth_check(self) -> bool:
         """Asynchronously return whether or not device API can be connected to regardless of authorization."""
@@ -437,8 +435,8 @@ class VizioAsync(object):
 
     async def get_current_volume(self, log_api_exception: bool = True) -> Optional[int]:
         """Asynchronously get device's current volume level."""
-        return await self.get_audio_setting(
-            "volume", log_api_exception=log_api_exception
+        return await VizioAsync.get_audio_setting(
+            self, "volume", log_api_exception=log_api_exception
         )
 
     async def is_muted(self, log_api_exception: bool = True) -> Optional[bool]:
@@ -446,8 +444,8 @@ class VizioAsync(object):
         # If None is returned lower() will fail, if not we can do a simple boolean check
         try:
             return (
-                await self.get_audio_setting(
-                    "mute", log_api_exception=log_api_exception
+                await VizioAsync.get_audio_setting(
+                    self, "mute", log_api_exception=log_api_exception
                 ).lower()
                 == "on"
             )
@@ -630,30 +628,32 @@ class VizioAsync(object):
         self, log_api_exception: bool = True
     ) -> Optional[Dict[str, Union[int, str]]]:
         """Asynchronously get all audio setting names and corresponding values."""
-        return await self.get_all_settings("audio", log_api_exception=log_api_exception)
+        return await VizioAsync.get_all_settings(
+            self, "audio", log_api_exception=log_api_exception
+        )
 
     async def get_all_audio_settings_options(
         self, log_api_exception: bool = True
     ) -> Optional[Dict[str, Union[int, str]]]:
         """Asynchronously get all audio setting names and corresponding options."""
-        return await self.get_all_settings_options(
-            "audio", log_api_exception=log_api_exception
+        return await VizioAsync.get_all_settings_options(
+            self, "audio", log_api_exception=log_api_exception
         )
 
     async def get_audio_setting(
         self, setting_name: str, log_api_exception: bool = True
     ) -> Optional[Union[int, str]]:
         """Asynchronously get current value of named audio setting."""
-        return await self.get_setting(
-            "audio", setting_name, log_api_exception=log_api_exception
+        return await VizioAsync.get_setting(
+            self, "audio", setting_name, log_api_exception=log_api_exception
         )
 
     async def get_audio_setting_options(
         self, setting_name: str, log_api_exception: bool = True
     ) -> Optional[Union[int, str]]:
         """Asynchronously get options of named audio setting."""
-        return await self.get_setting_options(
-            "audio", setting_name, log_api_exception=log_api_exception
+        return await VizioAsync.get_setting_options(
+            self, "audio", setting_name, log_api_exception=log_api_exception
         )
 
     async def set_audio_setting(
@@ -663,8 +663,8 @@ class VizioAsync(object):
         log_api_exception: bool = True,
     ) -> Optional[bool]:
         """Asynchronously set new value for named audio setting."""
-        return await self.set_setting(
-            "audio", setting_name, new_value, log_api_exception=log_api_exception
+        return await VizioAsync.set_setting(
+            self, "audio", setting_name, new_value, log_api_exception=log_api_exception
         )
 
     @staticmethod
