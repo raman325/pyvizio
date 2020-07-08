@@ -294,7 +294,7 @@ class VizioAsync(object):
 
     async def get_serial_number(self, log_api_exception: bool = True) -> Optional[str]:
         """Asynchronously get device's serial number."""
-        item = await self.__invoke_api_may_need_auth(
+        item = await self.__invoke_api(
             GetSerialNumberCommand(self.device_type),
             log_api_exception=log_api_exception,
         )
@@ -306,7 +306,7 @@ class VizioAsync(object):
 
     async def get_version(self, log_api_exception: bool = True) -> Optional[str]:
         """Asynchronously get SmartCast software version on device."""
-        item = await self.__invoke_api_may_need_auth(
+        item = await self.__invoke_api(
             GetVersionCommand(self.device_type), log_api_exception=log_api_exception
         )
 
