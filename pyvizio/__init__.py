@@ -251,21 +251,15 @@ class VizioAsync(object):
     @staticmethod
     async def get_unique_id(
         ip: str,
-        auth_token: str,
         device_type: str,
         timeout: int = DEFAULT_TIMEOUT,
         session: Optional[ClientSession] = None,
         log_api_exception: bool = True,
     ) -> Optional[str]:
-        """Asynchronously get unique identifier for Vizio device using IP address as fallback."""
-        dev = VizioAsync(
-            "", ip, "", auth_token, device_type, session=session, timeout=timeout
-        )
-        return (
-            await dev.get_serial_number(log_api_exception=log_api_exception)
-            or await dev.get_esn(log_api_exception=log_api_exception)  # noqa: W503
-            or dev.ip  # noqa: W503
-        )
+        """Asynchronously get unique identifier for Vizio device."""
+        return await VizioAsync(
+            "", ip, "", "", device_type, session=session, timeout=timeout
+        ).get_serial_number(log_api_exception=log_api_exception)
 
     async def can_connect_with_auth_check(self) -> bool:
         """Asynchronously return whether or not device API can be connected to with valid authorization."""
@@ -811,7 +805,7 @@ class Vizio(VizioAsync):
         timeout: int = DEFAULT_TIMEOUT,
         log_api_exception: bool = True,
     ) -> Optional[str]:
-        """Get unique identifier for Vizio device using IP address as fallback."""
+        """Get unique identifier for Vizio device."""
         return await super(Vizio, Vizio).get_unique_id(
             ip,
             auth_token,
