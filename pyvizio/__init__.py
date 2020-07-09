@@ -256,7 +256,7 @@ class VizioAsync(object):
         session: Optional[ClientSession] = None,
         log_api_exception: bool = True,
     ) -> Optional[str]:
-        """Asynchronously get unique identifier for Vizio device using IP address as fallback."""
+        """Asynchronously get unique identifier for Vizio device."""
         return await VizioAsync(
             "", ip, "", "", device_type, session=session, timeout=timeout
         ).get_serial_number(log_api_exception=log_api_exception)
@@ -805,7 +805,7 @@ class Vizio(VizioAsync):
         timeout: int = DEFAULT_TIMEOUT,
         log_api_exception: bool = True,
     ) -> Optional[str]:
-        """Get unique identifier for Vizio device using IP address as fallback."""
+        """Get unique identifier for Vizio device."""
         return await super(Vizio, Vizio).get_unique_id(
             ip,
             auth_token,
