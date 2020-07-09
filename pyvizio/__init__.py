@@ -254,12 +254,11 @@ class VizioAsync(object):
         device_type: str,
         timeout: int = DEFAULT_TIMEOUT,
         session: Optional[ClientSession] = None,
-        log_api_exception: bool = True,
     ) -> Optional[str]:
         """Asynchronously get unique identifier for Vizio device."""
         return await VizioAsync(
             "", ip, "", "", device_type, session=session, timeout=timeout
-        ).get_serial_number(log_api_exception=log_api_exception)
+        ).get_serial_number(log_api_exception=False)
 
     async def can_connect_with_auth_check(self) -> bool:
         """Asynchronously return whether or not device API can be connected to with valid authorization."""
