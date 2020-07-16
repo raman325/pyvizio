@@ -1,7 +1,7 @@
 """Vizio SmartCast API protocol constants and get and set functions."""
 
 import json
-from logging import Logger
+from logging import getLogger, Logger
 from typing import Any, Dict
 
 from aiohttp import ClientResponse, ClientSession, ClientTimeout
@@ -10,6 +10,8 @@ import jsonpickle
 from pyvizio.api.base import CommandBase
 from pyvizio.const import DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV
 from pyvizio.helpers import dict_get_case_insensitive
+
+_LOGGER = getLogger(__name__)
 
 HTTP_OK = 200
 
@@ -161,6 +163,7 @@ async def async_validate_response(web_response: ClientResponse) -> Dict[str, Any
 
     try:
         data = json.loads(await web_response.text())
+        _LOGGER.debug("Response: %s", data)
     except Exception:
         raise Exception("Failed to parse response: {0}".format(web_response.content))
 
@@ -196,6 +199,7 @@ async def async_invoke_api(
     method = command.get_method()
     url = f"https://{ip}{command.get_url()}"
     data = jsonpickle.encode(command, unpicklable=False)
+    _LOGGER.debug("Using Command: %s", command)
 
     if not custom_timeout:
         timeout = AIOHTTP_DEFAULT_TIMEOUT
@@ -208,31 +212,52 @@ async def async_invoke_api(
     try:
         if session:
             if "get" == method.lower():
+                _LOGGER.debug(
+                    "Using Request: %s",
+                    {"method": "get", "url": url, "headers": headers},
+                )
                 response = await session.get(
                     url=url, headers=headers, ssl=False, timeout=timeout
                 )
             else:
                 timeout = AIOHTTP_DEFAULT_TIMEOUT
                 headers["Content-Type"] = "application/json"
+                _LOGGER.debug(
+                    "Using Request: %s",
+                    {
+                        "method": "put",
+                        "url": url,
+                        "headers": headers,
+                        "data": json.loads(data),
+                    },
+                )
                 response = await session.put(
-                    # url=url, data=str(data), headers=headers, ssl=False, timeout=timeout
-                    url=url,
-                    data=str(data),
-                    headers=headers,
-                    ssl=False,
-                    timeout=timeout,
+                    url=url, data=str(data), headers=headers, ssl=False, timeout=timeout
                 )
 
             json_obj = await async_validate_response(response)
         else:
             async with ClientSession() as local_session:
                 if "get" == method.lower():
+                    _LOGGER.debug(
+                        "Using Request: %s",
+                        {"method": "get", "url": url, "headers": headers},
+                    )
                     response = await local_session.get(
                         url=url, headers=headers, ssl=False, timeout=timeout
                     )
                 else:
                     timeout = AIOHTTP_DEFAULT_TIMEOUT
                     headers["Content-Type"] = "application/json"
+                    _LOGGER.debug(
+                        "Using Request: %s",
+                        {
+                            "method": "put",
+                            "url": url,
+                            "headers": headers,
+                            "data": json.loads(data),
+                        },
+                    )
                     response = await local_session.put(
                         url=url,
                         data=str(data),

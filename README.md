@@ -1,5 +1,3 @@
-| NOTE: The device type `soundbar` has been deprecated in favor of `speaker`. Support will be removed soon.
-
 ## Description
 
 Simple cli and API implementation for Vizio SmartCast TVs and Speakers (Sound Bars). Mainly created for 

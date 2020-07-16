@@ -51,7 +51,6 @@ from pyvizio.const import (
     DEFAULT_DEVICE_CLASS,
     DEFAULT_PORTS,
     DEFAULT_TIMEOUT,
-    DEVICE_CLASS_SOUNDBAR,
     DEVICE_CLASS_SPEAKER,
     DEVICE_CLASS_TV,
     MAX_VOLUME,
@@ -65,7 +64,7 @@ import xmltodict
 _LOGGER = logging.getLogger(__name__)
 
 
-class VizioAsync(object):
+class VizioAsync:
     """Asynchronous class to interact with Vizio SmartCast devices."""
 
     def __init__(
@@ -80,15 +79,6 @@ class VizioAsync(object):
     ) -> None:
         """Initialize asynchronous class to interact with Vizio SmartCast devices."""
         self.device_type = device_type.lower()
-        if self.device_type == DEVICE_CLASS_SOUNDBAR:
-            _LOGGER.warning(
-                "The '%s' device type has been deprecated and will be removed"
-                " soon. Please use the '%s' device type going forward",
-                DEVICE_CLASS_SOUNDBAR,
-                DEVICE_CLASS_SPEAKER,
-            )
-            self.device_type = DEVICE_CLASS_SPEAKER
-
         if (
             self.device_type != DEVICE_CLASS_TV
             and self.device_type != DEVICE_CLASS_SPEAKER  # noqa: W503

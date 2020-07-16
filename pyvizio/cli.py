@@ -12,7 +12,6 @@ from pyvizio.const import (
     DEFAULT_DEVICE_ID,
     DEFAULT_DEVICE_NAME,
     DEFAULT_TIMEOUT,
-    DEVICE_CLASS_SOUNDBAR,
     DEVICE_CLASS_SPEAKER,
     DEVICE_CLASS_TV,
     NO_APP_RUNNING,
@@ -59,7 +58,7 @@ pass_vizio = click.make_pass_decorator(VizioAsync)
     envvar="VIZIO_DEVICE_TYPE",
     required=False,
     default=DEFAULT_DEVICE_CLASS,
-    type=click.Choice([DEVICE_CLASS_TV, DEVICE_CLASS_SPEAKER, DEVICE_CLASS_SOUNDBAR]),
+    type=click.Choice([DEVICE_CLASS_TV, DEVICE_CLASS_SPEAKER]),
     show_default=True,
     show_envvar=True,
 )

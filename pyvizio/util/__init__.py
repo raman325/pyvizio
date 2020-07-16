@@ -3,12 +3,36 @@
 import json
 from typing import Any, Dict, List, Union
 
+from aiohttp import ClientSession
 from pyvizio.util.const import (
     APK_SOURCE_PATH,
     APP_NAMES_FILE,
+    APP_NAMES_URL,
     APP_PAYLOADS_FILE,
+    APP_PAYLOADS_URL,
     RESOURCE_PATH,
 )
+
+
+async def gen_apps_list_from_url(
+    app_names_url: str = APP_NAMES_URL,
+    app_payloads_url: str = APP_PAYLOADS_URL,
+    session: ClientSession = None,
+) -> List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]]:
+    """Get app JSON files from external URLs and return list of apps for use in pyvizio."""
+    if session:
+        response = await session.get(app_names_url, raise_for_status=True)
+        app_names = await response.json()
+        response = await session.get(app_payloads_url, raise_for_status=True)
+        app_configs = await response.json()
+    else:
+        async with ClientSession() as local_session:
+            response = await local_session.get(app_names_url, raise_for_status=True)
+            app_names = await response.json()
+            response = await local_session.get(app_payloads_url, raise_for_status=True)
+            app_configs = await response.json()
+
+    return gen_apps_list(app_names, app_configs)
 
 
 def gen_apps_list_from_src(
@@ -25,6 +49,13 @@ def gen_apps_list_from_src(
     with open(app_configs_filepath) as f:
         app_configs = json.load(f)
 
+    return gen_apps_list(app_names, app_configs)
+
+
+def gen_apps_list(
+    app_names: List[Dict[str, Any]], app_configs: List[Dict[str, Any]]
+) -> List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]]:
+    """Parse list of app names and app configs and return list of apps for use in pyvizio."""
     pyvizio_apps: List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]] = []
 
     for app_name in app_names:
