@@ -652,10 +652,11 @@ class VizioAsync:
             self, "audio", setting_name, new_value, log_api_exception=log_api_exception
         )
 
-    async def get_apps_list(self, country: str = "all") -> List[str]:
+    @staticmethod
+    async def get_apps_list(country: str = "all", session: ClientSession = None) -> List[str]:
         """Get list of known apps by name optionally filtered by supported country."""
         # Assumes "*" means all countries are supported
-        apps_list = await gen_apps_list_from_url(session=self._session)
+        apps_list = await gen_apps_list_from_url(session=session)
         # Fallback to local list of apps if needed
         if not apps_list:
             apps_list = APPS
@@ -1106,9 +1107,10 @@ class Vizio(VizioAsync):
         )
 
     @async_to_sync
-    async def get_apps_list(self, country: str = None) -> List[str]:
+    @staticmethod
+    async def get_apps_list(country: str = "all", session: ClientSession = None) -> List[str]:
         """Get list of known apps by name optionally filtered by supported country."""
-        return await super(Vizio, self).get_apps_list(country=country)
+        return await super(Vizio, Vizio).get_apps_list(country=country, session=session)
 
     @async_to_sync
     async def launch_app(

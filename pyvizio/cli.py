@@ -600,7 +600,7 @@ async def audio_setting(
 @async_to_sync
 @pass_vizio
 async def get_apps_list(vizio: VizioAsync, country: str = "all") -> None:
-    apps = await vizio.get_apps_list(country)
+    apps = await VizioAsync.get_apps_list(country)
     if apps:
         table = tabulate([{"Name": app} for app in apps], headers="keys")
         _LOGGER.info("\n%s", table)
