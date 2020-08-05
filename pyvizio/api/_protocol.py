@@ -1,12 +1,13 @@
 """Vizio SmartCast API protocol constants and get and set functions."""
 
 import json
-from logging import getLogger, Logger
+from logging import Logger, getLogger
 from typing import Any, Dict
 
 from aiohttp import ClientResponse, ClientSession, ClientTimeout
 from aiohttp.client import DEFAULT_TIMEOUT as AIOHTTP_DEFAULT_TIMEOUT
 import jsonpickle
+
 from pyvizio.api.base import CommandBase
 from pyvizio.const import DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV
 from pyvizio.helpers import dict_get_case_insensitive

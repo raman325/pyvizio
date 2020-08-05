@@ -4,6 +4,9 @@ from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlsplit
 
 from aiohttp import ClientSession
+import requests
+import xmltodict
+
 from pyvizio.api._protocol import KEY_CODE, async_invoke_api, async_invoke_api_auth
 from pyvizio.api.apps import (
     AppConfig,
@@ -58,8 +61,7 @@ from pyvizio.const import (
 from pyvizio.discovery.ssdp import SSDPDevice, discover as discover_ssdp
 from pyvizio.discovery.zeroconf import ZeroconfDevice, discover as discover_zc
 from pyvizio.helpers import async_to_sync, open_port
-import requests
-import xmltodict
+from pyvizio.util import gen_apps_list_from_url
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -650,30 +652,37 @@ class VizioAsync:
             self, "audio", setting_name, new_value, log_api_exception=log_api_exception
         )
 
-    @staticmethod
-    def get_apps_list(country: str = "all") -> List[str]:
+    async def get_apps_list(self, country: str = "all") -> List[str]:
         """Get list of known apps by name optionally filtered by supported country."""
         # Assumes "*" means all countries are supported
+        apps_list = await gen_apps_list_from_url(session=self._session)
+        # Fallback to local list of apps if needed
+        if not apps_list:
+            apps_list = APPS
+
         if country.lower() != "all":
             return [
                 APP_HOME["name"],
                 *sorted(
                     [
                         app["name"]
-                        for app in APPS
+                        for app in apps_list
                         if "*" in app["country"] or country.lower() in app["country"]
                     ]
                 ),
             ]
 
-        return [APP_HOME["name"], *sorted([app["name"] for app in APPS])]
+        return [APP_HOME["name"], *sorted([app["name"] for app in apps_list])]
 
     async def launch_app(
-        self, app_name: str, log_api_exception: bool = True
+        self,
+        app_name: str,
+        apps_list: List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]],
+        log_api_exception: bool = True,
     ) -> Optional[bool]:
         """Asynchronously launch known app by name."""
         return await self.__invoke_api_may_need_auth(
-            LaunchAppNameCommand(self.device_type, app_name),
+            LaunchAppNameCommand(self.device_type, app_name, apps_list),
             log_api_exception=log_api_exception,
         )
 
@@ -690,10 +699,14 @@ class VizioAsync:
             log_api_exception=log_api_exception,
         )
 
-    async def get_current_app(self, log_api_exception: bool = True) -> Optional[str]:
+    async def get_current_app(
+        self,
+        apps_list: List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]],
+        log_api_exception: bool = True,
+    ) -> Optional[str]:
         """Asynchronously get name of currently running app. Returns const APP_NOT_RUNNING if no app is currently running, const UNKNOWN_APP if app config isn't known by pyvizio."""
         return await self.__invoke_api_may_need_auth(
-            GetCurrentAppNameCommand(self.device_type),
+            GetCurrentAppNameCommand(self.device_type, apps_list),
             log_api_exception=log_api_exception,
         )
 
@@ -766,7 +779,7 @@ class Vizio(VizioAsync):
         return super(Vizio, Vizio).discovery_zeroconf(timeout)
 
     @staticmethod
-    def discovery_ssdp(timeout: int = DEFAULT_TIMEOUT) -> List[ZeroconfDevice]:
+    def discovery_ssdp(timeout: int = DEFAULT_TIMEOUT) -> List[SSDPDevice]:
         """Discover Vizio devices on network using SSDP."""
         return super(Vizio, Vizio).discovery_ssdp(timeout)
 
@@ -787,21 +800,10 @@ class Vizio(VizioAsync):
     @staticmethod
     @async_to_sync
     async def get_unique_id(
-        ip: str,
-        auth_token: str,
-        device_type: str,
-        session: Optional[ClientSession] = None,
-        timeout: int = DEFAULT_TIMEOUT,
-        log_api_exception: bool = True,
+        ip: str, device_type: str, timeout: int = DEFAULT_TIMEOUT
     ) -> Optional[str]:
         """Get unique identifier for Vizio device."""
-        return await super(Vizio, Vizio).get_unique_id(
-            ip,
-            auth_token,
-            device_type,
-            timeout=timeout,
-            log_api_exception=log_api_exception,
-        )
+        return await super(Vizio, Vizio).get_unique_id(ip, device_type, timeout=timeout)
 
     @async_to_sync
     async def can_connect_with_auth_check(self) -> bool:
@@ -868,9 +870,7 @@ class Vizio(VizioAsync):
         )
 
     @async_to_sync
-    async def get_current_input(
-        self, log_api_exception: bool = True
-    ) -> Optional[InputItem]:
+    async def get_current_input(self, log_api_exception: bool = True) -> Optional[str]:
         """Get device's active input."""
         return await super(Vizio, self).get_current_input(
             log_api_exception=log_api_exception
@@ -1105,18 +1105,21 @@ class Vizio(VizioAsync):
             setting_name, new_value, log_api_exception=log_api_exception
         )
 
-    @staticmethod
-    def get_apps_list(country: str = None) -> List[str]:
+    @async_to_sync
+    async def get_apps_list(self, country: str = None) -> List[str]:
         """Get list of known apps by name optionally filtered by supported country."""
-        return super(Vizio, Vizio).get_apps_list(country=country)
+        return await super(Vizio, self).get_apps_list(country=country)
 
     @async_to_sync
     async def launch_app(
-        self, app_name: str, log_api_exception: bool = True
+        self,
+        app_name: str,
+        apps_list: List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]],
+        log_api_exception: bool = True,
     ) -> Optional[bool]:
         """Launch known app by name."""
         return await super(Vizio, self).launch_app(
-            app_name, log_api_exception=log_api_exception
+            app_name, apps_list, log_api_exception=log_api_exception
         )
 
     @async_to_sync
@@ -1134,10 +1137,14 @@ class Vizio(VizioAsync):
         )
 
     @async_to_sync
-    async def get_current_app(self, log_api_exception: bool = True) -> Optional[str]:
+    async def get_current_app(
+        self,
+        apps_list: List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]],
+        log_api_exception: bool = True,
+    ) -> Optional[str]:
         """Get name of currently running app. Returns const APP_NOT_RUNNING if no app is currently running, const UNKNOWN_APP if app config isn't known by pyvizio."""
         return await super(Vizio, self).get_current_app(
-            log_api_exception=log_api_exception
+            apps_list, log_api_exception=log_api_exception
         )
 
     @async_to_sync

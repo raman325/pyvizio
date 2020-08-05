@@ -1,6 +1,6 @@
 """Vizio SmartCast API commands for apps."""
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 from pyvizio.api._protocol import ENDPOINT, ResponseKey
 from pyvizio.api.base import CommandBase
@@ -8,7 +8,6 @@ from pyvizio.api.input import ItemInfoCommandBase
 from pyvizio.const import (
     APP_CAST,
     APP_HOME,
-    APPS,
     EQUIVALENT_NAME_SPACES,
     NO_APP_RUNNING,
     UNKNOWN_APP,
@@ -104,12 +103,17 @@ class LaunchAppConfigCommand(CommandBase):
 class LaunchAppNameCommand(LaunchAppConfigCommand):
     """Command to launch app by name."""
 
-    def __init__(self, device_type: str, app_name: str) -> None:
+    def __init__(
+        self,
+        device_type: str,
+        app_name: str,
+        apps_list: List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]],
+    ) -> None:
         """Initialize command to launch app by name."""
         app_def = next(
             (
                 app_def
-                for app_def in [APP_HOME, *APPS]
+                for app_def in [APP_HOME, *apps_list]
                 if app_def["name"].lower() == app_name.lower()
             ),
             dict(),
@@ -142,9 +146,14 @@ class GetCurrentAppConfigCommand(ItemInfoCommandBase):
 class GetCurrentAppNameCommand(GetCurrentAppConfigCommand):
     """Command to get currently running app's name."""
 
-    def __init__(self, device_type: str) -> None:
+    def __init__(
+        self,
+        device_type: str,
+        apps_list: List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]],
+    ) -> None:
         """Initialize command to get currently running app's name."""
         super(GetCurrentAppNameCommand, self).__init__(device_type)
+        self.apps_list = apps_list
 
     def process_response(self, json_obj: Dict[str, Any]) -> str:
         """
@@ -158,7 +167,7 @@ class GetCurrentAppNameCommand(GetCurrentAppConfigCommand):
         )
 
         if current_app_config:
-            return find_app_name(current_app_config, [APP_HOME, *APPS])
+            return find_app_name(current_app_config, [APP_HOME, *self.apps_list])
 
         # Return NO_APP_RUNNING if value from response was None
         return NO_APP_RUNNING

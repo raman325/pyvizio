@@ -3,7 +3,8 @@
 import json
 from typing import Any, Dict, List, Union
 
-from aiohttp import ClientSession
+from aiohttp import ClientError, ClientSession
+
 from pyvizio.util.const import (
     APK_SOURCE_PATH,
     APP_NAMES_FILE,
@@ -18,21 +19,33 @@ async def gen_apps_list_from_url(
     app_names_url: str = APP_NAMES_URL,
     app_payloads_url: str = APP_PAYLOADS_URL,
     session: ClientSession = None,
-) -> List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]]:
+) -> Optional[List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]]]:
     """Get app JSON files from external URLs and return list of apps for use in pyvizio."""
-    if session:
-        response = await session.get(app_names_url, raise_for_status=True)
-        app_names = await response.json()
-        response = await session.get(app_payloads_url, raise_for_status=True)
-        app_configs = await response.json()
-    else:
-        async with ClientSession() as local_session:
-            response = await local_session.get(app_names_url, raise_for_status=True)
-            app_names = await response.json()
-            response = await local_session.get(app_payloads_url, raise_for_status=True)
-            app_configs = await response.json()
+    headers = {"Content-Type": "application/json"}
+    try:
+        if session:
+            response = await session.get(
+                app_names_url, headers=headers, raise_for_status=True
+            )
+            app_names = await response.json(content_type=None)
+            response = await session.get(
+                app_payloads_url, headers=headers, raise_for_status=True
+            )
+            app_configs = await response.json(content_type=None)
+        else:
+            async with ClientSession() as local_session:
+                response = await local_session.get(
+                    app_names_url, headers=headers, raise_for_status=True
+                )
+                app_names = await response.json(content_type=None)
+                response = await local_session.get(
+                    app_payloads_url, headers=headers, raise_for_status=True
+                )
+                app_configs = await response.json(content_type=None)
 
-    return gen_apps_list(app_names, app_configs)
+        return gen_apps_list(app_names, app_configs)
+    except ClientError:
+        return None
 
 
 def gen_apps_list_from_src(

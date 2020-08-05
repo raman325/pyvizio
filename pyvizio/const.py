@@ -36,6 +36,7 @@ APP_HOME = {
     ],
 }
 
+# No longer needed but kept around in case the external source for APPS is unavailable
 APPS = [
     {
         "name": "Prime Video",

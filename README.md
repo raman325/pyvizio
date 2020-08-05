@@ -186,7 +186,7 @@ pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} setting {s
 
 ### Apps (TVs with app support only)
 
-Get a list of available apps by name (this list is static and is from the Vizio SmartCast Android source code. If you would like to add apps to this list and can retrieve the latest source code, you can use `pyvizio.util.gen_apps_list_from_src("path/to/root/of/source")` to retrieve the latest list. The list is stored in `APPS` in `pyvizio/_api/apps.py` and you are welcome to submit a PR with updates)
+Get a list of available apps by name (this will attempt to get the latest list of apps which is stored exterenally, but will fall back to a static list found in the Vizio SmartCast Android source code. If you would like to add apps to the static list and can retrieve the latest source code, you can use `pyvizio.util.gen_apps_list_from_src("path/to/root/of/source")` to retrieve the latest list. The list is stored in `APPS` in `pyvizio/_api/apps.py` and you are welcome to submit a PR with updates)
 ```bash
 pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-apps-list
 ```
