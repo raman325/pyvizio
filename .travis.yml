@@ -1,6 +1,7 @@
 language: python
 python:
-  - "3.7"
+  - 3.8
+  - 3.7
 script:
   - touch foo
 deploy:
@@ -11,3 +12,4 @@ deploy:
   on:
     tags: false
     branch: master
+    python: 3.7
