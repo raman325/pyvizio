@@ -3,6 +3,8 @@ import sys
 from typing import Union
 
 import click
+from tabulate import tabulate
+
 from pyvizio import VizioAsync, guess_device_type
 from pyvizio.api.apps import find_app_name
 from pyvizio.const import (
@@ -18,7 +20,7 @@ from pyvizio.const import (
     UNKNOWN_APP,
 )
 from pyvizio.helpers import async_to_sync
-from tabulate import tabulate
+from pyvizio.util import gen_apps_list_from_url
 
 if sys.version_info < (3, 7):
     print("To use this script you need python 3.7 or newer, got %s" % sys.version_info)
@@ -269,10 +271,9 @@ async def get_volume_level(vizio: VizioAsync) -> None:
 
 
 @cli.command()
-@async_to_sync
 @pass_vizio
-async def get_volume_max(vizio: VizioAsync) -> None:
-    _LOGGER.info("Max volume: %s", await vizio.get_max_volume())
+def get_volume_max(vizio: VizioAsync) -> None:
+    _LOGGER.info("Max volume: %s", vizio.get_max_volume())
 
 
 @cli.command()
@@ -596,9 +597,10 @@ async def audio_setting(
     show_default=True,
     show_envvar=True,
 )
+@async_to_sync
 @pass_vizio
-def get_apps_list(vizio: VizioAsync, country: str = "all") -> None:
-    apps = vizio.get_apps_list(country)
+async def get_apps_list(vizio: VizioAsync, country: str = "all") -> None:
+    apps = await vizio.get_apps_list(country)
     if apps:
         table = tabulate([{"Name": app} for app in apps], headers="keys")
         _LOGGER.info("\n%s", table)
@@ -612,8 +614,11 @@ def get_apps_list(vizio: VizioAsync, country: str = "all") -> None:
 @pass_vizio
 async def launch_app(vizio: VizioAsync, app_name: str) -> None:
     _LOGGER.info("Attempting to launch '%s' app", app_name)
+    apps_list = await gen_apps_list_from_url()
+    if not apps_list:
+        apps_list = APPS
 
-    result = await vizio.launch_app(app_name)
+    result = await vizio.launch_app(app_name, apps_list)
 
     _LOGGER.info("OK" if result else "ERROR")
 
@@ -642,7 +647,10 @@ async def launch_app_config(
 @pass_vizio
 async def get_current_app(vizio: VizioAsync) -> None:
     app_config = await vizio.get_current_app_config()
-    app_name = find_app_name(app_config, [APP_HOME, *APPS])
+    apps_list = await gen_apps_list_from_url()
+    if not apps_list:
+        apps_list = APPS
+    app_name = find_app_name(app_config, [APP_HOME, *apps_list])
 
     if app_name:
         if app_name == NO_APP_RUNNING:
