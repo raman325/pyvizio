@@ -614,11 +614,7 @@ async def get_apps_list(vizio: VizioAsync, country: str = "all") -> None:
 @pass_vizio
 async def launch_app(vizio: VizioAsync, app_name: str) -> None:
     _LOGGER.info("Attempting to launch '%s' app", app_name)
-    apps_list = await gen_apps_list_from_url()
-    if not apps_list:
-        apps_list = APPS
-
-    result = await vizio.launch_app(app_name, apps_list)
+    result = await vizio.launch_app(app_name)
 
     _LOGGER.info("OK" if result else "ERROR")
 
@@ -647,9 +643,7 @@ async def launch_app_config(
 @pass_vizio
 async def get_current_app(vizio: VizioAsync) -> None:
     app_config = await vizio.get_current_app_config()
-    apps_list = await gen_apps_list_from_url()
-    if not apps_list:
-        apps_list = APPS
+    apps_list = await gen_apps_list_from_url() or APPS
     app_name = find_app_name(app_config, [APP_HOME, *apps_list])
 
     if app_name:
