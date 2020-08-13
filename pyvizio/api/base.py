@@ -40,7 +40,7 @@ class CommandBase(object):
         return self._method
 
     @abstractmethod
-    def process_response(self, json_obj: Dict[str, Any]) -> None:
+    def process_response(self, json_obj: Dict[str, Any]) -> Any:
         """Always return True when there is no custom process_response method for subclass."""
         return True
 
@@ -67,6 +67,6 @@ class InfoCommandBase(CommandBase):
         """Set endpoint for command."""
         CommandBase.url.fset(self, new_url)
 
-    def process_response(self, json_obj: Dict[str, Any]) -> None:
+    def process_response(self, json_obj: Dict[str, Any]) -> Any:
         """Always return None when there is no custom process_response method for subclass."""
         return None

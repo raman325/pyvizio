@@ -409,7 +409,7 @@ async def get_all_audio_settings_options(vizio: VizioAsync) -> None:
         for k, v in audio_settings_options.items():
             if isinstance(v, dict):
                 options.append([k, v.get("default"), v["min"], v["max"], None])
-            else:
+            elif isinstance(v, list):
                 options.append([k, None, None, None, ", ".join(v)])
         table = tabulate(options, headers=["Name", "Default", "Min", "Max", "Choices"])
         _LOGGER.info("\n%s", table)
@@ -451,7 +451,7 @@ async def get_setting_options(
             else:
                 table = tabulate([[value["min"], value["max"]]], headers=["Min", "Max"])
             _LOGGER.info("For '%s' setting:\n%s", setting_name, table)
-        else:
+        elif isinstance(value, list):
             _LOGGER.info("Options for '%s' setting: %s", setting_name, ", ".join(value))
     else:
         _LOGGER.error("Couldn't get options for '%s' setting", setting_name)
@@ -563,7 +563,7 @@ async def get_audio_setting_options(vizio: VizioAsync, setting_name: str) -> Non
             else:
                 table = tabulate([[value["min"], value["max"]]], headers=["Min", "Max"])
             _LOGGER.info("For '%s' setting:\n%s", setting_name, table)
-        else:
+        elif isinstance(value, list):
             _LOGGER.info("Options for '%s' setting: %s", setting_name, ", ".join(value))
     else:
         _LOGGER.error("Couldn't get options for '%s' setting", setting_name)

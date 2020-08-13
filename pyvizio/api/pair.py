@@ -1,6 +1,6 @@
 """Vizio SmartCast API commands and class for pairing."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 from pyvizio.api._protocol import ENDPOINT, PairingResponseKey, ResponseKey
 from pyvizio.api.base import CommandBase
@@ -69,8 +69,8 @@ class PairChallengeCommand(PairCommandBase):
     def __init__(
         self,
         device_id: str,
-        challenge_type: int,
-        pairing_token: int,
+        challenge_type: Union[int, str],
+        pairing_token: Union[int, str],
         pin: str,
         device_type: str,
     ) -> None:

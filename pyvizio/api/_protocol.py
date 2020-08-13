@@ -229,7 +229,7 @@ async def async_invoke_api(
                         "method": "put",
                         "url": url,
                         "headers": headers,
-                        "data": json.loads(data),
+                        "data": json.loads(str(data)),
                     },
                 )
                 response = await session.put(
@@ -256,7 +256,7 @@ async def async_invoke_api(
                             "method": "put",
                             "url": url,
                             "headers": headers,
-                            "data": json.loads(data),
+                            "data": json.loads(str(data)),
                         },
                     )
                     response = await local_session.put(

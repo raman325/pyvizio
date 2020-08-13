@@ -1,6 +1,6 @@
 """Vizio SmartCast API commands and class for individual item settings."""
 
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 from pyvizio.api._protocol import (
     ACTION_MODIFY,
@@ -21,7 +21,7 @@ class GetDeviceInfoCommand(InfoCommandBase):
         super(GetDeviceInfoCommand, self).__init__(ENDPOINT[device_type]["DEVICE_INFO"])
         self.paths = PATH_MODEL[device_type]
 
-    def process_response(self, json_obj: Dict[str, Any]) -> bool:
+    def process_response(self, json_obj: Dict[str, Any]) -> Dict[str, Any]:
         """Return response to command to get device info."""
         return dict_get_case_insensitive(json_obj, ResponseKey.ITEMS, [{}])[0]
 
@@ -33,7 +33,7 @@ class GetModelNameCommand(GetDeviceInfoCommand):
         """Initialize command to get device model name."""
         super(GetModelNameCommand, self).__init__(device_type)
 
-    def process_response(self, json_obj: Dict[str, Any]) -> bool:
+    def process_response(self, json_obj: Dict[str, Any]) -> Optional[str]:
         """Return response to command to get device model name."""
         return get_value_from_path(
             dict_get_case_insensitive(
