@@ -184,3 +184,29 @@ class GetVersionCommand(ItemInfoCommandBase):
     def __init__(self, device_type: str) -> None:
         """Initialize command to get SmartCast software version."""
         super(GetVersionCommand, self).__init__(device_type, "VERSION")
+
+
+class GetAltESNCommand(ItemInfoCommandBase):
+    """Command to get device ESN (electronic serial number?)."""
+
+    def __init__(self, device_type: str) -> None:
+        """Initialize command to get device ESN (electronic serial number?)."""
+        super(GetAltESNCommand, self).__init__(device_type, "_ALT_ESN")
+
+
+class GetAltSerialNumberCommand(ItemInfoCommandBase):
+    """Command to get device serial number."""
+
+    def __init__(self, device_type: str) -> None:
+        """Initialize command to get device serial number."""
+        super(GetAltSerialNumberCommand, self).__init__(
+            device_type, "_ALT_SERIAL_NUMBER"
+        )
+
+
+class GetAltVersionCommand(ItemInfoCommandBase):
+    """Command to get SmartCast software version."""
+
+    def __init__(self, device_type: str) -> None:
+        """Initialize command to get SmartCast software version."""
+        super(GetAltVersionCommand, self).__init__(device_type, "_ALT_VERSION")

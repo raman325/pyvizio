@@ -25,6 +25,9 @@ from pyvizio.api.input import (
     InputItem,
 )
 from pyvizio.api.item import (
+    GetAltESNCommand,
+    GetAltSerialNumberCommand,
+    GetAltVersionCommand,
     GetCurrentPowerStateCommand,
     GetDeviceInfoCommand,
     GetESNCommand,
@@ -193,8 +196,9 @@ class VizioAsync:
         return await self.__remote(key_codes, log_api_exception=log_api_exception)
 
     async def __get_cached_apps_list(self) -> List[str]:
-        if self._latest_apps and datetime.now() - self._latest_apps_last_updated < timedelta(
-            days=1
+        if (
+            self._latest_apps
+            and datetime.now() - self._latest_apps_last_updated < timedelta(days=1)
         ):
             await sleep(0)
             return self._latest_apps
@@ -287,6 +291,8 @@ class VizioAsync:
         """Asynchronously get device's ESN (electronic serial number?)."""
         item = await self.__invoke_api_may_need_auth(
             GetESNCommand(self.device_type), log_api_exception=log_api_exception
+        ) or await self.__invoke_api_may_need_auth(
+            GetAltESNCommand(self.device_type), log_api_exception=log_api_exception
         )
 
         if item:
@@ -299,6 +305,9 @@ class VizioAsync:
         item = await self.__invoke_api(
             GetSerialNumberCommand(self.device_type),
             log_api_exception=log_api_exception,
+        ) or await self.__invoke_api(
+            GetAltSerialNumberCommand(self.device_type),
+            log_api_exception=log_api_exception,
         )
 
         if item:
@@ -310,6 +319,8 @@ class VizioAsync:
         """Asynchronously get SmartCast software version on device."""
         item = await self.__invoke_api(
             GetVersionCommand(self.device_type), log_api_exception=log_api_exception
+        ) or await self.__invoke_api(
+            GetAltVersionCommand(self.device_type), log_api_exception=log_api_exception
         )
 
         if item:
