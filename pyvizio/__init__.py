@@ -293,14 +293,14 @@ class VizioAsync:
             GetESNCommand(self.device_type), log_api_exception=log_api_exception
         )
 
-        if item:
+        if item and item.value:
             return item.value
 
         item = await self.__invoke_api_may_need_auth(
             GetAltESNCommand(self.device_type), log_api_exception=log_api_exception
         )
 
-        if item:
+        if item and item.value:
             return item.value
 
         return None
@@ -312,7 +312,7 @@ class VizioAsync:
             log_api_exception=log_api_exception,
         )
 
-        if item:
+        if item and item.value:
             return item.value
 
         item = await self.__invoke_api(
@@ -320,7 +320,7 @@ class VizioAsync:
             log_api_exception=log_api_exception,
         )
 
-        if item:
+        if item and item.value:
             return item.value
 
         return None
@@ -331,14 +331,14 @@ class VizioAsync:
             GetVersionCommand(self.device_type), log_api_exception=log_api_exception
         )
 
-        if item:
+        if item and item.value:
             return item.value
 
         item = await self.__invoke_api(
             GetAltVersionCommand(self.device_type), log_api_exception=log_api_exception
         )
 
-        if item:
+        if item and item.value:
             return item.value
 
         return None
