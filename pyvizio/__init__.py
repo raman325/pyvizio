@@ -291,7 +291,12 @@ class VizioAsync:
         """Asynchronously get device's ESN (electronic serial number?)."""
         item = await self.__invoke_api_may_need_auth(
             GetESNCommand(self.device_type), log_api_exception=log_api_exception
-        ) or await self.__invoke_api_may_need_auth(
+        )
+
+        if item:
+            return item.value
+
+        item = await self.__invoke_api_may_need_auth(
             GetAltESNCommand(self.device_type), log_api_exception=log_api_exception
         )
 
@@ -305,7 +310,12 @@ class VizioAsync:
         item = await self.__invoke_api(
             GetSerialNumberCommand(self.device_type),
             log_api_exception=log_api_exception,
-        ) or await self.__invoke_api(
+        )
+
+        if item:
+            return item.value
+
+        item = await self.__invoke_api(
             GetAltSerialNumberCommand(self.device_type),
             log_api_exception=log_api_exception,
         )
@@ -319,7 +329,12 @@ class VizioAsync:
         """Asynchronously get SmartCast software version on device."""
         item = await self.__invoke_api(
             GetVersionCommand(self.device_type), log_api_exception=log_api_exception
-        ) or await self.__invoke_api(
+        )
+
+        if item:
+            return item.value
+
+        item = await self.__invoke_api(
             GetAltVersionCommand(self.device_type), log_api_exception=log_api_exception
         )
 
