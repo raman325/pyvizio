@@ -138,22 +138,6 @@ class ItemInfoCommandBase(InfoCommandBase):
         return None
 
 
-class AltItemInfoCommandBase(ItemInfoCommandBase):
-    """Command to get individual item setting."""
-
-    def __init__(
-        self,
-        device_type: str,
-        endpoint_name: str,
-        item_name: str,
-        default_return: Union[int, str] = None,
-    ) -> None:
-        """Initialize command to get individual item setting."""
-        super(ItemInfoCommandBase, self).__init__(ENDPOINT[device_type][endpoint_name])
-        self.item_name = item_name.upper()
-        self.default_return = default_return
-
-
 class ItemCommandBase(CommandBase):
     """Command to set value of individual item setting."""
 
@@ -200,6 +184,22 @@ class GetVersionCommand(ItemInfoCommandBase):
     def __init__(self, device_type: str) -> None:
         """Initialize command to get SmartCast software version."""
         super(GetVersionCommand, self).__init__(device_type, "VERSION")
+
+
+class AltItemInfoCommandBase(ItemInfoCommandBase):
+    """Command to get individual item setting."""
+
+    def __init__(
+        self,
+        device_type: str,
+        endpoint_name: str,
+        item_name: str,
+        default_return: Union[int, str] = None,
+    ) -> None:
+        """Initialize command to get individual item setting."""
+        super(ItemInfoCommandBase, self).__init__(ENDPOINT[device_type][endpoint_name])
+        self.item_name = item_name.upper()
+        self.default_return = default_return
 
 
 class GetAltESNCommand(AltItemInfoCommandBase):
