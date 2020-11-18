@@ -710,41 +710,5 @@ async def get_serial_number(vizio: VizioAsync) -> None:
         _LOGGER.info("Serial Number: %s", item)
 
 
-@cli.command()
-@async_to_sync
-@pass_vizio
-async def get_alt_version(vizio: VizioAsync) -> None:
-    item = await vizio.get_alt_version(False)
-
-    if item is None:
-        _LOGGER.error("Couldn't get version")
-    else:
-        _LOGGER.info("Current version: %s", item)
-
-
-@cli.command()
-@async_to_sync
-@pass_vizio
-async def get_alt_esn(vizio: VizioAsync) -> None:
-    item = await vizio.get_alt_esn(False)
-
-    if item is None:
-        _LOGGER.error("Couldn't get ESN")
-    else:
-        _LOGGER.info("ESN: %s", item)
-
-
-@cli.command()
-@async_to_sync
-@pass_vizio
-async def get_alt_serial_number(vizio: VizioAsync) -> None:
-    item = await vizio.get_alt_serial_number(False)
-
-    if item is None:
-        _LOGGER.error("Couldn't get serial number")
-    else:
-        _LOGGER.info("Serial Number: %s", item)
-
-
 if __name__ == "__main__":
     cli()

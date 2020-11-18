@@ -291,12 +291,7 @@ class VizioAsync:
         """Asynchronously get device's ESN (electronic serial number?)."""
         item = await self.__invoke_api_may_need_auth(
             GetESNCommand(self.device_type), log_api_exception=log_api_exception
-        )
-
-        if item and item.value:
-            return item.value
-
-        item = await self.__invoke_api_may_need_auth(
+        ) or await self.__invoke_api_may_need_auth(
             GetAltESNCommand(self.device_type), log_api_exception=log_api_exception
         )
 
@@ -310,12 +305,7 @@ class VizioAsync:
         item = await self.__invoke_api(
             GetSerialNumberCommand(self.device_type),
             log_api_exception=log_api_exception,
-        )
-
-        if item and item.value:
-            return item.value
-
-        item = await self.__invoke_api(
+        ) or await self.__invoke_api(
             GetAltSerialNumberCommand(self.device_type),
             log_api_exception=log_api_exception,
         )
@@ -329,48 +319,7 @@ class VizioAsync:
         """Asynchronously get SmartCast software version on device."""
         item = await self.__invoke_api(
             GetVersionCommand(self.device_type), log_api_exception=log_api_exception
-        )
-
-        if item and item.value:
-            return item.value
-
-        item = await self.__invoke_api(
-            GetAltVersionCommand(self.device_type), log_api_exception=log_api_exception
-        )
-
-        if item and item.value:
-            return item.value
-
-        return None
-
-    async def get_alt_esn(self, log_api_exception: bool = True) -> Optional[str]:
-        """Asynchronously get device's ESN (electronic serial number?)."""
-        item = await self.__invoke_api_may_need_auth(
-            GetAltESNCommand(self.device_type), log_api_exception=log_api_exception
-        )
-
-        if item and item.value:
-            return item.value
-
-        return None
-
-    async def get_alt_serial_number(
-        self, log_api_exception: bool = True
-    ) -> Optional[str]:
-        """Asynchronously get device's serial number."""
-        item = await self.__invoke_api(
-            GetAltSerialNumberCommand(self.device_type),
-            log_api_exception=log_api_exception,
-        )
-
-        if item and item.value:
-            return item.value
-
-        return None
-
-    async def get_alt_version(self, log_api_exception: bool = True) -> Optional[str]:
-        """Asynchronously get SmartCast software version on device."""
-        item = await self.__invoke_api(
+        ) or await self.__invoke_api(
             GetAltVersionCommand(self.device_type), log_api_exception=log_api_exception
         )
 
