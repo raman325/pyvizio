@@ -354,7 +354,9 @@ class VizioAsync:
 
         return None
 
-    async def get_alt_serial_number(self, log_api_exception: bool = True) -> Optional[str]:
+    async def get_alt_serial_number(
+        self, log_api_exception: bool = True
+    ) -> Optional[str]:
         """Asynchronously get device's serial number."""
         item = await self.__invoke_api(
             GetAltSerialNumberCommand(self.device_type),

@@ -138,6 +138,22 @@ class ItemInfoCommandBase(InfoCommandBase):
         return None
 
 
+class AltItemInfoCommandBase(ItemInfoCommandBase):
+    """Command to get individual item setting."""
+
+    def __init__(
+        self,
+        device_type: str,
+        endpoint_name: str,
+        item_name: str,
+        default_return: Union[int, str] = None,
+    ) -> None:
+        """Initialize command to get individual item setting."""
+        super(ItemInfoCommandBase, self).__init__(ENDPOINT[device_type][endpoint_name])
+        self.item_name = item_name.upper()
+        self.default_return = default_return
+
+
 class ItemCommandBase(CommandBase):
     """Command to set value of individual item setting."""
 
@@ -186,27 +202,29 @@ class GetVersionCommand(ItemInfoCommandBase):
         super(GetVersionCommand, self).__init__(device_type, "VERSION")
 
 
-class GetAltESNCommand(ItemInfoCommandBase):
+class GetAltESNCommand(AltItemInfoCommandBase):
     """Command to get device ESN (electronic serial number?)."""
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get device ESN (electronic serial number?)."""
-        super(GetAltESNCommand, self).__init__(device_type, "_ALT_ESN")
+        super(GetAltESNCommand, self).__init__(device_type, "_ALT_ESN", "ESN")
 
 
-class GetAltSerialNumberCommand(ItemInfoCommandBase):
+class GetAltSerialNumberCommand(AltItemInfoCommandBase):
     """Command to get device serial number."""
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get device serial number."""
         super(GetAltSerialNumberCommand, self).__init__(
-            device_type, "_ALT_SERIAL_NUMBER"
+            device_type, "_ALT_SERIAL_NUMBER", "SERIAL_NUMBER"
         )
 
 
-class GetAltVersionCommand(ItemInfoCommandBase):
+class GetAltVersionCommand(AltItemInfoCommandBase):
     """Command to get SmartCast software version."""
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get SmartCast software version."""
-        super(GetAltVersionCommand, self).__init__(device_type, "_ALT_VERSION")
+        super(GetAltVersionCommand, self).__init__(
+            device_type, "_ALT_VERSION", "VERSION"
+        )
