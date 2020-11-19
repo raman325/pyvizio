@@ -1,6 +1,6 @@
 """Vizio SmartCast API commands for apps."""
 
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from pyvizio.api._protocol import ENDPOINT, ResponseKey
 from pyvizio.api.base import CommandBase
@@ -35,7 +35,9 @@ class AppConfig(object):
         return self != AppConfig()
 
 
-def find_app_name(config_to_check: AppConfig, app_list: List[Dict[str, Any]]) -> str:
+def find_app_name(
+    config_to_check: Optional[AppConfig], app_list: List[Dict[str, Any]]
+) -> str:
     """
     Return the app name for a given AppConfig based on a list of apps.
 

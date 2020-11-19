@@ -1,6 +1,6 @@
 """Vizio SmartCast API commands and class for individual item settings."""
 
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 from pyvizio.api._protocol import (
     ACTION_MODIFY,
@@ -21,7 +21,7 @@ class GetDeviceInfoCommand(InfoCommandBase):
         super(GetDeviceInfoCommand, self).__init__(ENDPOINT[device_type]["DEVICE_INFO"])
         self.paths = PATH_MODEL[device_type]
 
-    def process_response(self, json_obj: Dict[str, Any]) -> bool:
+    def process_response(self, json_obj: Dict[str, Any]) -> Dict[str, Any]:
         """Return response to command to get device info."""
         return dict_get_case_insensitive(json_obj, ResponseKey.ITEMS, [{}])[0]
 
@@ -33,7 +33,7 @@ class GetModelNameCommand(GetDeviceInfoCommand):
         """Initialize command to get device model name."""
         super(GetModelNameCommand, self).__init__(device_type)
 
-    def process_response(self, json_obj: Dict[str, Any]) -> bool:
+    def process_response(self, json_obj: Dict[str, Any]) -> Optional[str]:
         """Return response to command to get device model name."""
         return get_value_from_path(
             dict_get_case_insensitive(
@@ -184,3 +184,47 @@ class GetVersionCommand(ItemInfoCommandBase):
     def __init__(self, device_type: str) -> None:
         """Initialize command to get SmartCast software version."""
         super(GetVersionCommand, self).__init__(device_type, "VERSION")
+
+
+class AltItemInfoCommandBase(ItemInfoCommandBase):
+    """Command to get individual item setting."""
+
+    def __init__(
+        self,
+        device_type: str,
+        endpoint_name: str,
+        item_name: str,
+        default_return: Union[int, str] = None,
+    ) -> None:
+        """Initialize command to get individual item setting."""
+        super(ItemInfoCommandBase, self).__init__(ENDPOINT[device_type][endpoint_name])
+        self.item_name = item_name.upper()
+        self.default_return = default_return
+
+
+class GetAltESNCommand(AltItemInfoCommandBase):
+    """Command to get device ESN (electronic serial number?)."""
+
+    def __init__(self, device_type: str) -> None:
+        """Initialize command to get device ESN (electronic serial number?)."""
+        super(GetAltESNCommand, self).__init__(device_type, "_ALT_ESN", "ESN")
+
+
+class GetAltSerialNumberCommand(AltItemInfoCommandBase):
+    """Command to get device serial number."""
+
+    def __init__(self, device_type: str) -> None:
+        """Initialize command to get device serial number."""
+        super(GetAltSerialNumberCommand, self).__init__(
+            device_type, "_ALT_SERIAL_NUMBER", "SERIAL_NUMBER"
+        )
+
+
+class GetAltVersionCommand(AltItemInfoCommandBase):
+    """Command to get SmartCast software version."""
+
+    def __init__(self, device_type: str) -> None:
+        """Initialize command to get SmartCast software version."""
+        super(GetAltVersionCommand, self).__init__(
+            device_type, "_ALT_VERSION", "VERSION"
+        )

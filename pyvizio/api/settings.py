@@ -161,7 +161,7 @@ class GetSettingOptionsXListCommand(GetAllSettingsOptionsXListCommand):
             device_type, self.setting_type
         )
 
-    def process_response(self, json_obj: Dict[str, Any]) -> List[str]:
+    def process_response(self, json_obj: Dict[str, Any]) -> Optional[List[str]]:
         """Return response to command to get options of an audio setting by name (used for setting of type XList)."""
         return (
             super(GetSettingOptionsXListCommand, self)
