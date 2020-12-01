@@ -29,6 +29,8 @@ from pyvizio.api.item import (
     GetAltSerialNumberCommand,
     GetAltVersionCommand,
     GetCurrentPowerStateCommand,
+    GetCurrentChargingStatusCommand,
+    GetBatteryLevelCommand,
     GetDeviceInfoCommand,
     GetESNCommand,
     GetModelNameCommand,
@@ -61,6 +63,7 @@ from pyvizio.const import (
     DEFAULT_TIMEOUT,
     DEVICE_CLASS_SPEAKER,
     DEVICE_CLASS_TV,
+    DEVICE_CLASS_CRAVE360,
     MAX_VOLUME,
 )
 from pyvizio.discovery.ssdp import SSDPDevice, discover as discover_ssdp
@@ -89,10 +92,11 @@ class VizioAsync:
         if (
             self.device_type != DEVICE_CLASS_TV
             and self.device_type != DEVICE_CLASS_SPEAKER  # noqa: W503
+            and self.device_type != DEVICE_CLASS_CRAVE360
         ):
             raise Exception(
                 f"Invalid device type specified. Use either '{DEVICE_CLASS_TV}' or "
-                f"'{DEVICE_CLASS_SPEAKER}'"
+                f"'{DEVICE_CLASS_SPEAKER}' or '{DEVICE_CLASS_CRAVE360}''"
             )
 
         self._auth_token = auth_token
@@ -154,7 +158,7 @@ class VizioAsync:
     ) -> Any:
         """Asynchronously call SmartCast API command with or without auth token depending on device type."""
         if not self._auth_token:
-            if self.device_type == DEVICE_CLASS_SPEAKER:
+            if self.device_type == DEVICE_CLASS_SPEAKER or self.device_type == DEVICE_CLASS_CRAVE360:
                 return await self.__invoke_api(cmd, log_api_exception=log_api_exception)
             else:
                 raise Exception(
@@ -419,6 +423,29 @@ class VizioAsync:
 
         if item:
             return bool(item.value)
+
+        return None
+
+    async def get_charging_status(self, log_api_exception: bool = True) -> Optional[int]:
+        """Asynchronously get device's current charging state."""
+        item = await self.__invoke_api_may_need_auth(
+            GetCurrentChargingStatusCommand(self.device_type),
+            log_api_exception=log_api_exception,
+        )
+
+        if item:
+            return int(item.value)
+
+        return None
+
+    async def get_battery_level(self, log_api_exception: bool = True) -> Optional[int]:
+        """Asynchronously get device's current battery level (will be 0 if charging)."""
+        item = await self.__invoke_api_may_need_auth(
+            GetBatteryLevelCommand(self.device_type),
+            log_api_exception=log_api_exception,
+        )
+        if item:
+            return int(item.value)
 
         return None
 
