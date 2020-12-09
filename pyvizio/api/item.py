@@ -162,6 +162,22 @@ class GetCurrentPowerStateCommand(ItemInfoCommandBase):
         super(GetCurrentPowerStateCommand, self).__init__(device_type, "POWER_MODE", 0)
 
 
+class GetCurrentChargingStatusCommand(ItemInfoCommandBase):
+    """Command to get current charging status of device."""
+
+    def __init__(self, device_type: str) -> None:
+        """Initialize command to get current charging status of device."""
+        super(GetCurrentChargingStatusCommand, self).__init__(device_type, "CHARGING_STATUS", 0)
+
+
+class GetBatteryLevelCommand(ItemInfoCommandBase):
+    """Command to get current battery level (will be 0 if charging) of device."""
+
+    def __init__(self, device_type: str) -> None:
+        """Initialize command to get current battery level (will be 0 if charging) of device."""
+        super(GetBatteryLevelCommand, self).__init__(device_type, "BATTERY_LEVEL", 0)
+
+
 class GetESNCommand(ItemInfoCommandBase):
     """Command to get device ESN (electronic serial number?)."""
 

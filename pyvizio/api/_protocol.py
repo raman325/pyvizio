@@ -9,7 +9,7 @@ from aiohttp.client import DEFAULT_TIMEOUT as AIOHTTP_DEFAULT_TIMEOUT
 import jsonpickle
 
 from pyvizio.api.base import CommandBase
-from pyvizio.const import DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV
+from pyvizio.const import DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV, DEVICE_CLASS_CRAVE360
 from pyvizio.helpers import dict_get_case_insensitive
 
 _LOGGER = getLogger(__name__)
@@ -69,6 +69,26 @@ ENDPOINT = {
         "SETTINGS": "/menu_native/dynamic/audio_settings",
         "SETTINGS_OPTIONS": "/menu_native/static/audio_settings",
     },
+    DEVICE_CLASS_CRAVE360: {
+        "BEGIN_PAIR": "/pairing/start",
+        "FINISH_PAIR": "/pairing/pair",
+        "CANCEL_PAIR": "/pairing/cancel",
+        "INPUTS": "/menu_native/dynamic/audio_settings/input",
+        "CURRENT_INPUT": "/menu_native/dynamic/audio_settings/input/current_input",
+        "ESN": "/menu_native/dynamic/audio_settings/system/system_information/uli_information/esn",
+        "SERIAL_NUMBER": "/menu_native/dynamic/audio_settings/system/system_information/speaker_information/serial_number",
+        "VERSION": "/menu_native/dynamic/audio_settings/system/system_information/speaker_information/version",
+        "_ALT_ESN": "/menu_native/dynamic/audio_settings/admin_and_privacy/system_information/uli_information/esn",
+        "_ALT_SERIAL_NUMBER": "/menu_native/dynamic/audio_settings/admin_and_privacy/system_information/speaker_information/serial_number",
+        "_ALT_VERSION": "/menu_native/dynamic/audio_settings/admin_and_privacy/system_information/speaker_information/version",
+        "DEVICE_INFO": "/state/device/deviceinfo",
+        "POWER_MODE": "/state/device/power_mode",
+        "KEY_PRESS": "/key_command/",
+        "SETTINGS": "/menu_native/dynamic/audio_settings",
+        "SETTINGS_OPTIONS": "/menu_native/static/audio_settings",
+        "CHARGING_STATUS": "/state/device/charging_status",
+        "BATTERY_LEVEL": "/state/device/battery_level",
+    },
 }
 
 ITEM_CNAME = {
@@ -76,6 +96,8 @@ ITEM_CNAME = {
     "ESN": "esn",
     "EQ": "eq",
     "POWER_MODE": "power_mode",
+    "CHARGING_STATUS": "charging_status",
+    "BATTERY_LEVEL": "battery_level",
     "SERIAL_NUMBER": "serial_number",
     "VERSION": "version",
 }
@@ -117,6 +139,18 @@ KEY_CODE = {
         "POW_TOGGLE": (11, 2),
     },
     DEVICE_CLASS_SPEAKER: {
+        "PAUSE": (2, 2),
+        "PLAY": (2, 3),
+        "VOL_DOWN": (5, 0),
+        "VOL_UP": (5, 1),
+        "MUTE_OFF": (5, 2),
+        "MUTE_ON": (5, 3),
+        "MUTE_TOGGLE": (5, 4),
+        "POW_OFF": (11, 0),
+        "POW_ON": (11, 1),
+        "POW_TOGGLE": (11, 2),
+    },
+    DEVICE_CLASS_CRAVE360: {
         "PAUSE": (2, 2),
         "PLAY": (2, 3),
         "VOL_DOWN": (5, 0),

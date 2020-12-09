@@ -16,6 +16,7 @@ from pyvizio.const import (
     DEFAULT_TIMEOUT,
     DEVICE_CLASS_SPEAKER,
     DEVICE_CLASS_TV,
+    DEVICE_CLASS_CRAVE360,
     NO_APP_RUNNING,
     UNKNOWN_APP,
 )
@@ -60,7 +61,7 @@ pass_vizio = click.make_pass_decorator(VizioAsync)
     envvar="VIZIO_DEVICE_TYPE",
     required=False,
     default=DEFAULT_DEVICE_CLASS,
-    type=click.Choice([DEVICE_CLASS_TV, DEVICE_CLASS_SPEAKER]),
+    type=click.Choice([DEVICE_CLASS_TV, DEVICE_CLASS_SPEAKER, DEVICE_CLASS_CRAVE360]),
     show_default=True,
     show_envvar=True,
 )
@@ -222,6 +223,29 @@ async def get_power_state(vizio: VizioAsync) -> None:
         _LOGGER.info("Device is on")
     else:
         _LOGGER.info("Device is off")
+
+
+@cli.command()
+@async_to_sync
+@pass_vizio
+async def get_charging_status(vizio: VizioAsync) -> None:
+    charge_status = await vizio.get_charging_status()
+    if 2 == charge_status:
+        _LOGGER.info("Device is fully charged")
+    if 1 == charge_status:
+        _LOGGER.info("Device is charging")
+    if 0 == charge_status:
+        _LOGGER.info("Device is not charging")
+    
+
+@cli.command()
+@async_to_sync
+@pass_vizio
+async def get_battery_level(vizio: VizioAsync) -> None:
+    level = await vizio.get_battery_level()
+    if 0 == level:
+        level = "Charging"
+    _LOGGER.info("Current battery level: %s", level)
 
 
 @cli.command()
