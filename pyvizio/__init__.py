@@ -783,7 +783,7 @@ async def async_guess_device_type(
             raise Exception("Port can't be included in both `ip` and `port` parameters")
 
         device = VizioAsync(
-            "test", ip + ":" + port, "test", "", DEVICE_CLASS_SPEAKER, timeout=timeout
+            "test", f"{ip}:{port}", "test", "", DEVICE_CLASS_SPEAKER, timeout=timeout
         )
     else:
         if ":" not in ip:
