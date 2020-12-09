@@ -93,27 +93,31 @@ def cli(ctx, ip: str, auth: str, device_type: str) -> None:
 def discover(include_device_type: bool, timeout: int) -> None:
     devices = VizioAsync.discovery_zeroconf(timeout)
 
-    if include_device_type:
-        table = tabulate(
-            [
-                [
-                    dev.ip,
-                    dev.port,
-                    dev.model,
-                    dev.name,
-                    guess_device_type(dev.ip, dev.port),
-                ]
-                for dev in devices
-            ],
-            headers=["IP", "Port", "Model", "Name", "Guessed Device Type"],
-        )
-    else:
-        table = tabulate(
-            [[dev.ip, dev.port, dev.model, dev.name] for dev in devices],
-            headers=["IP", "Port", "Model", "Name"],
-        )
+    data = []
 
-    _LOGGER.info("\n%s", table)
+    if devices:
+        data = [
+            {"IP": dev.ip, "Port": dev.port, "Model": dev.model, "Name": dev.name}
+            for dev in devices
+        ]
+    else:
+        _LOGGER.info("Couldn't find any devices using zeroconf, trying SSDP")
+        devices = VizioAsync.discovery_ssdp(timeout)
+        if devices:
+            data = [
+                {"IP": dev.ip, "Model": dev.model, "Name": dev.name} for dev in devices
+            ]
+
+    if devices:
+        if include_device_type:
+            for dev in data:
+                dev["Guessed Device Type"] = guess_device_type(
+                    dev["IP"], dev.get("Port")
+                )
+
+        _LOGGER.info("\n%s", tabulate(data, "keys"))
+    else:
+        _LOGGER.info("No Vizio devices discoverd.")
 
 
 @cli.command()
