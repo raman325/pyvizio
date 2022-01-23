@@ -115,7 +115,7 @@ KEY_CODE = {
         "OK": (3, 2),
         "UP": (3, 8),
         "LEFT2": (3, 4),
-        "RIGHT": (3, 5),
+        "RIGHT": (3, 7),
         "BACK": (4, 0),
         "SMARTCAST": (4, 3),
         "CC_TOGGLE": (4, 4),
