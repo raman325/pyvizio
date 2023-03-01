@@ -5,12 +5,11 @@ RESOURCE_PATH = "resources/res/raw"
 APP_NAMES_FILE = "apps.json"
 APP_PAYLOADS_FILE = "apps_availability.json"
 
-# File with app URLs: smartcast.apk-decompiled\res\values\strings.xml
-# Use the keys below to find the values
+# Class with app URLs: com.vizio.smartcast.apps.repository.AppServiceConfigRepositoryImpl
+# Hostname stored in DEFAULT_APPS_HOSTNAME
+# Use the constants below to find the values
 
-# <string name="default_appsservice_app_server">
-APP_NAMES_URL = "http://hometest.buddytv.netdna-cdn.com/appservice/vizio_apps_prod.json"
-# <string name="default_appsservice_availability_server">
-APP_PAYLOADS_URL = (
-    "http://hometest.buddytv.netdna-cdn.com/appservice/app_availability_prod.json"
-)
+# DEFAULT_APPS_PATH_PROD
+APP_NAMES_URL = "http://scfs.vizio.com/appservice/vizio_apps_prod.json"
+# DEFAULT_AVAILABILITY_PATH_PROD
+APP_PAYLOADS_URL = "http://scfs.vizio.com/appservice/app_availability_prod.json"
