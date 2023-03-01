@@ -102,4 +102,4 @@ def gen_apps_list(
                     }
                 )
 
-    return pyvizio_apps
+    return sorted(pyvizio_apps, key=lambda app: app["name"])
