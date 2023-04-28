@@ -73,22 +73,21 @@ def gen_apps_list(
 
     for app_name in app_names:
         # returns first app where condition is true
-        if app_config := next(
-            (
+        try:
+            app_config = next(
                 app_config
                 for app_config in app_configs
                 if app_config["id"] == app_name["id"]
-            ),
-            None,
-        ):
-            configs = [
-                json.loads(config_json)
-                for config_json in {
-                    item["app_type_payload"]
-                    for val in app_config["chipsets"].values()
-                    for item in val
-                }
-            ]
+            )
+        except StopIteration:
+            pass
+        else:
+            config_jsons = {
+                item["app_type_payload"]
+                for val in app_config["chipsets"].values()
+                for item in val
+            }
+            configs = [json.loads(config_json) for config_json in config_jsons]
             try:
                 app = next(
                     app
