@@ -73,21 +73,22 @@ def gen_apps_list(
 
     for app_name in app_names:
         # returns first app where condition is true
-        app_config = next(
+        if app_config := next(
             (
                 app_config
                 for app_config in app_configs
                 if app_config["id"] == app_name["id"]
-            )
-        )
-
-        if app_config:
-            config_jsons = {
-                item["app_type_payload"]
-                for val in app_config["chipsets"].values()
-                for item in val
-            }
-            configs = [json.loads(config_json) for config_json in config_jsons]
+            ),
+            None,
+        ):
+            configs = [
+                json.loads(config_json)
+                for config_json in {
+                    item["app_type_payload"]
+                    for val in app_config["chipsets"].values()
+                    for item in val
+                }
+            ]
             try:
                 app = next(
                     app
@@ -106,6 +107,5 @@ def gen_apps_list(
             else:
                 app["id"].append(app_name["id"])
                 app["config"].extend(configs)
-                
 
     return sorted(apps_list, key=lambda app: app["name"])
