@@ -69,7 +69,7 @@ def gen_apps_list(
     app_names: List[Dict[str, Any]], app_configs: List[Dict[str, Any]]
 ) -> List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]]:
     """Parse list of app names and app configs and return list of apps for use in pyvizio."""
-    pyvizio_apps: List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]] = []
+    apps_list: List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]] = []
 
     for app_name in app_names:
         # returns first app where condition is true
@@ -88,16 +88,16 @@ def gen_apps_list(
                 for item in val
             }
             configs = [json.loads(config_json) for config_json in config_jsons]
-            app_already_exists = False
-            for pyvizio_app in pyvizio_apps:
-                if pyvizio_app["name"].lower() == app_name["name"].lower():
-                    pyvizio_app["id"].append(app_name["id"])
-                    pyvizio_app["config"].extend(configs)
-                    app_already_exists = True
-                    break
-
-            if not app_already_exists:
-                pyvizio_apps.append(
+            app = next(
+                (
+                    app
+                    for app in apps_list
+                    if app["name"].lower() == app_name["name"].lower()
+                ),
+                None,
+            )
+            if not app:
+                apps_list.append(
                     {
                         "name": app_name["name"],
                         "country": [country.lower() for country in app_name["country"]],
@@ -105,5 +105,9 @@ def gen_apps_list(
                         "config": configs,
                     }
                 )
+            else:
+                app["id"].append(app_name["id"])
+                app["config"].extend(configs)
+                
 
-    return sorted(pyvizio_apps, key=lambda app: app["name"])
+    return sorted(apps_list, key=lambda app: app["name"])
