@@ -82,13 +82,17 @@ def gen_apps_list(
         )
 
         if app_config:
-            config_json = app_config["chipsets"]["*"][0]["app_type_payload"]
-            config = json.loads(config_json)
+            config_jsons = {
+                item["app_type_payload"]
+                for val in app_config["chipsets"].values()
+                for item in val
+            }
+            configs = [json.loads(config_json) for config_json in config_jsons]
             app_already_exists = False
             for pyvizio_app in pyvizio_apps:
                 if pyvizio_app["name"].lower() == app_name["name"].lower():
                     pyvizio_app["id"].append(app_name["id"])
-                    pyvizio_app["config"].append(config)
+                    pyvizio_app["config"].extend(configs)
                     app_already_exists = True
                     break
 
@@ -98,7 +102,7 @@ def gen_apps_list(
                         "name": app_name["name"],
                         "country": [country.lower() for country in app_name["country"]],
                         "id": [app_name["id"]],
-                        "config": [config],
+                        "config": configs,
                     }
                 )
 
