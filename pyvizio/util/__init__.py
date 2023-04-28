@@ -88,15 +88,13 @@ def gen_apps_list(
                 for item in val
             }
             configs = [json.loads(config_json) for config_json in config_jsons]
-            app = next(
-                (
+            try:
+                app = next(
                     app
                     for app in apps_list
                     if app["name"].lower() == app_name["name"].lower()
-                ),
-                None,
-            )
-            if not app:
+                )
+            except StopIteration:
                 apps_list.append(
                     {
                         "name": app_name["name"],
