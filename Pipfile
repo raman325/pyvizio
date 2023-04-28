@@ -16,4 +16,4 @@ zeroconf = ">=0.24.4"
 pylint = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"
