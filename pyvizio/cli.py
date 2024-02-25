@@ -67,7 +67,7 @@ pass_vizio = click.make_pass_decorator(VizioAsync)
 )
 @click.pass_context
 def cli(ctx, ip: str, auth: str, device_type: str) -> None:
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
     ctx.obj = VizioAsync(DEFAULT_DEVICE_ID, ip, DEFAULT_DEVICE_NAME, auth, device_type)
 
