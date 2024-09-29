@@ -648,20 +648,20 @@ async def launch_app(vizio: VizioAsync, app_name: str) -> None:
 
 
 @cli.command()
-@click.argument("APP_ID", required=True, type=click.STRING)
-@click.argument("NAME_SPACE", required=True, type=click.IntRange(min=0))
-@click.argument("MESSAGE", required=False, type=click.STRING, default=None)
+@click.argument("app_id", required=True, type=click.STRING)
+@click.argument("name_space", required=True, type=click.IntRange(min=0))
+@click.argument("message", required=False, type=click.STRING, default=None)
 @async_to_sync
 @pass_vizio
 async def launch_app_config(
-    vizio: VizioAsync, APP_ID: str, NAME_SPACE: int, MESSAGE: str
+    vizio: VizioAsync, app_id: str, name_space: int, message: str
 ) -> None:
     _LOGGER.info(
         "Attempting to launch app using config %s",
-        {"APP_ID": APP_ID, "NAME_SPACE": NAME_SPACE, "MESSAGE": MESSAGE},
+        {"APP_ID": app_id, "NAME_SPACE": name_space, "MESSAGE": message},
     )
 
-    result = await vizio.launch_app_config(APP_ID, NAME_SPACE, MESSAGE)
+    result = await vizio.launch_app_config(app_id, name_space, message)
 
     _LOGGER.info("OK" if result else "ERROR")
 
