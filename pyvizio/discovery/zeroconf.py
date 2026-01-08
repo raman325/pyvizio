@@ -3,11 +3,12 @@
 import time
 from typing import Callable, List
 
-from pyvizio.const import DEFAULT_TIMEOUT
 from zeroconf import IPVersion, ServiceBrowser, ServiceInfo, Zeroconf
 
+from pyvizio.const import DEFAULT_TIMEOUT
 
-class ZeroconfDevice(object):
+
+class ZeroconfDevice:
     def __init__(self, name: str, ip: str, port: int, model: str, id: str) -> None:
         self.name = name
         self.ip = ip
@@ -22,7 +23,7 @@ class ZeroconfDevice(object):
         return self is other or self.__dict__ == other.__dict__
 
 
-class ZeroconfListener(object):
+class ZeroconfListener:
     """Basic zeroconf listener."""
 
     def __init__(self, func: Callable[[ServiceInfo], None]) -> None:

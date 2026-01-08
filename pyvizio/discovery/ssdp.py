@@ -21,7 +21,7 @@ import socket
 from pyvizio.const import DEFAULT_TIMEOUT
 
 
-class SSDPDevice(object):
+class SSDPDevice:
     """Representation of Vizio device discovered via SSDP."""
 
     def __init__(self, ip, name, model, udn) -> None:
@@ -37,7 +37,7 @@ class SSDPDevice(object):
         return self is other or self.__dict__ == other.__dict__
 
 
-class SSDPResponse(object):
+class SSDPResponse:
     """SSDP discovery response."""
 
     class _FakeSocket(io.BytesIO):

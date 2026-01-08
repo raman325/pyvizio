@@ -6,7 +6,7 @@ from pyvizio.api._protocol import ENDPOINT, KEY_ACTION
 from pyvizio.api.base import CommandBase
 
 
-class KeyPressEvent(object):
+class KeyPressEvent:
     """Emulated remote key press."""
 
     def __init__(
@@ -29,7 +29,7 @@ class EmulateRemoteCommand(CommandBase):
 
     def __init__(self, key_codes: List[Tuple[int, int]], device_type: str) -> None:
         """Initialize command to emulate remote key press."""
-        super(EmulateRemoteCommand, self).__init__(ENDPOINT[device_type]["KEY_PRESS"])
+        super().__init__(ENDPOINT[device_type]["KEY_PRESS"])
 
         # noinspection SpellCheckingInspection
         self.KEYLIST: List[KeyPressEvent] = []

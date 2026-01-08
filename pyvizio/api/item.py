@@ -18,7 +18,7 @@ class GetDeviceInfoCommand(InfoCommandBase):
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get device info."""
-        super(GetDeviceInfoCommand, self).__init__(ENDPOINT[device_type]["DEVICE_INFO"])
+        super().__init__(ENDPOINT[device_type]["DEVICE_INFO"])
         self.paths = PATH_MODEL[device_type]
 
     def process_response(self, json_obj: Dict[str, Any]) -> Dict[str, Any]:
@@ -31,13 +31,13 @@ class GetModelNameCommand(GetDeviceInfoCommand):
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get device model name."""
-        super(GetModelNameCommand, self).__init__(device_type)
+        super().__init__(device_type)
 
     def process_response(self, json_obj: Dict[str, Any]) -> Optional[str]:
         """Return response to command to get device model name."""
         return get_value_from_path(
             dict_get_case_insensitive(
-                super(GetModelNameCommand, self).process_response(json_obj),
+                super().process_response(json_obj),
                 ResponseKey.VALUE,
                 {},
             ),
@@ -45,7 +45,7 @@ class GetModelNameCommand(GetDeviceInfoCommand):
         )
 
 
-class Item(object):
+class Item:
     """Individual item setting."""
 
     def __init__(self, json_obj: Dict[str, Any]) -> None:
@@ -89,7 +89,7 @@ class Item(object):
         )
 
 
-class DefaultReturnItem(object):
+class DefaultReturnItem:
     """Mock individual item setting response when item is not found."""
 
     def __init__(self, value: Any) -> None:
@@ -110,7 +110,7 @@ class ItemInfoCommandBase(InfoCommandBase):
         self, device_type: str, item_name: str, default_return: Union[int, str] = None
     ) -> None:
         """Initialize command to get individual item setting."""
-        super(ItemInfoCommandBase, self).__init__(ENDPOINT[device_type][item_name])
+        super().__init__(ENDPOINT[device_type][item_name])
         self.item_name = item_name.upper()
         self.default_return = default_return
 
@@ -145,7 +145,7 @@ class ItemCommandBase(CommandBase):
         self, device_type: str, item_name: str, id: int, value: Union[int, str]
     ) -> None:
         """Initialize command to set value of individual item setting."""
-        super(ItemCommandBase, self).__init__(ENDPOINT[device_type][item_name])
+        super().__init__(ENDPOINT[device_type][item_name])
         self.item_name = item_name
 
         self.VALUE = value
@@ -159,7 +159,7 @@ class GetCurrentPowerStateCommand(ItemInfoCommandBase):
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get current power state of device."""
-        super(GetCurrentPowerStateCommand, self).__init__(device_type, "POWER_MODE", 0)
+        super().__init__(device_type, "POWER_MODE", 0)
 
 
 class GetCurrentChargingStatusCommand(ItemInfoCommandBase):
@@ -167,7 +167,7 @@ class GetCurrentChargingStatusCommand(ItemInfoCommandBase):
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get current charging status of device."""
-        super(GetCurrentChargingStatusCommand, self).__init__(device_type, "CHARGING_STATUS", 0)
+        super().__init__(device_type, "CHARGING_STATUS", 0)
 
 
 class GetBatteryLevelCommand(ItemInfoCommandBase):
@@ -175,7 +175,7 @@ class GetBatteryLevelCommand(ItemInfoCommandBase):
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get current battery level (will be 0 if charging) of device."""
-        super(GetBatteryLevelCommand, self).__init__(device_type, "BATTERY_LEVEL", 0)
+        super().__init__(device_type, "BATTERY_LEVEL", 0)
 
 
 class GetESNCommand(ItemInfoCommandBase):
@@ -183,7 +183,7 @@ class GetESNCommand(ItemInfoCommandBase):
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get device ESN (electronic serial number?)."""
-        super(GetESNCommand, self).__init__(device_type, "ESN")
+        super().__init__(device_type, "ESN")
 
 
 class GetSerialNumberCommand(ItemInfoCommandBase):
@@ -191,7 +191,7 @@ class GetSerialNumberCommand(ItemInfoCommandBase):
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get device serial number."""
-        super(GetSerialNumberCommand, self).__init__(device_type, "SERIAL_NUMBER")
+        super().__init__(device_type, "SERIAL_NUMBER")
 
 
 class GetVersionCommand(ItemInfoCommandBase):
@@ -199,7 +199,7 @@ class GetVersionCommand(ItemInfoCommandBase):
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get SmartCast software version."""
-        super(GetVersionCommand, self).__init__(device_type, "VERSION")
+        super().__init__(device_type, "VERSION")
 
 
 class AltItemInfoCommandBase(ItemInfoCommandBase):
@@ -223,7 +223,7 @@ class GetAltESNCommand(AltItemInfoCommandBase):
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get device ESN (electronic serial number?)."""
-        super(GetAltESNCommand, self).__init__(device_type, "_ALT_ESN", "ESN")
+        super().__init__(device_type, "_ALT_ESN", "ESN")
 
 
 class GetAltSerialNumberCommand(AltItemInfoCommandBase):
@@ -231,9 +231,7 @@ class GetAltSerialNumberCommand(AltItemInfoCommandBase):
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get device serial number."""
-        super(GetAltSerialNumberCommand, self).__init__(
-            device_type, "_ALT_SERIAL_NUMBER", "SERIAL_NUMBER"
-        )
+        super().__init__(device_type, "_ALT_SERIAL_NUMBER", "SERIAL_NUMBER")
 
 
 class GetAltVersionCommand(AltItemInfoCommandBase):
@@ -241,6 +239,4 @@ class GetAltVersionCommand(AltItemInfoCommandBase):
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get SmartCast software version."""
-        super(GetAltVersionCommand, self).__init__(
-            device_type, "_ALT_VERSION", "VERSION"
-        )
+        super().__init__(device_type, "_ALT_VERSION", "VERSION")

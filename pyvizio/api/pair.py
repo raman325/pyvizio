@@ -12,11 +12,11 @@ class PairCommandBase(CommandBase):
 
     def __init__(self, device_id: str, device_type: str, endpoint: str) -> None:
         """Initialize base pairing command."""
-        super(PairCommandBase, self).__init__(ENDPOINT[device_type][endpoint])
+        super().__init__(ENDPOINT[device_type][endpoint])
         self.DEVICE_ID: str = device_id
 
 
-class BeginPairResponse(object):
+class BeginPairResponse:
     """Response from command to begin pairing process."""
 
     def __init__(self, ch_type: str, token: str) -> None:
@@ -49,7 +49,7 @@ class BeginPairCommand(PairCommandBase):
         )
 
 
-class PairChallengeResponse(object):
+class PairChallengeResponse:
     """Response from command to complete pairing process."""
 
     def __init__(self, auth_token: str) -> None:

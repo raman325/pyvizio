@@ -1,5 +1,4 @@
 import logging
-import sys
 from typing import Union
 
 import click
@@ -14,18 +13,14 @@ from pyvizio.const import (
     DEFAULT_DEVICE_ID,
     DEFAULT_DEVICE_NAME,
     DEFAULT_TIMEOUT,
+    DEVICE_CLASS_CRAVE360,
     DEVICE_CLASS_SPEAKER,
     DEVICE_CLASS_TV,
-    DEVICE_CLASS_CRAVE360,
     NO_APP_RUNNING,
     UNKNOWN_APP,
 )
 from pyvizio.helpers import async_to_sync
 from pyvizio.util import gen_apps_list_from_url
-
-if sys.version_info < (3, 7):
-    print("To use this script you need python 3.7 or newer, got %s" % sys.version_info)
-    sys.exit(1)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -236,7 +231,7 @@ async def get_charging_status(vizio: VizioAsync) -> None:
         _LOGGER.info("Device is charging")
     if 0 == charge_status:
         _LOGGER.info("Device is not charging")
-    
+
 
 @cli.command()
 @async_to_sync

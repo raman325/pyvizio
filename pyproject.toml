@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyvizio"
+dynamic = ["version"]
+description = "Python library for interfacing with Vizio SmartCast TVs and Sound Bars (2016+ models)"
+readme = "README.md"
+license = "GPL-3.0-only"
+requires-python = ">=3.8"
+authors = [
+    { name = "Vlad Korniev", email = "vladimir.kornev@gmail.com" }
+]
+keywords = ["vizio", "smartcast"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "aiohttp",
+    "click",
+    "jsonpickle",
+    "requests",
+    "tabulate>=0.8.6",
+    "xmltodict",
+    "zeroconf>=0.24.4",
+]
+
+[project.scripts]
+pyvizio = "pyvizio.cli:cli"
+
+[project.urls]
+Homepage = "https://github.com/vkorn/pyvizio"
+Repository = "https://github.com/vkorn/pyvizio"
+
+[tool.setuptools.dynamic]
+version = {attr = "pyvizio.version.__version__"}
+
+[tool.setuptools.packages.find]
+exclude = ["tests", "tests.*", "venv", "venv.*"]
+
+[tool.ruff]
+target-version = "py38"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "E203",   # whitespace before ':' (conflicts with black/ruff formatter)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pyvizio"]
+force-sort-within-sections = true
+combine-as-imports = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
