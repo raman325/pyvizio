@@ -39,6 +39,10 @@ class ZeroconfListener(object):
         """Callback function when zeroconf service is discovered."""
         self._func(zeroconf.get_service_info(type, name))
 
+    def update_service(self, zeroconf: Zeroconf, type: str, name: str) -> None:
+        """Callback function when zeroconf service is updated."""
+        pass
+
 
 def discover(service_type: str, timeout: int = DEFAULT_TIMEOUT) -> List[ZeroconfDevice]:
     """Return all discovered zeroconf services of a given service type over given timeout period."""
