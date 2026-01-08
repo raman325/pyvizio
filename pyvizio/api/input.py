@@ -12,7 +12,7 @@ class InputItem(Item):
 
     def __init__(self, json_item: Dict[str, Any], is_extended_metadata: bool) -> None:
         """Initialize input device."""
-        super(InputItem, self).__init__(json_item)
+        super().__init__(json_item)
         self.meta_name = None
         self.meta_data = None
 
@@ -34,7 +34,7 @@ class GetInputsListCommand(ItemInfoCommandBase):
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get list of available inputs."""
-        super(GetInputsListCommand, self).__init__(device_type, "INPUTS")
+        super().__init__(device_type, "INPUTS")
 
     def process_response(self, json_obj: Dict[str, Any]) -> Optional[List[InputItem]]:
         """Return response to command to get list of available inputs."""
@@ -55,7 +55,7 @@ class GetCurrentInputCommand(ItemInfoCommandBase):
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get currently active input."""
-        super(GetCurrentInputCommand, self).__init__(device_type, "CURRENT_INPUT")
+        super().__init__(device_type, "CURRENT_INPUT")
 
     def process_response(self, json_obj: Dict[str, Any]) -> Optional[InputItem]:
         """Return response to command to get currently active input."""
@@ -74,4 +74,4 @@ class ChangeInputCommand(ItemCommandBase):
 
     def __init__(self, device_type: str, id: int, name: str) -> None:
         """Initialize command to change active input by name."""
-        super(ChangeInputCommand, self).__init__(device_type, "CURRENT_INPUT", id, name)
+        super().__init__(device_type, "CURRENT_INPUT", id, name)

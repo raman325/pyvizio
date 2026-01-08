@@ -1,4 +1,5 @@
 """Initialize pyvizio."""
+
 from asyncio import sleep
 from datetime import datetime, timedelta
 import logging
@@ -28,9 +29,9 @@ from pyvizio.api.item import (
     GetAltESNCommand,
     GetAltSerialNumberCommand,
     GetAltVersionCommand,
-    GetCurrentPowerStateCommand,
-    GetCurrentChargingStatusCommand,
     GetBatteryLevelCommand,
+    GetCurrentChargingStatusCommand,
+    GetCurrentPowerStateCommand,
     GetDeviceInfoCommand,
     GetESNCommand,
     GetModelNameCommand,
@@ -61,15 +62,16 @@ from pyvizio.const import (
     DEFAULT_DEVICE_CLASS,
     DEFAULT_PORTS,
     DEFAULT_TIMEOUT,
+    DEVICE_CLASS_CRAVE360,
     DEVICE_CLASS_SPEAKER,
     DEVICE_CLASS_TV,
-    DEVICE_CLASS_CRAVE360,
     MAX_VOLUME,
 )
 from pyvizio.discovery.ssdp import SSDPDevice, discover as discover_ssdp
 from pyvizio.discovery.zeroconf import ZeroconfDevice, discover as discover_zc
 from pyvizio.helpers import async_to_sync, open_port
 from pyvizio.util import gen_apps_list_from_url
+from pyvizio.version import __version__ as __version__
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -91,7 +93,7 @@ class VizioAsync:
         self.device_type = device_type.lower()
         if (
             self.device_type != DEVICE_CLASS_TV
-            and self.device_type != DEVICE_CLASS_SPEAKER  # noqa: W503
+            and self.device_type != DEVICE_CLASS_SPEAKER
             and self.device_type != DEVICE_CLASS_CRAVE360
         ):
             raise Exception(
@@ -158,7 +160,10 @@ class VizioAsync:
     ) -> Any:
         """Asynchronously call SmartCast API command with or without auth token depending on device type."""
         if not self._auth_token:
-            if self.device_type == DEVICE_CLASS_SPEAKER or self.device_type == DEVICE_CLASS_CRAVE360:
+            if (
+                self.device_type == DEVICE_CLASS_SPEAKER
+                or self.device_type == DEVICE_CLASS_CRAVE360
+            ):
                 return await self.__invoke_api(cmd, log_api_exception=log_api_exception)
             else:
                 raise Exception(
@@ -426,7 +431,9 @@ class VizioAsync:
 
         return None
 
-    async def get_charging_status(self, log_api_exception: bool = True) -> Optional[int]:
+    async def get_charging_status(
+        self, log_api_exception: bool = True
+    ) -> Optional[int]:
         """Asynchronously get device's current charging state."""
         item = await self.__invoke_api_may_need_auth(
             GetCurrentChargingStatusCommand(self.device_type),
@@ -840,7 +847,7 @@ class Vizio(VizioAsync):
         timeout: int = DEFAULT_TIMEOUT,
     ) -> None:
         """Initialize synchronous class to interact with Vizio SmartCast devices."""
-        super(Vizio, self).__init__(
+        super().__init__(
             device_id, ip, name, auth_token, device_type, session=None, timeout=timeout
         )
 
@@ -879,55 +886,51 @@ class Vizio(VizioAsync):
     @async_to_sync
     async def can_connect_with_auth_check(self) -> bool:
         """Return whether or not device API can be connected to with valid authorization."""
-        return await super(Vizio, self).can_connect_with_auth_check()
+        return await super().can_connect_with_auth_check()
 
     @async_to_sync
     async def can_connect_no_auth_check(self) -> bool:
         """Return whether or not device API can be connected to regardless of auth config."""
-        return await super(Vizio, self).can_connect_no_auth_check()
+        return await super().can_connect_no_auth_check()
 
     @async_to_sync
     async def get_esn(self, log_api_exception: bool = True) -> Optional[str]:
         """Get device's ESN (electronic serial number?)."""
-        return await super(Vizio, self).get_esn(log_api_exception=log_api_exception)
+        return await super().get_esn(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def get_serial_number(self, log_api_exception: bool = True) -> Optional[str]:
         """Get device's serial number."""
-        return await super(Vizio, self).get_serial_number(
-            log_api_exception=log_api_exception
-        )
+        return await super().get_serial_number(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def get_version(self, log_api_exception: bool = True) -> Optional[str]:
         """Get SmartCast software version on device."""
-        return await super(Vizio, self).get_version(log_api_exception=log_api_exception)
+        return await super().get_version(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def get_model_name(self, log_api_exception: bool = True) -> Optional[str]:
         """Get device's model number."""
-        return await super(Vizio, self).get_model_name(
-            log_api_exception=log_api_exception
-        )
+        return await super().get_model_name(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def start_pair(
         self, log_api_exception: bool = True
     ) -> Optional[BeginPairResponse]:
         """Begin pairing process to obtain challenge type and challenge token."""
-        return await super(Vizio, self).start_pair(log_api_exception=log_api_exception)
+        return await super().start_pair(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def stop_pair(self, log_api_exception: bool = True) -> Optional[bool]:
         """Cancel pairing process."""
-        return await super(Vizio, self).stop_pair(log_api_exception=log_api_exception)
+        return await super().stop_pair(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def pair(
         self, ch_type: int, token: int, pin: str, log_api_exception: bool = True
     ) -> Optional[PairChallengeResponse]:
         """Complete pairing process to obtain auth token."""
-        return await super(Vizio, self).pair(
+        return await super().pair(
             ch_type, token, pin, log_api_exception=log_api_exception
         )
 
@@ -936,155 +939,139 @@ class Vizio(VizioAsync):
         self, log_api_exception: bool = True
     ) -> Optional[List[InputItem]]:
         """Get list of available inputs."""
-        return await super(Vizio, self).get_inputs_list(
-            log_api_exception=log_api_exception
-        )
+        return await super().get_inputs_list(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def get_current_input(self, log_api_exception: bool = True) -> Optional[str]:
         """Get device's active input."""
-        return await super(Vizio, self).get_current_input(
-            log_api_exception=log_api_exception
-        )
+        return await super().get_current_input(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def next_input(self, log_api_exception: bool = True) -> Optional[bool]:
         """Switch active input to next input."""
-        return await super(Vizio, self).next_input(log_api_exception=log_api_exception)
+        return await super().next_input(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def set_input(
         self, name: str, log_api_exception: bool = True
     ) -> Optional[bool]:
         """Switch active input to named input."""
-        return await super(Vizio, self).set_input(
-            name, log_api_exception=log_api_exception
-        )
+        return await super().set_input(name, log_api_exception=log_api_exception)
 
     @async_to_sync
     async def get_power_state(self, log_api_exception: bool = True) -> Optional[bool]:
         """Get device's current power state."""
-        return await super(Vizio, self).get_power_state(
-            log_api_exception=log_api_exception
-        )
+        return await super().get_power_state(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def pow_on(self, log_api_exception: bool = True) -> Optional[bool]:
         """Power device off."""
-        return await super(Vizio, self).pow_on(log_api_exception=log_api_exception)
+        return await super().pow_on(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def pow_off(self, log_api_exception: bool = True) -> Optional[bool]:
         """Power device off."""
-        return await super(Vizio, self).pow_off(log_api_exception=log_api_exception)
+        return await super().pow_off(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def pow_toggle(self, log_api_exception: bool = True) -> Optional[bool]:
         """Toggle device power."""
-        return await super(Vizio, self).pow_toggle(log_api_exception=log_api_exception)
+        return await super().pow_toggle(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def vol_up(
         self, num: int = 1, log_api_exception: bool = True
     ) -> Optional[bool]:
         """Increase volume by number of steps."""
-        return await super(Vizio, self).vol_up(num, log_api_exception=log_api_exception)
+        return await super().vol_up(num, log_api_exception=log_api_exception)
 
     @async_to_sync
     async def vol_down(
         self, num: int = 1, log_api_exception: bool = True
     ) -> Optional[bool]:
         """Decrease volume by number of steps."""
-        return await super(Vizio, self).vol_down(
-            num, log_api_exception=log_api_exception
-        )
+        return await super().vol_down(num, log_api_exception=log_api_exception)
 
     @async_to_sync
     async def get_current_volume(self, log_api_exception: bool = True) -> Optional[int]:
         """Get device's current volume level."""
-        return await super(Vizio, self).get_current_volume(
-            log_api_exception=log_api_exception
-        )
+        return await super().get_current_volume(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def is_muted(self, log_api_exception: bool = True) -> Optional[bool]:
         """Return whether or not device is muted."""
-        return await super(Vizio, self).is_muted(log_api_exception=log_api_exception)
+        return await super().is_muted(log_api_exception=log_api_exception)
 
     def get_max_volume(self) -> int:
         """Return device's max volume based on device type."""
-        return super(Vizio, self).get_max_volume()
+        return super().get_max_volume()
 
     @async_to_sync
     async def ch_up(
         self, num: int = 1, log_api_exception: bool = True
     ) -> Optional[bool]:
         """Channel up by number of steps."""
-        return await super(Vizio, self).ch_up(num, log_api_exception=log_api_exception)
+        return await super().ch_up(num, log_api_exception=log_api_exception)
 
     @async_to_sync
     async def ch_down(
         self, num: int = 1, log_api_exception: bool = True
     ) -> Optional[bool]:
         """Channel down by number of steps."""
-        return await super(Vizio, self).ch_down(
-            num, log_api_exception=log_api_exception
-        )
+        return await super().ch_down(num, log_api_exception=log_api_exception)
 
     @async_to_sync
     async def ch_prev(self, log_api_exception: bool = True) -> Optional[bool]:
         """Go to previous channel."""
-        return await super(Vizio, self).ch_prev(log_api_exception=log_api_exception)
+        return await super().ch_prev(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def mute_on(self, log_api_exception: bool = True) -> Optional[bool]:
         """Mute sound."""
-        return await super(Vizio, self).mute_on(log_api_exception=log_api_exception)
+        return await super().mute_on(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def mute_off(self, log_api_exception: bool = True) -> Optional[bool]:
         """Unmute sound."""
-        return await super(Vizio, self).mute_off(log_api_exception=log_api_exception)
+        return await super().mute_off(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def mute_toggle(self, log_api_exception: bool = True) -> Optional[bool]:
         """Toggle sound mute."""
-        return await super(Vizio, self).mute_toggle(log_api_exception=log_api_exception)
+        return await super().mute_toggle(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def play(self, log_api_exception: bool = True) -> Optional[bool]:
         """Emulate 'play' key press."""
-        return await super(Vizio, self).play(log_api_exception=log_api_exception)
+        return await super().play(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def pause(self, log_api_exception: bool = True) -> Optional[bool]:
         """Emulate 'pause' key press."""
-        return await super(Vizio, self).pause(log_api_exception=log_api_exception)
+        return await super().pause(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def remote(self, key: str, log_api_exception: bool = True) -> Optional[bool]:
         """Emulate key press by key name."""
-        return await super(Vizio, self).remote(key, log_api_exception=log_api_exception)
+        return await super().remote(key, log_api_exception=log_api_exception)
 
     def get_remote_keys_list(self) -> KeysView[str]:
         """Get list of remote key names."""
-        return super(Vizio, self).get_remote_keys_list()
+        return super().get_remote_keys_list()
 
     @async_to_sync
     async def get_setting_types_list(
         self, setting_type: str, log_api_exception: bool = True
     ) -> Optional[List[str]]:
         """Get list of all setting types."""
-        return await super(Vizio, self).get_setting_types_list(
-            log_api_exception=log_api_exception
-        )
+        return await super().get_setting_types_list(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def get_all_settings(
         self, setting_type: str, log_api_exception: bool = True
     ) -> Optional[Dict[str, Union[int, str]]]:
         """Get all setting names and corresponding values."""
-        return await super(Vizio, self).get_all_settings(
+        return await super().get_all_settings(
             setting_type, log_api_exception=log_api_exception
         )
 
@@ -1093,7 +1080,7 @@ class Vizio(VizioAsync):
         self, setting_type: str, log_api_exception: bool = True
     ) -> Optional[Dict[str, Union[int, str]]]:
         """Get all setting names and corresponding options."""
-        return await super(Vizio, self).get_all_settings_options(
+        return await super().get_all_settings_options(
             setting_type, log_api_exception=log_api_exception
         )
 
@@ -1102,7 +1089,7 @@ class Vizio(VizioAsync):
         self, setting_type: str, setting_name: str, log_api_exception: bool = True
     ) -> Optional[Union[int, str]]:
         """Get current value of named setting."""
-        return await super(Vizio, self).get_setting(
+        return await super().get_setting(
             setting_type, setting_name, log_api_exception=log_api_exception
         )
 
@@ -1111,7 +1098,7 @@ class Vizio(VizioAsync):
         self, setting_type: str, setting_name: str, log_api_exception: bool = True
     ) -> Optional[Union[List[str], Dict[str, Union[int, str]]]]:
         """Get options of named setting."""
-        return await super(Vizio, self).get_setting_options(
+        return await super().get_setting_options(
             setting_type, setting_name, log_api_exception=log_api_exception
         )
 
@@ -1119,7 +1106,7 @@ class Vizio(VizioAsync):
         self, setting_type: str, setting_name: str, log_api_exception: bool = True
     ) -> Optional[List[str]]:
         """Get options of named setting for settings based on a user defined list."""
-        return await super(Vizio, self).get_setting_options_xlist(
+        return await super().get_setting_options_xlist(
             setting_type, setting_name, log_api_exception=log_api_exception
         )
 
@@ -1132,7 +1119,7 @@ class Vizio(VizioAsync):
         log_api_exception: bool = True,
     ) -> Optional[bool]:
         """Set new value for named setting."""
-        return await super(Vizio, self).set_setting(
+        return await super().set_setting(
             setting_type, setting_name, new_value, log_api_exception=log_api_exception
         )
 
@@ -1141,16 +1128,14 @@ class Vizio(VizioAsync):
         self, log_api_exception: bool = True
     ) -> Optional[Dict[str, Union[int, str]]]:
         """Get all audio setting names and corresponding values."""
-        return await super(Vizio, self).get_all_audio_settings(
-            log_api_exception=log_api_exception
-        )
+        return await super().get_all_audio_settings(log_api_exception=log_api_exception)
 
     @async_to_sync
     async def get_all_audio_settings_options(
         self, log_api_exception: bool = True
     ) -> Optional[Dict[str, Union[int, str]]]:
         """Get all audio setting names and corresponding options."""
-        return await super(Vizio, self).get_all_audio_settings_options(
+        return await super().get_all_audio_settings_options(
             log_api_exception=log_api_exception
         )
 
@@ -1159,7 +1144,7 @@ class Vizio(VizioAsync):
         self, setting_name: str, log_api_exception: bool = True
     ) -> Optional[Union[int, str]]:
         """Get current value of named audio setting."""
-        return await super(Vizio, self).get_audio_setting(
+        return await super().get_audio_setting(
             setting_name, log_api_exception=log_api_exception
         )
 
@@ -1168,7 +1153,7 @@ class Vizio(VizioAsync):
         self, setting_name: str, log_api_exception: bool = True
     ) -> Optional[Union[List[str], Dict[str, Union[int, str]]]]:
         """Get options of named audio setting."""
-        return await super(Vizio, self).get_audio_setting_options(
+        return await super().get_audio_setting_options(
             setting_name, log_api_exception=log_api_exception
         )
 
@@ -1180,7 +1165,7 @@ class Vizio(VizioAsync):
         log_api_exception: bool = True,
     ) -> Optional[bool]:
         """Set new value for named audio setting."""
-        return await super(Vizio, self).set_audio_setting(
+        return await super().set_audio_setting(
             setting_name, new_value, log_api_exception=log_api_exception
         )
 
@@ -1204,7 +1189,7 @@ class Vizio(VizioAsync):
         log_api_exception: bool = True,
     ) -> Optional[bool]:
         """Launch known app by name."""
-        return await super(Vizio, self).launch_app(
+        return await super().launch_app(
             app_name, apps_list, log_api_exception=log_api_exception
         )
 
@@ -1218,7 +1203,7 @@ class Vizio(VizioAsync):
         log_api_exception: bool = True,
     ) -> Optional[bool]:
         """Launch app using app's config values."""
-        return await super(Vizio, self).launch_app_config(
+        return await super().launch_app_config(
             APP_ID, NAME_SPACE, MESSAGE, log_api_exception=log_api_exception
         )
 
@@ -1229,7 +1214,7 @@ class Vizio(VizioAsync):
         log_api_exception: bool = True,
     ) -> Optional[str]:
         """Get name of currently running app. Returns const APP_NOT_RUNNING if no app is currently running, const UNKNOWN_APP if app config isn't known by pyvizio."""
-        return await super(Vizio, self).get_current_app(
+        return await super().get_current_app(
             apps_list, log_api_exception=log_api_exception
         )
 
@@ -1238,9 +1223,7 @@ class Vizio(VizioAsync):
         self, log_api_exception: bool = True
     ) -> Optional[AppConfig]:
         """Get config values of currently running app. Returns empty AppConfig if no app is currently running."""
-        return await super(Vizio, self).get_current_app_config(
-            log_api_exception=log_api_exception
-        )
+        return await super().get_current_app_config(log_api_exception=log_api_exception)
 
 
 @async_to_sync

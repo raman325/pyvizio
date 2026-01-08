@@ -20,7 +20,7 @@ class GetAllSettingTypesCommand(ItemInfoCommandBase):
 
     def __init__(self, device_type: str) -> None:
         """Initialize command to get list of all setting types."""
-        super(GetAllSettingTypesCommand, self).__init__(device_type, "SETTINGS")
+        super().__init__(device_type, "SETTINGS")
         ItemInfoCommandBase.url.fset(self, f"{ENDPOINT[device_type]['SETTINGS']}")
 
     def process_response(self, json_obj: Dict[str, Any]) -> List[str]:
@@ -42,7 +42,7 @@ class GetAllSettingsCommand(ItemInfoCommandBase):
 
     def __init__(self, device_type: str, setting_type: str) -> None:
         """Initialize command to get list of all setting names and corresponding values."""
-        super(GetAllSettingsCommand, self).__init__(device_type, "SETTINGS")
+        super().__init__(device_type, "SETTINGS")
         self.setting_type = setting_type.lower()
         ItemInfoCommandBase.url.fset(
             self, f"{ENDPOINT[device_type]['SETTINGS']}/{setting_type}"
@@ -66,7 +66,7 @@ class GetSettingCommand(ItemInfoCommandBase):
 
     def __init__(self, device_type: str, setting_type: str, setting_name: str) -> None:
         """Initialize command to get value of a setting by name."""
-        super(GetSettingCommand, self).__init__(device_type, "SETTINGS", 0)
+        super().__init__(device_type, "SETTINGS", 0)
         self.item_name = setting_name.lower()
         self.setting_type = setting_type.lower()
         ItemInfoCommandBase.url.fset(
@@ -79,9 +79,7 @@ class GetAllSettingsOptionsCommand(ItemInfoCommandBase):
 
     def __init__(self, device_type: str, setting_type: str) -> None:
         """Initialize command to get list of all setting names and corresponding options."""
-        super(GetAllSettingsOptionsCommand, self).__init__(
-            device_type, "SETTINGS_OPTIONS"
-        )
+        super().__init__(device_type, "SETTINGS_OPTIONS")
         self.setting_type = setting_type.lower()
         ItemInfoCommandBase.url.fset(
             self, f"{ENDPOINT[device_type]['SETTINGS_OPTIONS']}/{setting_type}"
@@ -115,17 +113,13 @@ class GetSettingOptionsCommand(GetAllSettingsOptionsCommand):
         """Initialize command to get options of a setting by name."""
         self.setting_name = setting_name
         self.setting_type = setting_type.lower()
-        super(GetSettingOptionsCommand, self).__init__(device_type, self.setting_type)
+        super().__init__(device_type, self.setting_type)
 
     def process_response(
         self, json_obj: Dict[str, Any]
     ) -> Optional[Union[List[str], Dict[str, Union[int, str]]]]:
         """Return response to command to get options of a setting by name."""
-        return (
-            super(GetSettingOptionsCommand, self)
-            .process_response(json_obj)
-            .get(self.setting_name)
-        )
+        return super().process_response(json_obj).get(self.setting_name)
 
 
 class GetAllSettingsOptionsXListCommand(ItemInfoCommandBase):
@@ -133,7 +127,7 @@ class GetAllSettingsOptionsXListCommand(ItemInfoCommandBase):
 
     def __init__(self, device_type: str, setting_type: str) -> None:
         """Initialize command to get list of all setting names and corresponding options for settings of type XList."""
-        super(GetAllSettingsOptionsXListCommand, self).__init__(device_type, "SETTINGS")
+        super().__init__(device_type, "SETTINGS")
         self.setting_type = setting_type.lower()
         ItemInfoCommandBase.url.fset(
             self, f"{ENDPOINT[device_type]['SETTINGS']}/{setting_type}"
@@ -157,17 +151,11 @@ class GetSettingOptionsXListCommand(GetAllSettingsOptionsXListCommand):
         """Initialize command to get options of an audio setting by name (used for setting of type XList)."""
         self.setting_name = setting_name
         self.setting_type = setting_type.lower()
-        super(GetSettingOptionsXListCommand, self).__init__(
-            device_type, self.setting_type
-        )
+        super().__init__(device_type, self.setting_type)
 
     def process_response(self, json_obj: Dict[str, Any]) -> Optional[List[str]]:
         """Return response to command to get options of an audio setting by name (used for setting of type XList)."""
-        return (
-            super(GetSettingOptionsXListCommand, self)
-            .process_response(json_obj)
-            .get(self.setting_name)
-        )
+        return super().process_response(json_obj).get(self.setting_name)
 
 
 class ChangeSettingCommand(ItemCommandBase):
@@ -182,7 +170,7 @@ class ChangeSettingCommand(ItemCommandBase):
         value: Union[int, str],
     ) -> None:
         """Initialize command to set value of a setting by name to new value."""
-        super(ChangeSettingCommand, self).__init__(device_type, "SETTINGS", id, value)
+        super().__init__(device_type, "SETTINGS", id, value)
         ItemCommandBase.url.fset(
             self, f"{ENDPOINT[device_type]['SETTINGS']}/{setting_type}/{setting_name}"
         )

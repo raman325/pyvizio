@@ -9,7 +9,7 @@ from aiohttp.client import DEFAULT_TIMEOUT as AIOHTTP_DEFAULT_TIMEOUT
 import jsonpickle
 
 from pyvizio.api.base import CommandBase
-from pyvizio.const import DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV, DEVICE_CLASS_CRAVE360
+from pyvizio.const import DEVICE_CLASS_CRAVE360, DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV
 from pyvizio.helpers import dict_get_case_insensitive
 
 _LOGGER = getLogger(__name__)
@@ -170,7 +170,7 @@ PATH_MODEL = {
 }
 
 
-class PairingResponseKey(object):
+class PairingResponseKey:
     """Key names in responses to pairing commands."""
 
     AUTH_TOKEN = "auth_token"
@@ -178,7 +178,7 @@ class PairingResponseKey(object):
     PAIRING_REQ_TOKEN = "pairing_req_token"
 
 
-class ResponseKey(object):
+class ResponseKey:
     """Key names in responses to API commands."""
 
     HASHVAL = "hashval"
@@ -198,15 +198,13 @@ class ResponseKey(object):
 async def async_validate_response(web_response: ClientResponse) -> Dict[str, Any]:
     """Validate response to API command is as expected and return response."""
     if HTTP_OK != web_response.status:
-        raise Exception(
-            "Device is unreachable? Status code: {0}".format(web_response.status)
-        )
+        raise Exception(f"Device is unreachable? Status code: {web_response.status}")
 
     try:
         data = json.loads(await web_response.text())
         _LOGGER.debug("Response: %s", data)
-    except Exception:
-        raise Exception("Failed to parse response: {0}".format(web_response.content))
+    except Exception as err:
+        raise Exception(f"Failed to parse response: {web_response.content}") from err
 
     status_obj = dict_get_case_insensitive(data, "status")
 
@@ -219,7 +217,7 @@ async def async_validate_response(web_response: ClientResponse) -> Dict[str, Any
         raise Exception("invalid value specified")
     elif not result_status or result_status.lower() != STATUS_SUCCESS:
         raise Exception(
-            "unexpected status {0}: {1}".format(
+            "unexpected status {}: {}".format(
                 result_status, dict_get_case_insensitive(status_obj, "detail")
             )
         )
@@ -232,11 +230,13 @@ async def async_invoke_api(
     command: CommandBase,
     logger: Logger,
     custom_timeout: int = None,
-    headers: Dict[str, Any] = {},
+    headers: Dict[str, Any] = None,
     log_api_exception: bool = True,
     session: ClientSession = None,
 ) -> Any:
     """Call API endpoints with appropriate request bodies and headers."""
+    if headers is None:
+        headers = {}
     method = command.get_method()
     url = f"https://{ip}{command.get_url()}"
     data = jsonpickle.encode(command, unpicklable=False)

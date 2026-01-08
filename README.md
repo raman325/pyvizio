@@ -1,12 +1,17 @@
+# `pyvizio`
+
 ## Description
 
 Simple cli and API implementation for Vizio SmartCast TVs and Speakers (Sound Bars). Mainly created for 
 integration with [HASS](http://home-assistant.io). Note that some of the interaction commands are not supported by 
 speakers.
 
+Originally created by @vkorn who wrote most of the functionality but no longer had time/interest to maintain the library
+and graciously transferred it to me for future maintenance.
+
 ## Installation
 
-Use `pip`: 
+Use `pip`:
 ```bash
 pip3 install pyvizio
 ```

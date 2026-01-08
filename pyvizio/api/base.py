@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import Any, Dict
 
 
-class CommandBase(object):
+class CommandBase:
     """Base command to send data to Vizio device."""
 
     def __init__(self, url: str = "") -> None:
@@ -50,7 +50,7 @@ class InfoCommandBase(CommandBase):
 
     def __init__(self, url: str = "") -> None:
         """Initialize base command to get data from Vizio device."""
-        super(InfoCommandBase, self).__init__(url)
+        super().__init__(url)
 
     @property
     def _method(self) -> str:
