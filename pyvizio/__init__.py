@@ -1169,8 +1169,8 @@ class Vizio(VizioAsync):
             setting_name, new_value, log_api_exception=log_api_exception
         )
 
-    @async_to_sync
     @staticmethod
+    @async_to_sync
     async def get_apps_list(
         country: str = "all",
         apps_list: List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]] = None,
