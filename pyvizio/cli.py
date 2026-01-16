@@ -480,7 +480,7 @@ async def get_setting_options(
         _LOGGER.error("Couldn't get options for '%s' setting", setting_name)
 
 
-@cli.command()
+@cli.command(context_settings={"allow_interspersed_args": False})
 @click.argument("setting_type", required=True, type=click.STRING)
 @click.argument("setting_name", required=True, type=click.STRING)
 @click.argument("new_value", required=True, type=click.STRING)
@@ -592,7 +592,7 @@ async def get_audio_setting_options(vizio: VizioAsync, setting_name: str) -> Non
         _LOGGER.error("Couldn't get options for '%s' setting", setting_name)
 
 
-@cli.command()
+@cli.command(context_settings={"allow_interspersed_args": False})
 @click.argument("setting_name", required=True, type=click.STRING)
 @click.argument("new_value", required=True, type=click.STRING)
 @async_to_sync
