@@ -1,8 +1,15 @@
 """pyvizio helper functions."""
 
 import asyncio
+import sys
 from functools import wraps
 from typing import Any, Dict, List, Optional
+
+# Fix for Windows ProactorEventLoop cleanup issue causing
+# "RuntimeError: Event loop is closed" on exit.
+# See: https://github.com/aio-libs/aiohttp/issues/4324
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 def async_to_sync(f):
