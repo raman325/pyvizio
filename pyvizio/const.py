@@ -1,5 +1,7 @@
 """pyvizio constants."""
 
+from __future__ import annotations
+
 DEVICE_CLASS_SPEAKER = "speaker"
 DEVICE_CLASS_TV = "tv"
 DEVICE_CLASS_CRAVE360 = "crave360"

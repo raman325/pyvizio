@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import logging
-from typing import Union
 
 import click
 from tabulate import tabulate
@@ -487,7 +488,7 @@ async def get_setting_options(
 @async_to_sync
 @pass_vizio
 async def setting(
-    vizio: VizioAsync, setting_type: str, setting_name: str, new_value: Union[int, str]
+    vizio: VizioAsync, setting_type: str, setting_name: str, new_value: int | str
 ) -> None:
     _LOGGER.info("Attempting to set '%s' to '%s'", setting_name, new_value)
 
@@ -598,7 +599,7 @@ async def get_audio_setting_options(vizio: VizioAsync, setting_name: str) -> Non
 @async_to_sync
 @pass_vizio
 async def audio_setting(
-    vizio: VizioAsync, setting_name: str, new_value: Union[int, str]
+    vizio: VizioAsync, setting_name: str, new_value: int | str
 ) -> None:
     _LOGGER.info("Attempting to set '%s' to '%s'", setting_name, new_value)
 

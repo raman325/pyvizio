@@ -1,6 +1,8 @@
 """Vizio SmartCast API commands and class for individual item settings."""
 
-from typing import Any, Dict, Optional, Union
+from __future__ import annotations
+
+from typing import Any
 
 from pyvizio.api._protocol import (
     ACTION_MODIFY,
@@ -21,7 +23,7 @@ class GetDeviceInfoCommand(InfoCommandBase):
         super().__init__(ENDPOINT[device_type]["DEVICE_INFO"])
         self.paths = PATH_MODEL[device_type]
 
-    def process_response(self, json_obj: Dict[str, Any]) -> Dict[str, Any]:
+    def process_response(self, json_obj: dict[str, Any]) -> dict[str, Any]:
         """Return response to command to get device info."""
         return dict_get_case_insensitive(json_obj, ResponseKey.ITEMS, [{}])[0]
 
@@ -33,7 +35,7 @@ class GetModelNameCommand(GetDeviceInfoCommand):
         """Initialize command to get device model name."""
         super().__init__(device_type)
 
-    def process_response(self, json_obj: Dict[str, Any]) -> Optional[str]:
+    def process_response(self, json_obj: dict[str, Any]) -> str | None:
         """Return response to command to get device model name."""
         return get_value_from_path(
             dict_get_case_insensitive(
@@ -48,7 +50,7 @@ class GetModelNameCommand(GetDeviceInfoCommand):
 class Item:
     """Individual item setting."""
 
-    def __init__(self, json_obj: Dict[str, Any]) -> None:
+    def __init__(self, json_obj: dict[str, Any]) -> None:
         """Initialize individual item setting."""
         self.id = None
         id = dict_get_case_insensitive(json_obj, ResponseKey.HASHVAL)
@@ -107,14 +109,14 @@ class ItemInfoCommandBase(InfoCommandBase):
     """Command to get individual item setting."""
 
     def __init__(
-        self, device_type: str, item_name: str, default_return: Union[int, str] = None
+        self, device_type: str, item_name: str, default_return: int | str = None
     ) -> None:
         """Initialize command to get individual item setting."""
         super().__init__(ENDPOINT[device_type][item_name])
         self.item_name = item_name.upper()
         self.default_return = default_return
 
-    def process_response(self, json_obj: Dict[str, Any]) -> Any:
+    def process_response(self, json_obj: dict[str, Any]) -> Any:
         """Return response to command to get individual item setting."""
         items = [
             Item(item)
@@ -142,7 +144,7 @@ class ItemCommandBase(CommandBase):
     """Command to set value of individual item setting."""
 
     def __init__(
-        self, device_type: str, item_name: str, id: int, value: Union[int, str]
+        self, device_type: str, item_name: str, id: int, value: int | str
     ) -> None:
         """Initialize command to set value of individual item setting."""
         super().__init__(ENDPOINT[device_type][item_name])
@@ -210,7 +212,7 @@ class AltItemInfoCommandBase(ItemInfoCommandBase):
         device_type: str,
         endpoint_name: str,
         item_name: str,
-        default_return: Union[int, str] = None,
+        default_return: int | str = None,
     ) -> None:
         """Initialize command to get individual item setting."""
         super(ItemInfoCommandBase, self).__init__(ENDPOINT[device_type][endpoint_name])

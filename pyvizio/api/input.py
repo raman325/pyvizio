@@ -1,6 +1,8 @@
 """Vizio SmartCast API commands and class for device inputs."""
 
-from typing import Any, Dict, List, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from pyvizio.api._protocol import ResponseKey
 from pyvizio.api.item import Item, ItemCommandBase, ItemInfoCommandBase
@@ -10,7 +12,7 @@ from pyvizio.helpers import dict_get_case_insensitive
 class InputItem(Item):
     """Input device."""
 
-    def __init__(self, json_item: Dict[str, Any], is_extended_metadata: bool) -> None:
+    def __init__(self, json_item: dict[str, Any], is_extended_metadata: bool) -> None:
         """Initialize input device."""
         super().__init__(json_item)
         self.meta_name = None
@@ -36,7 +38,7 @@ class GetInputsListCommand(ItemInfoCommandBase):
         """Initialize command to get list of available inputs."""
         super().__init__(device_type, "INPUTS")
 
-    def process_response(self, json_obj: Dict[str, Any]) -> Optional[List[InputItem]]:
+    def process_response(self, json_obj: dict[str, Any]) -> list[InputItem] | None:
         """Return response to command to get list of available inputs."""
         items = dict_get_case_insensitive(json_obj, ResponseKey.ITEMS)
 
@@ -57,7 +59,7 @@ class GetCurrentInputCommand(ItemInfoCommandBase):
         """Initialize command to get currently active input."""
         super().__init__(device_type, "CURRENT_INPUT")
 
-    def process_response(self, json_obj: Dict[str, Any]) -> Optional[InputItem]:
+    def process_response(self, json_obj: dict[str, Any]) -> InputItem | None:
         """Return response to command to get currently active input."""
         items = dict_get_case_insensitive(json_obj, ResponseKey.ITEMS)
 
