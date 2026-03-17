@@ -1,54 +1,40 @@
 """Tests for pyvizio.helpers module."""
 
+import pytest
+
 from pyvizio.helpers import async_to_sync, dict_get_case_insensitive, get_value_from_path
 
 
 class TestDictGetCaseInsensitive:
-    def test_exact_match(self):
-        assert dict_get_case_insensitive({"key": "value"}, "key") == "value"
+    @pytest.mark.parametrize("data,key,expected", [
+        ({"key": "value"}, "key", "value"),
+        ({"Key": "value"}, "key", "value"),
+        ({"key": "value"}, "KEY", "value"),
+        ({"COUNT": 42}, "count", 42),
+        ({"DATA": {"nested": True}}, "data", {"nested": True}),
+    ])
+    def test_found(self, data, key, expected):
+        assert dict_get_case_insensitive(data, key) == expected
 
-    def test_mixed_case_key(self):
-        assert dict_get_case_insensitive({"Key": "value"}, "key") == "value"
-
-    def test_mixed_case_lookup(self):
-        assert dict_get_case_insensitive({"key": "value"}, "KEY") == "value"
-
-    def test_missing_key_returns_none(self):
-        assert dict_get_case_insensitive({"key": "value"}, "other") is None
-
-    def test_missing_key_returns_default(self):
-        assert dict_get_case_insensitive({"key": "value"}, "other", "default") == "default"
-
-    def test_default_none_explicit(self):
-        assert dict_get_case_insensitive({"a": 1}, "b", None) is None
-
-    def test_numeric_value(self):
-        assert dict_get_case_insensitive({"COUNT": 42}, "count") == 42
-
-    def test_nested_dict_value(self):
-        inner = {"nested": True}
-        assert dict_get_case_insensitive({"DATA": inner}, "data") == inner
+    @pytest.mark.parametrize("default", [None, "fallback"])
+    def test_missing_key_returns_default(self, default):
+        assert dict_get_case_insensitive({"key": "value"}, "other", default) is default or \
+               dict_get_case_insensitive({"key": "value"}, "other", default) == default
 
 
 class TestGetValueFromPath:
     def test_single_level_path(self):
-        data = {"model_name": "V505-G9"}
-        paths = [["model_name"]]
-        assert get_value_from_path(data, paths) == "V505-G9"
+        assert get_value_from_path({"model_name": "V505-G9"}, [["model_name"]]) == "V505-G9"
 
     def test_single_level_case_insensitive(self):
-        data = {"MODEL_NAME": "V505-G9"}
-        paths = [["model_name"]]
-        assert get_value_from_path(data, paths) == "V505-G9"
+        assert get_value_from_path({"MODEL_NAME": "V505-G9"}, [["model_name"]]) == "V505-G9"
 
     def test_missing_path_returns_none(self):
-        data = {"other": "value"}
-        paths = [["model_name"]]
-        assert get_value_from_path(data, paths) is None
+        assert get_value_from_path({"other": "value"}, [["model_name"]]) is None
 
     def test_multiple_paths_first_match(self):
         data = {"model_name": "V505-G9"}
-        paths = [["model_name"], ["system_info", "model_name"]]
+        paths = [["model_name"], ["model"]]
         assert get_value_from_path(data, paths) == "V505-G9"
 
     def test_multiple_paths_fallback(self):
@@ -57,11 +43,12 @@ class TestGetValueFromPath:
         paths = [["model_name"], ["model"]]
         assert get_value_from_path(data, paths) == "V505-G9"
 
-    def test_empty_data(self):
-        assert get_value_from_path({}, [["key"]]) is None
-
-    def test_empty_paths(self):
-        assert get_value_from_path({"key": "val"}, []) is None
+    @pytest.mark.parametrize("data,paths", [
+        ({}, [["key"]]),
+        ({"key": "val"}, []),
+    ])
+    def test_returns_none(self, data, paths):
+        assert get_value_from_path(data, paths) is None
 
 
 class TestAsyncToSync:
