@@ -607,7 +607,7 @@ class VizioAsync:
 
     async def get_all_settings_options(
         self, setting_type: str, log_api_exception: bool = True
-    ) -> dict[str, int | str] | None:
+    ) -> dict[str, list[str] | dict[str, int | None]] | None:
         """Asynchronously get all setting names and corresponding options."""
         item = await self.__invoke_api_may_need_auth(
             GetAllSettingsOptionsCommand(self.device_type, setting_type),
@@ -653,7 +653,7 @@ class VizioAsync:
 
     async def get_setting_options(
         self, setting_type: str, setting_name: str, log_api_exception: bool = True
-    ) -> list[str] | dict[str, int | str] | None:
+    ) -> list[str] | dict[str, int | None] | None:
         """Asynchronously get options of named setting."""
         return await self.__invoke_api_may_need_auth(
             GetSettingOptionsCommand(self.device_type, setting_type, setting_name),
@@ -707,7 +707,7 @@ class VizioAsync:
 
     async def get_all_audio_settings_options(
         self, log_api_exception: bool = True
-    ) -> dict[str, int | str] | None:
+    ) -> dict[str, list[str] | dict[str, int | None]] | None:
         """Asynchronously get all audio setting names and corresponding options."""
         return await VizioAsync.get_all_settings_options(
             self, "audio", log_api_exception=log_api_exception
@@ -723,7 +723,7 @@ class VizioAsync:
 
     async def get_audio_setting_options(
         self, setting_name: str, log_api_exception: bool = True
-    ) -> list[str] | dict[str, int | str] | None:
+    ) -> list[str] | dict[str, int | None] | None:
         """Asynchronously get options of named audio setting."""
         return await VizioAsync.get_setting_options(
             self, "audio", setting_name, log_api_exception=log_api_exception

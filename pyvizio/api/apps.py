@@ -130,7 +130,7 @@ class LaunchAppNameCommand(LaunchAppConfigCommand):
 
         # Unpack config dict into expected key/value argument pairs
         config_list: list[dict[str, Any]] = app_def.get("config", [{}])
-        super().__init__(device_type, **config_list[0])
+        super().__init__(device_type, **config_list[0] if config_list else {})
 
 
 class GetCurrentAppConfigCommand(ItemInfoCommandBase):
