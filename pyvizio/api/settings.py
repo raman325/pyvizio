@@ -138,10 +138,13 @@ class GetAllSettingsOptionsXListCommand(ItemInfoCommandBase):
         items = [
             Item(item)
             for item in dict_get_case_insensitive(json_obj, ResponseKey.ITEMS, [])
-            if item.type.lower() == TYPE_X_LIST
         ]
 
-        return {item.c_name: item.choices for item in items}
+        return {
+            item.c_name: item.choices
+            for item in items
+            if item.type and item.type.lower() == TYPE_X_LIST
+        }
 
 
 class GetSettingOptionsXListCommand(GetAllSettingsOptionsXListCommand):
