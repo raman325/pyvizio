@@ -1,7 +1,5 @@
 """Tests for pyvizio.helpers module."""
 
-import asyncio
-
 from pyvizio.helpers import async_to_sync, dict_get_case_insensitive, get_value_from_path
 
 
@@ -51,6 +49,12 @@ class TestGetValueFromPath:
     def test_multiple_paths_first_match(self):
         data = {"model_name": "V505-G9"}
         paths = [["model_name"], ["system_info", "model_name"]]
+        assert get_value_from_path(data, paths) == "V505-G9"
+
+    def test_multiple_paths_fallback(self):
+        """Second path matches when first doesn't."""
+        data = {"model": "V505-G9"}
+        paths = [["model_name"], ["model"]]
         assert get_value_from_path(data, paths) == "V505-G9"
 
     def test_empty_data(self):

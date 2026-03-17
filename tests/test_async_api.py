@@ -17,9 +17,6 @@ from pyvizio.const import (
 
 from tests.conftest import (
     AUTH_TOKEN,
-    CRAVE_IP_PORT,
-    SPEAKER_IP_PORT,
-    TV_IP,
     TV_IP_PORT,
     crave_url,
     make_app_response,
@@ -37,7 +34,6 @@ from tests.conftest import (
     make_settings_options_response,
     make_settings_response,
     make_setting_types_response,
-    speaker_settings_url,
     speaker_url,
     tv_settings_options_url,
     tv_settings_url,
@@ -417,15 +413,23 @@ class TestSettings:
         result = await vizio_tv.get_all_settings_options("audio")
         assert result["bass"] == {"min": -6, "max": 6, "default": 0}
 
+    @pytest.mark.xfail(
+        reason="XList commands filter on raw dict before Item conversion — see PR #180"
+    )
     async def test_get_all_settings_options_xlist(self, vizio_tv, mock_aio):
-        # Note: XList commands have a bug in process_response (filtering on raw
-        # dict before Item conversion), so they return None in practice.
         mock_aio.get(
             tv_settings_url("audio"),
-            payload=make_response(items=[]),
+            payload=make_response(
+                items=[
+                    make_item(
+                        "surround", "Music", item_type="T_LIST_X_V1",
+                        ELEMENTS=["Normal", "Music", "Movie"],
+                    ),
+                ]
+            ),
         )
         result = await vizio_tv.get_all_settings_options_xlist("audio")
-        assert result is None
+        assert result == {"surround": ["Normal", "Music", "Movie"]}
 
     async def test_get_setting_int(self, vizio_tv, mock_aio):
         mock_aio.get(
@@ -468,14 +472,23 @@ class TestSettings:
         result = await vizio_tv.get_setting_options("audio", "volume")
         assert result == {"min": 0, "max": 100}
 
+    @pytest.mark.xfail(
+        reason="XList commands filter on raw dict before Item conversion — see PR #180"
+    )
     async def test_get_setting_options_xlist(self, vizio_tv, mock_aio):
-        # Same XList bug as above - returns None
         mock_aio.get(
             tv_settings_url("audio"),
-            payload=make_response(items=[]),
+            payload=make_response(
+                items=[
+                    make_item(
+                        "surround", "Music", item_type="T_LIST_X_V1",
+                        ELEMENTS=["Normal", "Music", "Movie"],
+                    ),
+                ]
+            ),
         )
         result = await vizio_tv.get_setting_options_xlist("audio", "surround")
-        assert result is None
+        assert result == ["Normal", "Music", "Movie"]
 
     async def test_set_setting(self, vizio_tv, mock_aio):
         # GET to find setting ID

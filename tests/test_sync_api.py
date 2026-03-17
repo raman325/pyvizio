@@ -13,7 +13,6 @@ from tests.conftest import (
     make_power_response,
     make_response,
     make_item,
-    make_settings_response,
     tv_settings_url,
     tv_url,
 )

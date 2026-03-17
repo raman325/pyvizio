@@ -180,7 +180,7 @@ def make_no_app_response():
 
 
 def make_setting_types_response(types):
-    """Create setting types list response. types: list of (cname, filtered_out)."""
+    """Create setting types list response. types: list of cname strings."""
     items = []
     for cname in types:
         items.append(make_item(cname, "", item_type="T_MENU_V1", name=cname.title()))
