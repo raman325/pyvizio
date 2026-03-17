@@ -33,6 +33,14 @@ dependencies = [
     "zeroconf>=0.24.4",
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "pytest-cov>=4.0",
+    "aioresponses>=0.7",
+]
+
 [project.scripts]
 pyvizio = "pyvizio.cli:cli"
 
@@ -45,6 +53,10 @@ version = {attr = "pyvizio.version.__version__"}
 
 [tool.setuptools.packages.find]
 exclude = ["tests", "tests.*", "venv", "venv.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
 
 [tool.ruff]
 target-version = "py38"
