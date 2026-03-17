@@ -183,9 +183,12 @@ class VizioAsync:
             if not self._device_config.requires_auth:
                 return await self.__invoke_api(cmd, log_api_exception=log_api_exception)
             else:
+                no_auth_types = [
+                    k for k, v in DEVICE_CONFIGS.items() if not v.requires_auth
+                ]
                 raise VizioAuthError(
-                    f"Empty auth token. To target a speaker and bypass auth "
-                    f"requirements, pass '{DEVICE_CLASS_SPEAKER}' as device_type"
+                    f"Empty auth token. Device types that don't require auth: "
+                    f"{', '.join(repr(t) for t in no_auth_types)}"
                 )
         return await self.__invoke_api_auth(cmd, log_api_exception=log_api_exception)
 
