@@ -413,9 +413,6 @@ class TestSettings:
         result = await vizio_tv.get_all_settings_options("audio")
         assert result["bass"] == {"min": -6, "max": 6, "default": 0}
 
-    @pytest.mark.xfail(
-        reason="XList commands filter on raw dict before Item conversion — see PR #180"
-    )
     async def test_get_all_settings_options_xlist(self, vizio_tv, mock_aio):
         mock_aio.get(
             tv_settings_url("audio"),
@@ -472,9 +469,6 @@ class TestSettings:
         result = await vizio_tv.get_setting_options("audio", "volume")
         assert result == {"min": 0, "max": 100}
 
-    @pytest.mark.xfail(
-        reason="XList commands filter on raw dict before Item conversion — see PR #180"
-    )
     async def test_get_setting_options_xlist(self, vizio_tv, mock_aio):
         mock_aio.get(
             tv_settings_url("audio"),
