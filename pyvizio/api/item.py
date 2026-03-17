@@ -156,56 +156,8 @@ class ItemCommandBase(CommandBase):
         self.REQUEST = ACTION_MODIFY.upper()
 
 
-class GetCurrentPowerStateCommand(ItemInfoCommandBase):
-    """Command to get current power state of device."""
-
-    def __init__(self, device_type: str) -> None:
-        """Initialize command to get current power state of device."""
-        super().__init__(device_type, "POWER_MODE", 0)
-
-
-class GetCurrentChargingStatusCommand(ItemInfoCommandBase):
-    """Command to get current charging status of device."""
-
-    def __init__(self, device_type: str) -> None:
-        """Initialize command to get current charging status of device."""
-        super().__init__(device_type, "CHARGING_STATUS", 0)
-
-
-class GetBatteryLevelCommand(ItemInfoCommandBase):
-    """Command to get current battery level (will be 0 if charging) of device."""
-
-    def __init__(self, device_type: str) -> None:
-        """Initialize command to get current battery level (will be 0 if charging) of device."""
-        super().__init__(device_type, "BATTERY_LEVEL", 0)
-
-
-class GetESNCommand(ItemInfoCommandBase):
-    """Command to get device ESN (electronic serial number?)."""
-
-    def __init__(self, device_type: str) -> None:
-        """Initialize command to get device ESN (electronic serial number?)."""
-        super().__init__(device_type, "ESN")
-
-
-class GetSerialNumberCommand(ItemInfoCommandBase):
-    """Command to get device serial number."""
-
-    def __init__(self, device_type: str) -> None:
-        """Initialize command to get device serial number."""
-        super().__init__(device_type, "SERIAL_NUMBER")
-
-
-class GetVersionCommand(ItemInfoCommandBase):
-    """Command to get SmartCast software version."""
-
-    def __init__(self, device_type: str) -> None:
-        """Initialize command to get SmartCast software version."""
-        super().__init__(device_type, "VERSION")
-
-
 class AltItemInfoCommandBase(ItemInfoCommandBase):
-    """Command to get individual item setting."""
+    """Command to get individual item setting from alternate endpoint."""
 
     def __init__(
         self,
@@ -214,31 +166,7 @@ class AltItemInfoCommandBase(ItemInfoCommandBase):
         item_name: str,
         default_return: int | str = None,
     ) -> None:
-        """Initialize command to get individual item setting."""
+        """Initialize command to get individual item setting from alternate endpoint."""
         super(ItemInfoCommandBase, self).__init__(ENDPOINT[device_type][endpoint_name])
         self.item_name = item_name.upper()
         self.default_return = default_return
-
-
-class GetAltESNCommand(AltItemInfoCommandBase):
-    """Command to get device ESN (electronic serial number?)."""
-
-    def __init__(self, device_type: str) -> None:
-        """Initialize command to get device ESN (electronic serial number?)."""
-        super().__init__(device_type, "_ALT_ESN", "ESN")
-
-
-class GetAltSerialNumberCommand(AltItemInfoCommandBase):
-    """Command to get device serial number."""
-
-    def __init__(self, device_type: str) -> None:
-        """Initialize command to get device serial number."""
-        super().__init__(device_type, "_ALT_SERIAL_NUMBER", "SERIAL_NUMBER")
-
-
-class GetAltVersionCommand(AltItemInfoCommandBase):
-    """Command to get SmartCast software version."""
-
-    def __init__(self, device_type: str) -> None:
-        """Initialize command to get SmartCast software version."""
-        super().__init__(device_type, "_ALT_VERSION", "VERSION")

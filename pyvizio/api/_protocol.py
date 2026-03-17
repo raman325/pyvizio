@@ -8,10 +8,14 @@ from typing import Any
 
 from aiohttp import ClientResponse, ClientSession, ClientTimeout
 from aiohttp.client import DEFAULT_TIMEOUT as AIOHTTP_DEFAULT_TIMEOUT
-import jsonpickle
 
 from pyvizio.api.base import CommandBase
 from pyvizio.const import DEVICE_CLASS_CRAVE360, DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV
+from pyvizio.errors import (
+    VizioConnectionError,
+    VizioInvalidParameterError,
+    VizioResponseError,
+)
 from pyvizio.helpers import dict_get_case_insensitive
 
 _LOGGER = getLogger(__name__)
@@ -200,31 +204,62 @@ class ResponseKey:
 async def async_validate_response(web_response: ClientResponse) -> dict[str, Any]:
     """Validate response to API command is as expected and return response."""
     if HTTP_OK != web_response.status:
-        raise Exception(f"Device is unreachable? Status code: {web_response.status}")
+        raise VizioConnectionError(
+            f"Device is unreachable? Status code: {web_response.status}"
+        )
 
     try:
         data = json.loads(await web_response.text())
         _LOGGER.debug("Response: %s", data)
     except Exception as err:
-        raise Exception(f"Failed to parse response: {web_response.content}") from err
+        raise VizioResponseError(
+            f"Failed to parse response: {web_response.content}"
+        ) from err
 
     status_obj = dict_get_case_insensitive(data, "status")
 
     if not status_obj:
-        raise Exception("Unknown response")
+        raise VizioResponseError("Unknown response")
 
     result_status = dict_get_case_insensitive(status_obj, "result")
 
     if result_status and result_status.lower() == STATUS_INVALID_PARAMETER:
-        raise Exception("invalid value specified")
+        raise VizioInvalidParameterError("invalid value specified")
     elif not result_status or result_status.lower() != STATUS_SUCCESS:
-        raise Exception(
+        raise VizioResponseError(
             "unexpected status {}: {}".format(
                 result_status, dict_get_case_insensitive(status_obj, "detail")
             )
         )
 
     return data
+
+
+async def _do_request(
+    active_session: ClientSession,
+    method: str,
+    url: str,
+    headers: dict[str, Any],
+    data: str,
+    timeout: ClientTimeout,
+) -> ClientResponse:
+    """Execute a single GET or PUT request on the given session."""
+    if method == "get":
+        _LOGGER.debug(
+            "Using Request: %s", {"method": "get", "url": url, "headers": headers}
+        )
+        return await active_session.get(
+            url=url, headers=headers, ssl=False, timeout=timeout
+        )
+
+    headers["Content-Type"] = "application/json"
+    _LOGGER.debug(
+        "Using Request: %s",
+        {"method": "put", "url": url, "headers": headers, "data": json.loads(data)},
+    )
+    return await active_session.put(
+        url=url, data=data, headers=headers, ssl=False, timeout=AIOHTTP_DEFAULT_TIMEOUT
+    )
 
 
 async def async_invoke_api(
@@ -239,76 +274,25 @@ async def async_invoke_api(
     """Call API endpoints with appropriate request bodies and headers."""
     if headers is None:
         headers = {}
-    method = command.get_method()
     url = f"https://{ip}{command.get_url()}"
-    data = jsonpickle.encode(command, unpicklable=False)
+    data = json.dumps(command.to_dict())
+    method = command.get_method().lower()
+    timeout = (
+        ClientTimeout(total=custom_timeout)
+        if custom_timeout
+        else AIOHTTP_DEFAULT_TIMEOUT
+    )
     _LOGGER.debug("Using Command: %s", command)
-
-    if not custom_timeout:
-        timeout = AIOHTTP_DEFAULT_TIMEOUT
-    else:
-        timeout = ClientTimeout(total=custom_timeout)
-
-    if not headers:
-        headers = {}
 
     try:
         if session:
-            if "get" == method.lower():
-                _LOGGER.debug(
-                    "Using Request: %s",
-                    {"method": "get", "url": url, "headers": headers},
-                )
-                response = await session.get(
-                    url=url, headers=headers, ssl=False, timeout=timeout
-                )
-            else:
-                timeout = AIOHTTP_DEFAULT_TIMEOUT
-                headers["Content-Type"] = "application/json"
-                _LOGGER.debug(
-                    "Using Request: %s",
-                    {
-                        "method": "put",
-                        "url": url,
-                        "headers": headers,
-                        "data": json.loads(str(data)),
-                    },
-                )
-                response = await session.put(
-                    url=url, data=str(data), headers=headers, ssl=False, timeout=timeout
-                )
-
+            response = await _do_request(session, method, url, headers, data, timeout)
             json_obj = await async_validate_response(response)
         else:
             async with ClientSession() as local_session:
-                if "get" == method.lower():
-                    _LOGGER.debug(
-                        "Using Request: %s",
-                        {"method": "get", "url": url, "headers": headers},
-                    )
-                    response = await local_session.get(
-                        url=url, headers=headers, ssl=False, timeout=timeout
-                    )
-                else:
-                    timeout = AIOHTTP_DEFAULT_TIMEOUT
-                    headers["Content-Type"] = "application/json"
-                    _LOGGER.debug(
-                        "Using Request: %s",
-                        {
-                            "method": "put",
-                            "url": url,
-                            "headers": headers,
-                            "data": json.loads(str(data)),
-                        },
-                    )
-                    response = await local_session.put(
-                        url=url,
-                        data=str(data),
-                        headers=headers,
-                        ssl=False,
-                        timeout=timeout,
-                    )
-
+                response = await _do_request(
+                    local_session, method, url, headers, data, timeout
+                )
                 json_obj = await async_validate_response(response)
 
         return command.process_response(json_obj)

@@ -19,6 +19,24 @@ class CommandBase:
     def __eq__(self, other) -> bool:
         return self is other or self.__dict__ == other.__dict__
 
+    def to_dict(self) -> dict[str, Any]:
+        """Return public attributes as dict for JSON serialization."""
+
+        def _serialize(obj: Any) -> Any:
+            if isinstance(obj, list):
+                return [_serialize(item) for item in obj]
+            if hasattr(obj, "__dict__") and not isinstance(obj, type):
+                return {
+                    k: _serialize(v)
+                    for k, v in obj.__dict__.items()
+                    if not k.startswith("_")
+                }
+            return obj
+
+        return {
+            k: _serialize(v) for k, v in self.__dict__.items() if not k.startswith("_")
+        }
+
     @property
     def _method(self) -> str:
         """Get command method."""
