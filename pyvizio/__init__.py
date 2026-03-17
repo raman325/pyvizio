@@ -663,7 +663,7 @@ class VizioAsync:
             log_api_exception=log_api_exception,
         )
 
-        if not setting_item:
+        if not setting_item or not hasattr(setting_item, "id"):
             _LOGGER.error(
                 "Couldn't detect setting for %s of setting type %s",
                 setting_name,
