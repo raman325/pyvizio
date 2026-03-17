@@ -1,7 +1,7 @@
 """Shared fixtures and mock response factories for pyvizio tests."""
 
-import pytest
 from aioresponses import aioresponses
+import pytest
 
 from pyvizio import Vizio, VizioAsync
 from pyvizio.api._protocol import ENDPOINT
@@ -117,9 +117,7 @@ def make_item(cname, value, hashval=1, item_type="T_VALUE_V1", name=None, **kwar
 
 def make_power_response(value):
     """Create power state response. value=1 for on, 0 for off."""
-    return make_response(
-        items=[make_item("power_mode", value, name="Power Mode")]
-    )
+    return make_response(items=[make_item("power_mode", value, name="Power Mode")])
 
 
 def make_key_press_response():
@@ -152,9 +150,7 @@ def make_current_input_response(cname, meta_name, hashval):
 
 def make_pair_begin_response(ch_type, token):
     """Create begin pair response."""
-    return make_response(
-        item={"CHALLENGE_TYPE": ch_type, "PAIRING_REQ_TOKEN": token}
-    )
+    return make_response(item={"CHALLENGE_TYPE": ch_type, "PAIRING_REQ_TOKEN": token})
 
 
 def make_pair_finish_response(auth_token):

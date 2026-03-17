@@ -3,20 +3,19 @@
 from aioresponses import aioresponses
 
 from pyvizio import Vizio
-
+from pyvizio.const import APPS
 from tests.conftest import (
     AUTH_TOKEN,
     TV_IP_PORT,
     make_app_response,
     make_current_input_response,
+    make_item,
     make_key_press_response,
     make_power_response,
     make_response,
-    make_item,
     tv_settings_url,
     tv_url,
 )
-from pyvizio.const import APPS
 
 
 class TestSyncInit:
@@ -120,7 +119,9 @@ class TestSyncSettings:
             m.get(
                 tv_settings_url("audio", "volume"),
                 payload=make_response(
-                    items=[make_item("volume", 20, hashval=5, item_type="T_VALUE_ABS_V1")]
+                    items=[
+                        make_item("volume", 20, hashval=5, item_type="T_VALUE_ABS_V1")
+                    ]
                 ),
             )
             m.put(tv_settings_url("audio", "volume"), payload=make_response())

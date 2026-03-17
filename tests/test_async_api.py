@@ -14,7 +14,6 @@ from pyvizio.const import (
     DEVICE_CLASS_TV,
     NO_APP_RUNNING,
 )
-
 from tests.conftest import (
     AUTH_TOKEN,
     TV_IP_PORT,
@@ -24,32 +23,34 @@ from tests.conftest import (
     make_device_info_response,
     make_error_response,
     make_inputs_list_response,
+    make_item,
     make_key_press_response,
     make_no_app_response,
     make_pair_begin_response,
     make_pair_finish_response,
     make_power_response,
     make_response,
-    make_item,
+    make_setting_types_response,
     make_settings_options_response,
     make_settings_response,
-    make_setting_types_response,
     speaker_url,
     tv_settings_options_url,
     tv_settings_url,
     tv_url,
 )
 
-
 # ---- Construction ----
 
 
 class TestConstruction:
-    @pytest.mark.parametrize("ip,name,auth,device_type", [
-        ("1.2.3.4:7345", "TV", "token", "tv"),
-        ("1.2.3.4:9000", "Speaker", "", "speaker"),
-        ("1.2.3.4:9000", "Crave", "", "crave360"),
-    ])
+    @pytest.mark.parametrize(
+        "ip,name,auth,device_type",
+        [
+            ("1.2.3.4:7345", "TV", "token", "tv"),
+            ("1.2.3.4:9000", "Speaker", "", "speaker"),
+            ("1.2.3.4:9000", "Crave", "", "crave360"),
+        ],
+    )
     def test_valid_device_types(self, ip, name, auth, device_type):
         v = VizioAsync("id", ip, name, auth, device_type)
         assert v.device_type == device_type
@@ -135,10 +136,13 @@ class TestVolume:
         result = await getattr(vizio_tv, method)()
         assert result is True
 
-    @pytest.mark.parametrize("fixture,expected", [
-        ("vizio_tv", 100),
-        ("vizio_speaker", 31),
-    ])
+    @pytest.mark.parametrize(
+        "fixture,expected",
+        [
+            ("vizio_tv", 100),
+            ("vizio_speaker", 31),
+        ],
+    )
     async def test_get_max_volume(self, fixture, expected, request):
         device = request.getfixturevalue(fixture)
         assert device.get_max_volume() == expected
@@ -151,11 +155,13 @@ class TestInput:
     async def test_get_inputs_list(self, vizio_tv, mock_aio):
         mock_aio.get(
             tv_url("INPUTS"),
-            payload=make_inputs_list_response([
-                ("hdmi1", "HDMI-1", "Living Room", 1),
-                ("hdmi2", "HDMI-2", "Console", 2),
-                ("current_input", "Current Input", "HDMI-1", 0),
-            ]),
+            payload=make_inputs_list_response(
+                [
+                    ("hdmi1", "HDMI-1", "Living Room", 1),
+                    ("hdmi2", "HDMI-2", "Console", 2),
+                    ("current_input", "Current Input", "HDMI-1", 0),
+                ]
+            ),
         )
         result = await vizio_tv.get_inputs_list()
         assert result is not None
@@ -165,10 +171,12 @@ class TestInput:
     async def test_get_inputs_list_meta_names(self, vizio_tv, mock_aio):
         mock_aio.get(
             tv_url("INPUTS"),
-            payload=make_inputs_list_response([
-                ("hdmi1", "HDMI-1", "Living Room", 1),
-                ("hdmi2", "HDMI-2", "Console", 2),
-            ]),
+            payload=make_inputs_list_response(
+                [
+                    ("hdmi1", "HDMI-1", "Living Room", 1),
+                    ("hdmi2", "HDMI-2", "Console", 2),
+                ]
+            ),
         )
         result = await vizio_tv.get_inputs_list()
         assert result[0].meta_name == "Living Room"
@@ -201,12 +209,17 @@ class TestInput:
 
 
 class TestDeviceInfo:
-    @pytest.mark.parametrize("method,endpoint,cname,value", [
-        ("get_esn", "ESN", "esn", "VIZIO-ESN-123"),
-        ("get_serial_number", "SERIAL_NUMBER", "serial_number", "SN12345"),
-        ("get_version", "VERSION", "version", "4.0.20.1"),
-    ])
-    async def test_device_info_primary(self, vizio_tv, mock_aio, method, endpoint, cname, value):
+    @pytest.mark.parametrize(
+        "method,endpoint,cname,value",
+        [
+            ("get_esn", "ESN", "esn", "VIZIO-ESN-123"),
+            ("get_serial_number", "SERIAL_NUMBER", "serial_number", "SN12345"),
+            ("get_version", "VERSION", "version", "4.0.20.1"),
+        ],
+    )
+    async def test_device_info_primary(
+        self, vizio_tv, mock_aio, method, endpoint, cname, value
+    ):
         mock_aio.get(
             tv_url(endpoint),
             payload=make_response(items=[make_item(cname, value)]),
@@ -214,12 +227,23 @@ class TestDeviceInfo:
         result = await getattr(vizio_tv, method)()
         assert result == value
 
-    @pytest.mark.parametrize("method,endpoint,alt_endpoint,cname,value", [
-        ("get_esn", "ESN", "_ALT_ESN", "esn", "ALT-ESN-456"),
-        ("get_serial_number", "SERIAL_NUMBER", "_ALT_SERIAL_NUMBER", "serial_number", "ALT-SN-789"),
-        ("get_version", "VERSION", "_ALT_VERSION", "version", "3.5.10.0"),
-    ])
-    async def test_device_info_fallback(self, vizio_tv, mock_aio, method, endpoint, alt_endpoint, cname, value):
+    @pytest.mark.parametrize(
+        "method,endpoint,alt_endpoint,cname,value",
+        [
+            ("get_esn", "ESN", "_ALT_ESN", "esn", "ALT-ESN-456"),
+            (
+                "get_serial_number",
+                "SERIAL_NUMBER",
+                "_ALT_SERIAL_NUMBER",
+                "serial_number",
+                "ALT-SN-789",
+            ),
+            ("get_version", "VERSION", "_ALT_VERSION", "version", "3.5.10.0"),
+        ],
+    )
+    async def test_device_info_fallback(
+        self, vizio_tv, mock_aio, method, endpoint, alt_endpoint, cname, value
+    ):
         mock_aio.get(tv_url(endpoint), payload=make_error_response())
         mock_aio.get(
             tv_url(alt_endpoint),
@@ -296,10 +320,12 @@ class TestSettings:
     async def test_get_all_settings(self, vizio_tv, mock_aio):
         mock_aio.get(
             tv_settings_url("audio"),
-            payload=make_settings_response([
-                ("volume", 25, "T_VALUE_ABS_V1", 1),
-                ("eq", "Normal", "T_LIST_V1", 2),
-            ]),
+            payload=make_settings_response(
+                [
+                    ("volume", 25, "T_VALUE_ABS_V1", 1),
+                    ("eq", "Normal", "T_LIST_V1", 2),
+                ]
+            ),
         )
         result = await vizio_tv.get_all_settings("audio")
         assert isinstance(result, dict)
@@ -309,19 +335,21 @@ class TestSettings:
     async def test_get_all_settings_options(self, vizio_tv, mock_aio):
         mock_aio.get(
             tv_settings_options_url("audio"),
-            payload=make_settings_options_response([
-                {
-                    "cname": "volume",
-                    "item_type": "T_VALUE_ABS_V1",
-                    "MINIMUM": 0,
-                    "MAXIMUM": 100,
-                },
-                {
-                    "cname": "eq",
-                    "item_type": "T_LIST_V1",
-                    "ELEMENTS": ["Normal", "Music", "Movie"],
-                },
-            ]),
+            payload=make_settings_options_response(
+                [
+                    {
+                        "cname": "volume",
+                        "item_type": "T_VALUE_ABS_V1",
+                        "MINIMUM": 0,
+                        "MAXIMUM": 100,
+                    },
+                    {
+                        "cname": "eq",
+                        "item_type": "T_LIST_V1",
+                        "ELEMENTS": ["Normal", "Music", "Movie"],
+                    },
+                ]
+            ),
         )
         result = await vizio_tv.get_all_settings_options("audio")
         assert isinstance(result, dict)
@@ -331,15 +359,17 @@ class TestSettings:
     async def test_get_all_settings_options_with_default(self, vizio_tv, mock_aio):
         mock_aio.get(
             tv_settings_options_url("audio"),
-            payload=make_settings_options_response([
-                {
-                    "cname": "bass",
-                    "item_type": "T_VALUE_ABS_V1",
-                    "MINIMUM": -6,
-                    "MAXIMUM": 6,
-                    "CENTER": 0,
-                },
-            ]),
+            payload=make_settings_options_response(
+                [
+                    {
+                        "cname": "bass",
+                        "item_type": "T_VALUE_ABS_V1",
+                        "MINIMUM": -6,
+                        "MAXIMUM": 6,
+                        "CENTER": 0,
+                    },
+                ]
+            ),
         )
         result = await vizio_tv.get_all_settings_options("audio")
         assert result["bass"] == {"min": -6, "max": 6, "default": 0}
@@ -350,7 +380,9 @@ class TestSettings:
             payload=make_response(
                 items=[
                     make_item(
-                        "surround", "Music", item_type="T_LIST_X_V1",
+                        "surround",
+                        "Music",
+                        item_type="T_LIST_X_V1",
                         ELEMENTS=["Normal", "Music", "Movie"],
                     ),
                 ]
@@ -359,16 +391,19 @@ class TestSettings:
         result = await vizio_tv.get_all_settings_options_xlist("audio")
         assert result == {"surround": ["Normal", "Music", "Movie"]}
 
-    @pytest.mark.parametrize("cname,value,item_type,expected_type", [
-        ("volume", 25, "T_VALUE_ABS_V1", int),
-        ("eq", "Normal", "T_LIST_V1", str),
-    ])
-    async def test_get_setting(self, vizio_tv, mock_aio, cname, value, item_type, expected_type):
+    @pytest.mark.parametrize(
+        "cname,value,item_type,expected_type",
+        [
+            ("volume", 25, "T_VALUE_ABS_V1", int),
+            ("eq", "Normal", "T_LIST_V1", str),
+        ],
+    )
+    async def test_get_setting(
+        self, vizio_tv, mock_aio, cname, value, item_type, expected_type
+    ):
         mock_aio.get(
             tv_settings_url("audio", cname),
-            payload=make_response(
-                items=[make_item(cname, value, item_type=item_type)]
-            ),
+            payload=make_response(items=[make_item(cname, value, item_type=item_type)]),
         )
         result = await vizio_tv.get_setting("audio", cname)
         assert result == value
@@ -377,19 +412,21 @@ class TestSettings:
     async def test_get_setting_options(self, vizio_tv, mock_aio):
         mock_aio.get(
             tv_settings_options_url("audio"),
-            payload=make_settings_options_response([
-                {
-                    "cname": "volume",
-                    "item_type": "T_VALUE_ABS_V1",
-                    "MINIMUM": 0,
-                    "MAXIMUM": 100,
-                },
-                {
-                    "cname": "eq",
-                    "item_type": "T_LIST_V1",
-                    "ELEMENTS": ["Normal", "Music"],
-                },
-            ]),
+            payload=make_settings_options_response(
+                [
+                    {
+                        "cname": "volume",
+                        "item_type": "T_VALUE_ABS_V1",
+                        "MINIMUM": 0,
+                        "MAXIMUM": 100,
+                    },
+                    {
+                        "cname": "eq",
+                        "item_type": "T_LIST_V1",
+                        "ELEMENTS": ["Normal", "Music"],
+                    },
+                ]
+            ),
         )
         result = await vizio_tv.get_setting_options("audio", "volume")
         assert result == {"min": 0, "max": 100}
@@ -400,7 +437,9 @@ class TestSettings:
             payload=make_response(
                 items=[
                     make_item(
-                        "surround", "Music", item_type="T_LIST_X_V1",
+                        "surround",
+                        "Music",
+                        item_type="T_LIST_X_V1",
                         ELEMENTS=["Normal", "Music", "Movie"],
                     ),
                 ]
@@ -422,7 +461,9 @@ class TestSettings:
 
     async def test_set_setting_not_found(self, vizio_tv, mock_aio):
         mock_aio.get(tv_settings_url("audio", "nonexistent"), status=500)
-        result = await vizio_tv.set_setting("audio", "nonexistent", 5, log_api_exception=False)
+        result = await vizio_tv.set_setting(
+            "audio", "nonexistent", 5, log_api_exception=False
+        )
         assert result is None
 
 
@@ -433,9 +474,11 @@ class TestAudioConvenience:
     async def test_get_all_audio_settings(self, vizio_tv, mock_aio):
         mock_aio.get(
             tv_settings_url("audio"),
-            payload=make_settings_response([
-                ("volume", 25, "T_VALUE_ABS_V1", 1),
-            ]),
+            payload=make_settings_response(
+                [
+                    ("volume", 25, "T_VALUE_ABS_V1", 1),
+                ]
+            ),
         )
         result = await vizio_tv.get_all_audio_settings()
         assert result == {"volume": 25}
@@ -443,14 +486,16 @@ class TestAudioConvenience:
     async def test_get_all_audio_settings_options(self, vizio_tv, mock_aio):
         mock_aio.get(
             tv_settings_options_url("audio"),
-            payload=make_settings_options_response([
-                {
-                    "cname": "volume",
-                    "item_type": "T_VALUE_ABS_V1",
-                    "MINIMUM": 0,
-                    "MAXIMUM": 100,
-                },
-            ]),
+            payload=make_settings_options_response(
+                [
+                    {
+                        "cname": "volume",
+                        "item_type": "T_VALUE_ABS_V1",
+                        "MINIMUM": 0,
+                        "MAXIMUM": 100,
+                    },
+                ]
+            ),
         )
         result = await vizio_tv.get_all_audio_settings_options()
         assert result == {"volume": {"min": 0, "max": 100}}
@@ -468,14 +513,16 @@ class TestAudioConvenience:
     async def test_get_audio_setting_options(self, vizio_tv, mock_aio):
         mock_aio.get(
             tv_settings_options_url("audio"),
-            payload=make_settings_options_response([
-                {
-                    "cname": "volume",
-                    "item_type": "T_VALUE_ABS_V1",
-                    "MINIMUM": 0,
-                    "MAXIMUM": 100,
-                },
-            ]),
+            payload=make_settings_options_response(
+                [
+                    {
+                        "cname": "volume",
+                        "item_type": "T_VALUE_ABS_V1",
+                        "MINIMUM": 0,
+                        "MAXIMUM": 100,
+                    },
+                ]
+            ),
         )
         result = await vizio_tv.get_audio_setting_options("volume")
         assert result == {"min": 0, "max": 100}
@@ -577,10 +624,13 @@ class TestAuthBehavior:
         with pytest.raises(Exception, match="Empty auth token"):
             await tv.get_power_state()
 
-    @pytest.mark.parametrize("fixture,url_fn", [
-        ("vizio_speaker", speaker_url),
-        ("vizio_crave", crave_url),
-    ])
+    @pytest.mark.parametrize(
+        "fixture,url_fn",
+        [
+            ("vizio_speaker", speaker_url),
+            ("vizio_crave", crave_url),
+        ],
+    )
     async def test_no_auth_device_succeeds(self, fixture, url_fn, mock_aio, request):
         device = request.getfixturevalue(fixture)
         mock_aio.get(url_fn("POWER_MODE"), payload=make_power_response(1))
@@ -592,11 +642,16 @@ class TestAuthBehavior:
 
 
 class TestConnection:
-    @pytest.mark.parametrize("status,expected", [
-        (200, True),
-        (500, False),
-    ])
-    async def test_can_connect_with_auth_check(self, vizio_tv, mock_aio, status, expected):
+    @pytest.mark.parametrize(
+        "status,expected",
+        [
+            (200, True),
+            (500, False),
+        ],
+    )
+    async def test_can_connect_with_auth_check(
+        self, vizio_tv, mock_aio, status, expected
+    ):
         if status == 200:
             mock_aio.get(
                 tv_settings_url("audio"),
@@ -607,11 +662,16 @@ class TestConnection:
         result = await vizio_tv.can_connect_with_auth_check()
         assert result is expected
 
-    @pytest.mark.parametrize("status,expected", [
-        (200, True),
-        (500, False),
-    ])
-    async def test_can_connect_no_auth_check(self, vizio_tv, mock_aio, status, expected):
+    @pytest.mark.parametrize(
+        "status,expected",
+        [
+            (200, True),
+            (500, False),
+        ],
+    )
+    async def test_can_connect_no_auth_check(
+        self, vizio_tv, mock_aio, status, expected
+    ):
         if status == 200:
             mock_aio.get(
                 tv_url("DEVICE_INFO"),
@@ -647,9 +707,7 @@ class TestStaticMethods:
         url = f"https://{ip}{ENDPOINT['tv']['SERIAL_NUMBER']}"
         mock_aio.get(
             url,
-            payload=make_response(
-                items=[make_item("serial_number", "UNIQUE-123")]
-            ),
+            payload=make_response(items=[make_item("serial_number", "UNIQUE-123")]),
         )
         result = await VizioAsync.get_unique_id(ip, "tv")
         assert result == "UNIQUE-123"
@@ -666,10 +724,13 @@ class TestStaticMethods:
 
 
 class TestGuessDeviceType:
-    @pytest.mark.parametrize("status,expected", [
-        (200, DEVICE_CLASS_SPEAKER),
-        (500, DEVICE_CLASS_TV),
-    ])
+    @pytest.mark.parametrize(
+        "status,expected",
+        [
+            (200, DEVICE_CLASS_SPEAKER),
+            (500, DEVICE_CLASS_TV),
+        ],
+    )
     async def test_guess_device_type(self, mock_aio, status, expected):
         from pyvizio import async_guess_device_type
 

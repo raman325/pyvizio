@@ -2,32 +2,47 @@
 
 import pytest
 
-from pyvizio.helpers import async_to_sync, dict_get_case_insensitive, get_value_from_path
+from pyvizio.helpers import (
+    async_to_sync,
+    dict_get_case_insensitive,
+    get_value_from_path,
+)
 
 
 class TestDictGetCaseInsensitive:
-    @pytest.mark.parametrize("data,key,expected", [
-        ({"key": "value"}, "key", "value"),
-        ({"Key": "value"}, "key", "value"),
-        ({"key": "value"}, "KEY", "value"),
-        ({"COUNT": 42}, "count", 42),
-        ({"DATA": {"nested": True}}, "data", {"nested": True}),
-    ])
+    @pytest.mark.parametrize(
+        "data,key,expected",
+        [
+            ({"key": "value"}, "key", "value"),
+            ({"Key": "value"}, "key", "value"),
+            ({"key": "value"}, "KEY", "value"),
+            ({"COUNT": 42}, "count", 42),
+            ({"DATA": {"nested": True}}, "data", {"nested": True}),
+        ],
+    )
     def test_found(self, data, key, expected):
         assert dict_get_case_insensitive(data, key) == expected
 
     @pytest.mark.parametrize("default", [None, "fallback"])
     def test_missing_key_returns_default(self, default):
-        assert dict_get_case_insensitive({"key": "value"}, "other", default) is default or \
-               dict_get_case_insensitive({"key": "value"}, "other", default) == default
+        assert (
+            dict_get_case_insensitive({"key": "value"}, "other", default) is default
+            or dict_get_case_insensitive({"key": "value"}, "other", default) == default
+        )
 
 
 class TestGetValueFromPath:
     def test_single_level_path(self):
-        assert get_value_from_path({"model_name": "V505-G9"}, [["model_name"]]) == "V505-G9"
+        assert (
+            get_value_from_path({"model_name": "V505-G9"}, [["model_name"]])
+            == "V505-G9"
+        )
 
     def test_single_level_case_insensitive(self):
-        assert get_value_from_path({"MODEL_NAME": "V505-G9"}, [["model_name"]]) == "V505-G9"
+        assert (
+            get_value_from_path({"MODEL_NAME": "V505-G9"}, [["model_name"]])
+            == "V505-G9"
+        )
 
     def test_missing_path_returns_none(self):
         assert get_value_from_path({"other": "value"}, [["model_name"]]) is None
@@ -43,10 +58,13 @@ class TestGetValueFromPath:
         paths = [["model_name"], ["model"]]
         assert get_value_from_path(data, paths) == "V505-G9"
 
-    @pytest.mark.parametrize("data,paths", [
-        ({}, [["key"]]),
-        ({"key": "val"}, []),
-    ])
+    @pytest.mark.parametrize(
+        "data,paths",
+        [
+            ({}, [["key"]]),
+            ({"key": "val"}, []),
+        ],
+    )
     def test_returns_none(self, data, paths):
         assert get_value_from_path(data, paths) is None
 

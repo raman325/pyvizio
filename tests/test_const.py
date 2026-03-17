@@ -29,11 +29,15 @@ class TestAppsListStructure:
             assert isinstance(configs, list), f"Config not a list for {app['name']}"
             for config in configs:
                 assert "APP_ID" in config, f"Config missing APP_ID for {app['name']}"
-                assert "NAME_SPACE" in config, f"Config missing NAME_SPACE for {app['name']}"
+                assert "NAME_SPACE" in config, (
+                    f"Config missing NAME_SPACE for {app['name']}"
+                )
 
     def test_apps_country_is_list(self):
         for app in APPS:
-            assert isinstance(app["country"], list), f"Country not list for {app['name']}"
+            assert isinstance(app["country"], list), (
+                f"Country not list for {app['name']}"
+            )
 
 
 class TestDeviceClassConstants:
