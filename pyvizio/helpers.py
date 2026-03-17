@@ -1,9 +1,11 @@
 """pyvizio helper functions."""
 
+from __future__ import annotations
+
 import asyncio
-import sys
 from functools import wraps
-from typing import Any, Dict, List, Optional
+import sys
+from typing import Any
 
 # Fix for Windows ProactorEventLoop cleanup issue causing
 # "RuntimeError: Event loop is closed" on exit.
@@ -23,7 +25,7 @@ def async_to_sync(f):
 
 
 def dict_get_case_insensitive(
-    in_dict: Dict[str, Any], key: str, default_return: Any = None
+    in_dict: dict[str, Any], key: str, default_return: Any = None
 ) -> Any:
     """Case insensitive dict.get."""
     out_dict = {k.lower(): v for k, v in in_dict.items()}
@@ -32,8 +34,8 @@ def dict_get_case_insensitive(
 
 
 def get_value_from_path(
-    device_info: Dict[str, Any], paths: List[List[str]]
-) -> Optional[Any]:
+    device_info: dict[str, Any], paths: list[list[str]]
+) -> Any | None:
     """Iterate through known paths to return first valid path with value from Vizio device_info."""
     for path in paths:
         temp = ""

@@ -1,7 +1,9 @@
 """Vizio SmartCast API base commands."""
 
+from __future__ import annotations
+
 from abc import abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 
 class CommandBase:
@@ -40,7 +42,7 @@ class CommandBase:
         return self._method
 
     @abstractmethod
-    def process_response(self, json_obj: Dict[str, Any]) -> Any:
+    def process_response(self, json_obj: dict[str, Any]) -> Any:
         """Always return True when there is no custom process_response method for subclass."""
         return True
 
@@ -67,6 +69,6 @@ class InfoCommandBase(CommandBase):
         """Set endpoint for command."""
         CommandBase.url.fset(self, new_url)
 
-    def process_response(self, json_obj: Dict[str, Any]) -> Any:
+    def process_response(self, json_obj: dict[str, Any]) -> Any:
         """Always return None when there is no custom process_response method for subclass."""
         return None

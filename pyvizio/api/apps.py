@@ -1,6 +1,8 @@
 """Vizio SmartCast API commands for apps."""
 
-from typing import Any, Dict, List, Optional, Union
+from __future__ import annotations
+
+from typing import Any
 
 from pyvizio.api._protocol import ENDPOINT, ResponseKey
 from pyvizio.api.base import CommandBase
@@ -36,7 +38,7 @@ class AppConfig:
 
 
 def find_app_name(
-    config_to_check: Optional[AppConfig], app_list: List[Dict[str, Any]]
+    config_to_check: AppConfig | None, app_list: list[dict[str, Any]]
 ) -> str:
     """
     Return the app name for a given AppConfig based on a list of apps.
@@ -107,7 +109,7 @@ class LaunchAppNameCommand(LaunchAppConfigCommand):
         self,
         device_type: str,
         app_name: str,
-        apps_list: List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]],
+        apps_list: list[dict[str, str | list[str | dict[str, Any]]]],
     ) -> None:
         """Initialize command to launch app by name."""
         app_def = next(
@@ -130,7 +132,7 @@ class GetCurrentAppConfigCommand(ItemInfoCommandBase):
         """Initialize command to get currently running app's config."""
         super().__init__(device_type, "CURRENT_APP")
 
-    def process_response(self, json_obj: Dict[str, Any]) -> AppConfig:
+    def process_response(self, json_obj: dict[str, Any]) -> AppConfig:
         """Return response to command to get currently running app's config."""
         item = dict_get_case_insensitive(json_obj, ResponseKey.ITEM, {})
         current_app_id = dict_get_case_insensitive(item, ResponseKey.VALUE)
@@ -147,13 +149,13 @@ class GetCurrentAppNameCommand(GetCurrentAppConfigCommand):
     def __init__(
         self,
         device_type: str,
-        apps_list: List[Dict[str, Union[str, List[Union[str, Dict[str, Any]]]]]],
+        apps_list: list[dict[str, str | list[str | dict[str, Any]]]],
     ) -> None:
         """Initialize command to get currently running app's name."""
         super().__init__(device_type)
         self.apps_list = apps_list
 
-    def process_response(self, json_obj: Dict[str, Any]) -> str:
+    def process_response(self, json_obj: dict[str, Any]) -> str:
         """
         Return response to command to get currently running app's name.
 

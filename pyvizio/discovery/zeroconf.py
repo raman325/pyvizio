@@ -1,7 +1,9 @@
 """Vizio SmartCast device zeroconf discovery function and classes."""
 
+from __future__ import annotations
+
 import time
-from typing import Callable, List
+from typing import Callable
 
 from zeroconf import IPVersion, ServiceBrowser, ServiceInfo, Zeroconf
 
@@ -45,7 +47,7 @@ class ZeroconfListener:
         pass
 
 
-def discover(service_type: str, timeout: int = DEFAULT_TIMEOUT) -> List[ZeroconfDevice]:
+def discover(service_type: str, timeout: int = DEFAULT_TIMEOUT) -> list[ZeroconfDevice]:
     """Return all discovered zeroconf services of a given service type over given timeout period."""
     services = []
 

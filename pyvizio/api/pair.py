@@ -1,6 +1,8 @@
 """Vizio SmartCast API commands and class for pairing."""
 
-from typing import Any, Dict, Union
+from __future__ import annotations
+
+from typing import Any
 
 from pyvizio.api._protocol import ENDPOINT, PairingResponseKey, ResponseKey
 from pyvizio.api.base import CommandBase
@@ -39,7 +41,7 @@ class BeginPairCommand(PairCommandBase):
         super().__init__(device_id, device_type, "BEGIN_PAIR")
         self.DEVICE_NAME: str = str(device_name)
 
-    def process_response(self, json_obj: Dict[str, Any]) -> BeginPairResponse:
+    def process_response(self, json_obj: dict[str, Any]) -> BeginPairResponse:
         """Return response to command to begin pairing process."""
         item = dict_get_case_insensitive(json_obj, ResponseKey.ITEM)
 
@@ -69,8 +71,8 @@ class PairChallengeCommand(PairCommandBase):
     def __init__(
         self,
         device_id: str,
-        challenge_type: Union[int, str],
-        pairing_token: Union[int, str],
+        challenge_type: int | str,
+        pairing_token: int | str,
         pin: str,
         device_type: str,
     ) -> None:
@@ -81,7 +83,7 @@ class PairChallengeCommand(PairCommandBase):
         self.PAIRING_REQ_TOKEN = int(pairing_token)
         self.RESPONSE_VALUE = str(pin)
 
-    def process_response(self, json_obj: Dict[str, Any]) -> PairChallengeResponse:
+    def process_response(self, json_obj: dict[str, Any]) -> PairChallengeResponse:
         """Return response to command to complete pairing process."""
         item = dict_get_case_insensitive(json_obj, ResponseKey.ITEM)
 

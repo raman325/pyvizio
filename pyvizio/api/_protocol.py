@@ -1,8 +1,10 @@
 """Vizio SmartCast API protocol constants and get and set functions."""
 
+from __future__ import annotations
+
 import json
 from logging import Logger, getLogger
-from typing import Any, Dict
+from typing import Any
 
 from aiohttp import ClientResponse, ClientSession, ClientTimeout
 from aiohttp.client import DEFAULT_TIMEOUT as AIOHTTP_DEFAULT_TIMEOUT
@@ -195,7 +197,7 @@ class ResponseKey:
     CENTER = "center"
 
 
-async def async_validate_response(web_response: ClientResponse) -> Dict[str, Any]:
+async def async_validate_response(web_response: ClientResponse) -> dict[str, Any]:
     """Validate response to API command is as expected and return response."""
     if HTTP_OK != web_response.status:
         raise Exception(f"Device is unreachable? Status code: {web_response.status}")
@@ -230,7 +232,7 @@ async def async_invoke_api(
     command: CommandBase,
     logger: Logger,
     custom_timeout: int = None,
-    headers: Dict[str, Any] = None,
+    headers: dict[str, Any] = None,
     log_api_exception: bool = True,
     session: ClientSession = None,
 ) -> Any:
