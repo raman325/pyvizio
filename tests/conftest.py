@@ -89,6 +89,14 @@ def speaker_settings_url(setting_type, setting_name=None):
     return base
 
 
+def settings_url(device_type, ip_port, setting_type, setting_name=None):
+    """Build settings URL for any device/ip combination."""
+    base = f"https://{ip_port}{ENDPOINT[device_type]['SETTINGS']}/{setting_type}"
+    if setting_name:
+        base += f"/{setting_name}"
+    return base
+
+
 # ---- Response factories ----
 
 

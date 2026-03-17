@@ -25,10 +25,8 @@ class TestDictGetCaseInsensitive:
 
     @pytest.mark.parametrize("default", [None, "fallback"])
     def test_missing_key_returns_default(self, default):
-        assert (
-            dict_get_case_insensitive({"key": "value"}, "other", default) is default
-            or dict_get_case_insensitive({"key": "value"}, "other", default) == default
-        )
+        result = dict_get_case_insensitive({"key": "value"}, "other", default)
+        assert result is default
 
 
 class TestGetValueFromPath:

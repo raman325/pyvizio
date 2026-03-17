@@ -3,7 +3,6 @@
 import pytest
 
 from pyvizio import VizioAsync
-from pyvizio.api._protocol import ENDPOINT
 from pyvizio.api.apps import AppConfig
 from pyvizio.api.input import InputItem
 from pyvizio.api.pair import BeginPairResponse, PairChallengeResponse
@@ -18,6 +17,7 @@ from tests.conftest import (
     AUTH_TOKEN,
     TV_IP_PORT,
     crave_url,
+    device_url,
     make_app_response,
     make_current_input_response,
     make_device_info_response,
@@ -33,6 +33,7 @@ from tests.conftest import (
     make_setting_types_response,
     make_settings_options_response,
     make_settings_response,
+    settings_url,
     speaker_url,
     tv_settings_options_url,
     tv_settings_url,
@@ -689,9 +690,10 @@ class TestConnection:
 class TestPortResolution:
     async def test_ip_with_port_skips_scan(self, mock_aio):
         """IP already has port — no scan needed."""
-        v = VizioAsync("id", "192.168.1.50:7345", "TV", AUTH_TOKEN, "tv")
+        ip_port = "192.168.1.50:7345"
+        v = VizioAsync("id", ip_port, "TV", AUTH_TOKEN, "tv")
         mock_aio.get(
-            f"https://192.168.1.50:7345{ENDPOINT['tv']['POWER_MODE']}",
+            device_url("tv", ip_port, "POWER_MODE"),
             payload=make_power_response(1),
         )
         result = await v.get_power_state()
@@ -704,9 +706,8 @@ class TestPortResolution:
 class TestStaticMethods:
     async def test_get_unique_id(self, mock_aio):
         ip = "192.168.1.200:7345"
-        url = f"https://{ip}{ENDPOINT['tv']['SERIAL_NUMBER']}"
         mock_aio.get(
-            url,
+            device_url("tv", ip, "SERIAL_NUMBER"),
             payload=make_response(items=[make_item("serial_number", "UNIQUE-123")]),
         )
         result = await VizioAsync.get_unique_id(ip, "tv")
@@ -735,13 +736,13 @@ class TestGuessDeviceType:
         from pyvizio import async_guess_device_type
 
         ip = "192.168.1.50:9000"
-        settings_url = f"https://{ip}{ENDPOINT['speaker']['SETTINGS']}/audio"
+        url = settings_url("speaker", ip, "audio")
         if status == 200:
             mock_aio.get(
-                settings_url,
+                url,
                 payload=make_settings_response([("volume", 10, "T_VALUE_ABS_V1", 1)]),
             )
         else:
-            mock_aio.get(settings_url, status=status)
+            mock_aio.get(url, status=status)
         result = await async_guess_device_type(ip)
         assert result == expected
