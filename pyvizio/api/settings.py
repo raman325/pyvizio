@@ -23,7 +23,7 @@ class GetAllSettingTypesCommand(ItemInfoCommandBase):
     def __init__(self, device_type: str) -> None:
         """Initialize command to get list of all setting types."""
         super().__init__(device_type, "SETTINGS")
-        ItemInfoCommandBase.url.fset(self, f"{ENDPOINT[device_type]['SETTINGS']}")
+        self._url = f"{ENDPOINT[device_type]['SETTINGS']}"
 
     def process_response(self, json_obj: dict[str, Any]) -> list[str]:
         """Return response to command to get list of all setting types."""
@@ -46,9 +46,7 @@ class GetAllSettingsCommand(ItemInfoCommandBase):
         """Initialize command to get list of all setting names and corresponding values."""
         super().__init__(device_type, "SETTINGS")
         self.setting_type = setting_type.lower()
-        ItemInfoCommandBase.url.fset(
-            self, f"{ENDPOINT[device_type]['SETTINGS']}/{setting_type}"
-        )
+        self._url = f"{ENDPOINT[device_type]['SETTINGS']}/{setting_type}"
 
     def process_response(self, json_obj: dict[str, Any]) -> dict[str, int | str]:
         """Return response to command to get list of all setting names and corresponding values."""
@@ -71,9 +69,7 @@ class GetSettingCommand(ItemInfoCommandBase):
         super().__init__(device_type, "SETTINGS", 0)
         self.item_name = setting_name.lower()
         self.setting_type = setting_type.lower()
-        ItemInfoCommandBase.url.fset(
-            self, f"{ENDPOINT[device_type]['SETTINGS']}/{setting_type}/{setting_name}"
-        )
+        self._url = f"{ENDPOINT[device_type]['SETTINGS']}/{setting_type}/{setting_name}"
 
 
 class GetAllSettingsOptionsCommand(ItemInfoCommandBase):
@@ -83,25 +79,24 @@ class GetAllSettingsOptionsCommand(ItemInfoCommandBase):
         """Initialize command to get list of all setting names and corresponding options."""
         super().__init__(device_type, "SETTINGS_OPTIONS")
         self.setting_type = setting_type.lower()
-        ItemInfoCommandBase.url.fset(
-            self, f"{ENDPOINT[device_type]['SETTINGS_OPTIONS']}/{setting_type}"
-        )
+        self._url = f"{ENDPOINT[device_type]['SETTINGS_OPTIONS']}/{setting_type}"
 
     def process_response(
         self, json_obj: dict[str, Any]
-    ) -> dict[str, list[str] | dict[str, int | str]]:
+    ) -> dict[str, list[str] | dict[str, int | None]]:
         """Return response to command to get list of all setting names and corresponding options."""
         items = [
             Item(item)
             for item in dict_get_case_insensitive(json_obj, ResponseKey.ITEMS, [])
         ]
 
-        settings_options = {}
+        settings_options: dict[str, list[str] | dict[str, int | None]] = {}
         for item in items:
             if item.type.lower() in (TYPE_SLIDER, TYPE_VALUE):
-                settings_options[item.c_name] = {"min": item.min, "max": item.max}
+                d: dict[str, int | None] = {"min": item.min, "max": item.max}
                 if item.center is not None:
-                    settings_options[item.c_name].update({"default": item.center})
+                    d["default"] = item.center
+                settings_options[item.c_name] = d
             elif item.type.lower() == TYPE_LIST:
                 settings_options[item.c_name] = item.choices.copy()
 
@@ -117,9 +112,9 @@ class GetSettingOptionsCommand(GetAllSettingsOptionsCommand):
         self.setting_type = setting_type.lower()
         super().__init__(device_type, self.setting_type)
 
-    def process_response(
+    def process_response(  # type: ignore[override]
         self, json_obj: dict[str, Any]
-    ) -> list[str] | dict[str, int | str] | None:
+    ) -> list[str] | dict[str, int | None] | None:
         """Return response to command to get options of a setting by name."""
         return super().process_response(json_obj).get(self.setting_name)
 
@@ -131,9 +126,7 @@ class GetAllSettingsOptionsXListCommand(ItemInfoCommandBase):
         """Initialize command to get list of all setting names and corresponding options for settings of type XList."""
         super().__init__(device_type, "SETTINGS")
         self.setting_type = setting_type.lower()
-        ItemInfoCommandBase.url.fset(
-            self, f"{ENDPOINT[device_type]['SETTINGS']}/{setting_type}"
-        )
+        self._url = f"{ENDPOINT[device_type]['SETTINGS']}/{setting_type}"
 
     def process_response(self, json_obj: dict[str, Any]) -> dict[str, list[str]]:
         """Return response to command to get list of all setting names and corresponding options for settings of type XList."""
@@ -158,7 +151,7 @@ class GetSettingOptionsXListCommand(GetAllSettingsOptionsXListCommand):
         self.setting_type = setting_type.lower()
         super().__init__(device_type, self.setting_type)
 
-    def process_response(self, json_obj: dict[str, Any]) -> list[str] | None:
+    def process_response(self, json_obj: dict[str, Any]) -> list[str] | None:  # type: ignore[override]
         """Return response to command to get options of an audio setting by name (used for setting of type XList)."""
         return super().process_response(json_obj).get(self.setting_name)
 
@@ -176,6 +169,8 @@ class ChangeSettingCommand(ItemCommandBase):
     ) -> None:
         """Initialize command to set value of a setting by name to new value."""
         super().__init__(device_type, "SETTINGS", id, value)
-        ItemCommandBase.url.fset(
-            self, f"{ENDPOINT[device_type]['SETTINGS']}/{setting_type}/{setting_name}"
-        )
+        self._url = f"{ENDPOINT[device_type]['SETTINGS']}/{setting_type}/{setting_name}"
+
+    def process_response(self, json_obj: dict[str, Any]) -> bool:
+        """Return True on successful setting change."""
+        return True
