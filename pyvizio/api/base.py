@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from abc import abstractmethod
 from typing import Any
 
 
@@ -17,24 +18,6 @@ class CommandBase:
 
     def __eq__(self, other) -> bool:
         return self is other or self.__dict__ == other.__dict__
-
-    def to_dict(self) -> dict[str, Any]:
-        """Return public attributes as dict for JSON serialization."""
-
-        def _serialize(obj: Any) -> Any:
-            if isinstance(obj, list):
-                return [_serialize(item) for item in obj]
-            if hasattr(obj, "__dict__") and not isinstance(obj, type):
-                return {
-                    k: _serialize(v)
-                    for k, v in obj.__dict__.items()
-                    if not k.startswith("_")
-                }
-            return obj
-
-        return {
-            k: _serialize(v) for k, v in self.__dict__.items() if not k.startswith("_")
-        }
 
     @property
     def _method(self) -> str:
@@ -58,6 +41,7 @@ class CommandBase:
     def get_method(self) -> str:
         return self._method
 
+    @abstractmethod
     def process_response(self, json_obj: dict[str, Any]) -> Any:
         """Always return True when there is no custom process_response method for subclass."""
         return True
@@ -78,12 +62,12 @@ class InfoCommandBase(CommandBase):
     @property
     def url(self) -> str:
         """Get endpoint for command."""
-        return self._url
+        return CommandBase.url.fget(self)
 
     @url.setter
     def url(self, new_url: str) -> None:
         """Set endpoint for command."""
-        self._url = new_url
+        CommandBase.url.fset(self, new_url)
 
     def process_response(self, json_obj: dict[str, Any]) -> Any:
         """Always return None when there is no custom process_response method for subclass."""

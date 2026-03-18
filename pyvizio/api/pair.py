@@ -95,12 +95,8 @@ class PairChallengeCommand(PairCommandBase):
 class CancelPairCommand(PairCommandBase):
     """Command to cancel pairing process."""
 
-    def __init__(self, device_id: str, device_name: str, device_type: str) -> None:
+    def __init__(self, device_id, device_name: str, device_type: str) -> None:
         """Initialize command to cancel pairing process."""
         super().__init__(device_id, device_type, "CANCEL_PAIR")
 
         self.DEVICE_NAME = str(device_name)
-
-    def process_response(self, json_obj: dict[str, Any]) -> bool:
-        """Return True on successful cancellation."""
-        return True

@@ -20,8 +20,8 @@ from pyvizio.util.const import (
 async def gen_apps_list_from_url(
     app_names_url: str = APP_NAMES_URL,
     app_payloads_url: str = APP_PAYLOADS_URL,
-    session: ClientSession | None = None,
-) -> list[dict[str, Any]] | None:
+    session: ClientSession = None,
+) -> list[dict[str, str | list[str | dict[str, Any]]]] | None:
     """Get app JSON files from external URLs and return list of apps for use in pyvizio."""
     headers = {"Content-Type": "application/json"}
     try:
@@ -52,7 +52,7 @@ async def gen_apps_list_from_url(
 
 def gen_apps_list_from_src(
     apk_source_path: str = APK_SOURCE_PATH, resource_path: str = RESOURCE_PATH
-) -> list[dict[str, Any]]:
+) -> list[dict[str, str | list[str | dict[str, Any]]]]:
     """Parse JSON from VizioCast Android app source in `apk_source_path`/`resource_path` and return list of apps for use in pyvizio."""
     base_path = f"{apk_source_path}/{resource_path}"
     app_names_filepath = f"{base_path}/{APP_NAMES_FILE}"
@@ -69,9 +69,9 @@ def gen_apps_list_from_src(
 
 def gen_apps_list(
     app_names: list[dict[str, Any]], app_configs: list[dict[str, Any]]
-) -> list[dict[str, Any]]:
+) -> list[dict[str, str | list[str | dict[str, Any]]]]:
     """Parse list of app names and app configs and return list of apps for use in pyvizio."""
-    apps_list: list[dict[str, Any]] = []
+    apps_list: list[dict[str, str | list[str | dict[str, Any]]]] = []
 
     for app_name in app_names:
         # returns first app where condition is true

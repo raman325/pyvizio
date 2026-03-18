@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from typing import Callable
 
-from zeroconf import IPVersion, ServiceBrowser, ServiceInfo, ServiceListener, Zeroconf
+from zeroconf import IPVersion, ServiceBrowser, ServiceInfo, Zeroconf
 
 from pyvizio.const import DEFAULT_TIMEOUT
 
@@ -25,7 +25,7 @@ class ZeroconfDevice:
         return self is other or self.__dict__ == other.__dict__
 
 
-class ZeroconfListener(ServiceListener):
+class ZeroconfListener:
     """Basic zeroconf listener."""
 
     def __init__(self, func: Callable[[ServiceInfo], None]) -> None:
@@ -40,15 +40,11 @@ class ZeroconfListener(ServiceListener):
 
     def add_service(self, zeroconf: Zeroconf, type: str, name: str) -> None:
         """Callback function when zeroconf service is discovered."""
-        info = zeroconf.get_service_info(type, name)
-        if info is not None:
-            self._func(info)
-
-    def remove_service(self, zeroconf: Zeroconf, type: str, name: str) -> None:
-        """Callback function when zeroconf service is removed."""
+        self._func(zeroconf.get_service_info(type, name))
 
     def update_service(self, zeroconf: Zeroconf, type: str, name: str) -> None:
         """Callback function when zeroconf service is updated."""
+        pass
 
 
 def discover(service_type: str, timeout: int = DEFAULT_TIMEOUT) -> list[ZeroconfDevice]:
@@ -59,25 +55,20 @@ def discover(service_type: str, timeout: int = DEFAULT_TIMEOUT) -> list[Zeroconf
         """Append discovered zeroconf service to service list."""
         name = info.name[: -(len(info.type) + 1)]
         ip = info.parsed_addresses(IPVersion.V4Only)[0]
-        port = info.port or 0
-        model_raw = info.properties.get(b"name", b"")
-        model = (
-            model_raw.decode("utf-8")
-            if isinstance(model_raw, bytes)
-            else str(model_raw)
-        )
-        id_raw = info.properties.get(b"id")
+        port = info.port
+        model = info.properties.get(b"name", "").decode("utf-8")
+        id = info.properties.get(b"id")
 
         # handle id decode for various discovered use cases
-        id_str: str | None = None
-        if isinstance(id_raw, bytes):
+        if isinstance(id, bytes):
             try:
-                int(id_raw, 16)
-                id_str = id_raw.decode("utf-8")
+                int(id, 16)
             except Exception:
-                id_str = id_raw.hex()
+                id = id.hex()
+        else:
+            id = None
 
-        service = ZeroconfDevice(name, ip, port, model, id_str or "")
+        service = ZeroconfDevice(name, ip, port, model, id)
         services.append(service)
 
     zeroconf = Zeroconf()
