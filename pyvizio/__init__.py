@@ -59,10 +59,11 @@ from pyvizio.const import (
     DEFAULT_DEVICE_CLASS,
     DEFAULT_PORTS,
     DEFAULT_TIMEOUT,
-    DEVICE_CLASS_CRAVE360,
+    DEVICE_CLASS_CRAVE360 as DEVICE_CLASS_CRAVE360,
     DEVICE_CLASS_SPEAKER,
     DEVICE_CLASS_TV,
-    MAX_VOLUME,
+    DEVICE_CONFIGS,
+    MAX_VOLUME as MAX_VOLUME,
 )
 from pyvizio.discovery.ssdp import SSDPDevice, discover as discover_ssdp
 from pyvizio.discovery.zeroconf import ZeroconfDevice, discover as discover_zc
@@ -88,15 +89,12 @@ class VizioAsync:
     ) -> None:
         """Initialize asynchronous class to interact with Vizio SmartCast devices."""
         self.device_type = device_type.lower()
-        if (
-            self.device_type != DEVICE_CLASS_TV
-            and self.device_type != DEVICE_CLASS_SPEAKER
-            and self.device_type != DEVICE_CLASS_CRAVE360
-        ):
+        if self.device_type not in DEVICE_CONFIGS:
             raise Exception(
-                f"Invalid device type specified. Use either '{DEVICE_CLASS_TV}' or "
-                f"'{DEVICE_CLASS_SPEAKER}' or '{DEVICE_CLASS_CRAVE360}''"
+                f"Invalid device type specified. Use one of: "
+                f"{', '.join(repr(k) for k in DEVICE_CONFIGS)}"
             )
+        self._device_config = DEVICE_CONFIGS[self.device_type]
 
         self._auth_token = auth_token
         self.ip = ip
@@ -157,15 +155,15 @@ class VizioAsync:
     ) -> Any:
         """Asynchronously call SmartCast API command with or without auth token depending on device type."""
         if not self._auth_token:
-            if (
-                self.device_type == DEVICE_CLASS_SPEAKER
-                or self.device_type == DEVICE_CLASS_CRAVE360
-            ):
+            if not self._device_config.requires_auth:
                 return await self.__invoke_api(cmd, log_api_exception=log_api_exception)
             else:
+                no_auth_types = [
+                    k for k, v in DEVICE_CONFIGS.items() if not v.requires_auth
+                ]
                 raise Exception(
-                    f"Empty auth token. To target a speaker and bypass auth "
-                    f"requirements, pass '{DEVICE_CLASS_SPEAKER}' as device_type"
+                    f"Empty auth token. Device types that don't require auth: "
+                    f"{', '.join(repr(t) for t in no_auth_types)}"
                 )
         return await self.__invoke_api_auth(cmd, log_api_exception=log_api_exception)
 
@@ -507,7 +505,7 @@ class VizioAsync:
 
     def get_max_volume(self) -> int:
         """Get device's max volume based on device type."""
-        return MAX_VOLUME[self.device_type]
+        return self._device_config.max_volume
 
     async def ch_up(self, num: int = 1, log_api_exception: bool = True) -> bool | None:
         """Asynchronously channel up by number of steps."""
