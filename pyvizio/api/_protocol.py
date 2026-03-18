@@ -8,7 +8,6 @@ from typing import Any
 
 from aiohttp import ClientResponse, ClientSession, ClientTimeout
 from aiohttp.client import DEFAULT_TIMEOUT as AIOHTTP_DEFAULT_TIMEOUT
-import jsonpickle
 
 from pyvizio.api.base import CommandBase
 from pyvizio.const import DEVICE_CLASS_CRAVE360, DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV
@@ -241,7 +240,7 @@ async def async_invoke_api(
         headers = {}
     method = command.get_method()
     url = f"https://{ip}{command.get_url()}"
-    data = jsonpickle.encode(command, unpicklable=False)
+    data = json.dumps(command.to_dict())
     _LOGGER.debug("Using Command: %s", command)
 
     if not custom_timeout:
