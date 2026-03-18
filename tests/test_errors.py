@@ -130,10 +130,10 @@ class TestAuthError:
 
 
 class TestDeviceTypeError:
-    """Test that invalid device types raise VizioError."""
+    """Test that invalid device types raise VizioInvalidParameterError."""
 
     def test_invalid_device_type_raises(self):
-        with pytest.raises(VizioError, match="Invalid device type"):
+        with pytest.raises(VizioInvalidParameterError, match="Invalid device type"):
             VizioAsync("pyvizio", TV_IP_PORT, "TV", AUTH_TOKEN, "invalid")
 
 

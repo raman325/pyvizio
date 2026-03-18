@@ -70,7 +70,7 @@ from pyvizio.discovery.zeroconf import ZeroconfDevice, discover as discover_zc
 from pyvizio.errors import (
     VizioAuthError,
     VizioConnectionError as VizioConnectionError,
-    VizioError,
+    VizioError as VizioError,
     VizioInvalidParameterError as VizioInvalidParameterError,
     VizioResponseError as VizioResponseError,
 )
@@ -97,7 +97,7 @@ class VizioAsync:
         """Initialize asynchronous class to interact with Vizio SmartCast devices."""
         self.device_type = device_type.lower()
         if self.device_type not in DEVICE_CONFIGS:
-            raise VizioError(
+            raise VizioInvalidParameterError(
                 f"Invalid device type specified. Use one of: "
                 f"{', '.join(repr(k) for k in DEVICE_CONFIGS)}"
             )
@@ -820,7 +820,7 @@ async def async_guess_device_type(
 
     if port:
         if ":" in ip:
-            raise VizioError(
+            raise VizioInvalidParameterError(
                 "Port can't be included in both `ip` and `port` parameters"
             )
 
