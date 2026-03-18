@@ -10,12 +10,7 @@ from aiohttp import ClientResponse, ClientSession, ClientTimeout
 from aiohttp.client import DEFAULT_TIMEOUT as AIOHTTP_DEFAULT_TIMEOUT
 
 from pyvizio.api.base import CommandBase
-from pyvizio.const import DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV, DEVICE_CONFIGS
-from pyvizio.errors import (
-    VizioConnectionError,
-    VizioInvalidParameterError,
-    VizioResponseError,
-)
+from pyvizio.const import DEVICE_CLASS_CRAVE360, DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV
 from pyvizio.helpers import dict_get_case_insensitive
 
 _LOGGER = getLogger(__name__)
@@ -36,8 +31,66 @@ TYPE_VALUE = "t_value_v1"
 TYPE_MENU = "t_menu_v1"
 TYPE_X_LIST = "t_list_x_v1"
 
-# Derived from DEVICE_CONFIGS — single source of truth in const.py
-ENDPOINT = {k: v.endpoints for k, v in DEVICE_CONFIGS.items()}
+ENDPOINT = {
+    DEVICE_CLASS_TV: {
+        "BEGIN_PAIR": "/pairing/start",
+        "FINISH_PAIR": "/pairing/pair",
+        "CANCEL_PAIR": "/pairing/cancel",
+        "INPUTS": "/menu_native/dynamic/tv_settings/devices/name_input",
+        "CURRENT_INPUT": "/menu_native/dynamic/tv_settings/devices/current_input",
+        "ESN": "/menu_native/dynamic/tv_settings/system/system_information/uli_information/esn",
+        "SERIAL_NUMBER": "/menu_native/dynamic/tv_settings/system/system_information/tv_information/serial_number",
+        "VERSION": "/menu_native/dynamic/tv_settings/system/system_information/tv_information/version",
+        "_ALT_ESN": "/menu_native/dynamic/tv_settings/admin_and_privacy/system_information/uli_information/esn",
+        "_ALT_SERIAL_NUMBER": "/menu_native/dynamic/tv_settings/admin_and_privacy/system_information/tv_information/serial_number",
+        "_ALT_VERSION": "/menu_native/dynamic/tv_settings/admin_and_privacy/system_information/tv_information/version",
+        "DEVICE_INFO": "/state/device/deviceinfo",
+        "POWER_MODE": "/state/device/power_mode",
+        "KEY_PRESS": "/key_command/",
+        "SETTINGS": "/menu_native/dynamic/tv_settings",
+        "SETTINGS_OPTIONS": "/menu_native/static/tv_settings",
+        "CURRENT_APP": "/app/current",
+        "LAUNCH_APP": "/app/launch",
+    },
+    DEVICE_CLASS_SPEAKER: {
+        "BEGIN_PAIR": "/pairing/start",
+        "FINISH_PAIR": "/pairing/pair",
+        "CANCEL_PAIR": "/pairing/cancel",
+        "INPUTS": "/menu_native/dynamic/audio_settings/input",
+        "CURRENT_INPUT": "/menu_native/dynamic/audio_settings/input/current_input",
+        "ESN": "/menu_native/dynamic/audio_settings/system/system_information/uli_information/esn",
+        "SERIAL_NUMBER": "/menu_native/dynamic/audio_settings/system/system_information/speaker_information/serial_number",
+        "VERSION": "/menu_native/dynamic/audio_settings/system/system_information/speaker_information/version",
+        "_ALT_ESN": "/menu_native/dynamic/audio_settings/admin_and_privacy/system_information/uli_information/esn",
+        "_ALT_SERIAL_NUMBER": "/menu_native/dynamic/audio_settings/admin_and_privacy/system_information/speaker_information/serial_number",
+        "_ALT_VERSION": "/menu_native/dynamic/audio_settings/admin_and_privacy/system_information/speaker_information/version",
+        "DEVICE_INFO": "/state/device/deviceinfo",
+        "POWER_MODE": "/state/device/power_mode",
+        "KEY_PRESS": "/key_command/",
+        "SETTINGS": "/menu_native/dynamic/audio_settings",
+        "SETTINGS_OPTIONS": "/menu_native/static/audio_settings",
+    },
+    DEVICE_CLASS_CRAVE360: {
+        "BEGIN_PAIR": "/pairing/start",
+        "FINISH_PAIR": "/pairing/pair",
+        "CANCEL_PAIR": "/pairing/cancel",
+        "INPUTS": "/menu_native/dynamic/audio_settings/input",
+        "CURRENT_INPUT": "/menu_native/dynamic/audio_settings/input/current_input",
+        "ESN": "/menu_native/dynamic/audio_settings/system/system_information/uli_information/esn",
+        "SERIAL_NUMBER": "/menu_native/dynamic/audio_settings/system/system_information/speaker_information/serial_number",
+        "VERSION": "/menu_native/dynamic/audio_settings/system/system_information/speaker_information/version",
+        "_ALT_ESN": "/menu_native/dynamic/audio_settings/admin_and_privacy/system_information/uli_information/esn",
+        "_ALT_SERIAL_NUMBER": "/menu_native/dynamic/audio_settings/admin_and_privacy/system_information/speaker_information/serial_number",
+        "_ALT_VERSION": "/menu_native/dynamic/audio_settings/admin_and_privacy/system_information/speaker_information/version",
+        "DEVICE_INFO": "/state/device/deviceinfo",
+        "POWER_MODE": "/state/device/power_mode",
+        "KEY_PRESS": "/key_command/",
+        "SETTINGS": "/menu_native/dynamic/audio_settings",
+        "SETTINGS_OPTIONS": "/menu_native/static/audio_settings",
+        "CHARGING_STATUS": "/state/device/charging_status",
+        "BATTERY_LEVEL": "/state/device/battery_level",
+    },
+}
 
 ITEM_CNAME = {
     "CURRENT_INPUT": "current_input",
@@ -52,8 +105,65 @@ ITEM_CNAME = {
 
 KEY_ACTION = {"DOWN": "KEYDOWN", "UP": "KEYUP", "PRESS": "KEYPRESS"}
 
-# Derived from DEVICE_CONFIGS — single source of truth in const.py
-KEY_CODE = {k: v.key_codes for k, v in DEVICE_CONFIGS.items()}
+KEY_CODE = {
+    DEVICE_CLASS_TV: {
+        "SEEK_FWD": (2, 0),
+        "SEEK_BACK": (2, 1),
+        "PAUSE": (2, 2),
+        "PLAY": (2, 3),
+        "DOWN": (3, 0),
+        "LEFT": (3, 1),
+        "OK": (3, 2),
+        "UP": (3, 8),
+        "LEFT2": (3, 4),
+        "RIGHT": (3, 7),
+        "BACK": (4, 0),
+        "SMARTCAST": (4, 3),
+        "CC_TOGGLE": (4, 4),
+        "INFO": (4, 6),
+        "MENU": (4, 8),
+        "HOME": (4, 15),
+        "VOL_DOWN": (5, 0),
+        "VOL_UP": (5, 1),
+        "MUTE_OFF": (5, 2),
+        "MUTE_ON": (5, 3),
+        "MUTE_TOGGLE": (5, 4),
+        "PIC_MODE": (6, 0),
+        "PIC_SIZE": (6, 2),
+        "INPUT_NEXT": (7, 1),
+        "CH_DOWN": (8, 0),
+        "CH_UP": (8, 1),
+        "CH_PREV": (8, 2),
+        "EXIT": (9, 0),
+        "POW_OFF": (11, 0),
+        "POW_ON": (11, 1),
+        "POW_TOGGLE": (11, 2),
+    },
+    DEVICE_CLASS_SPEAKER: {
+        "PAUSE": (2, 2),
+        "PLAY": (2, 3),
+        "VOL_DOWN": (5, 0),
+        "VOL_UP": (5, 1),
+        "MUTE_OFF": (5, 2),
+        "MUTE_ON": (5, 3),
+        "MUTE_TOGGLE": (5, 4),
+        "POW_OFF": (11, 0),
+        "POW_ON": (11, 1),
+        "POW_TOGGLE": (11, 2),
+    },
+    DEVICE_CLASS_CRAVE360: {
+        "PAUSE": (2, 2),
+        "PLAY": (2, 3),
+        "VOL_DOWN": (5, 0),
+        "VOL_UP": (5, 1),
+        "MUTE_OFF": (5, 2),
+        "MUTE_ON": (5, 3),
+        "MUTE_TOGGLE": (5, 4),
+        "POW_OFF": (11, 0),
+        "POW_ON": (11, 1),
+        "POW_TOGGLE": (11, 2),
+    },
+}
 
 PATH_MODEL = {
     DEVICE_CLASS_SPEAKER: [["name"]],
@@ -89,29 +199,25 @@ class ResponseKey:
 async def async_validate_response(web_response: ClientResponse) -> dict[str, Any]:
     """Validate response to API command is as expected and return response."""
     if HTTP_OK != web_response.status:
-        raise VizioConnectionError(
-            f"Device is unreachable? Status code: {web_response.status}"
-        )
+        raise Exception(f"Device is unreachable? Status code: {web_response.status}")
 
     try:
         data = json.loads(await web_response.text())
         _LOGGER.debug("Response: %s", data)
     except Exception as err:
-        raise VizioResponseError(
-            f"Failed to parse response: {web_response.content}"
-        ) from err
+        raise Exception(f"Failed to parse response: {web_response.content}") from err
 
     status_obj = dict_get_case_insensitive(data, "status")
 
     if not status_obj:
-        raise VizioResponseError("Unknown response")
+        raise Exception("Unknown response")
 
     result_status = dict_get_case_insensitive(status_obj, "result")
 
     if result_status and result_status.lower() == STATUS_INVALID_PARAMETER:
-        raise VizioInvalidParameterError("invalid value specified")
+        raise Exception("invalid value specified")
     elif not result_status or result_status.lower() != STATUS_SUCCESS:
-        raise VizioResponseError(
+        raise Exception(
             "unexpected status {}: {}".format(
                 result_status, dict_get_case_insensitive(status_obj, "detail")
             )
