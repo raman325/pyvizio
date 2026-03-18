@@ -93,6 +93,7 @@ class VizioAsync:
         device_type: str = DEFAULT_DEVICE_CLASS,
         session: ClientSession | None = None,
         timeout: int = DEFAULT_TIMEOUT,
+        max_concurrent_requests: int = 1,
     ) -> None:
         """Initialize asynchronous class to interact with Vizio SmartCast devices."""
         self.device_type = device_type.lower()
@@ -109,14 +110,31 @@ class VizioAsync:
         self.device_id = device_id
         self._session = session
         self._timeout = timeout
+        if max_concurrent_requests < 1:
+            raise VizioInvalidParameterError("max_concurrent_requests must be >= 1")
+        self._max_concurrent_requests = max_concurrent_requests
+        self._semaphore: asyncio.Semaphore | None = None
         self._latest_apps: list[dict[str, Any]] | None = None
         self._latest_apps_last_updated: datetime | None = None
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.__dict__})"
 
-    def __eq__(self, other) -> bool:
-        return self is other or self.__dict__ == other.__dict__
+    def __eq__(self, other: object) -> bool:
+        if self is other:
+            return True
+        if not isinstance(other, VizioAsync):
+            return NotImplemented
+        exclude = {"_semaphore", "_max_concurrent_requests"}
+        self_d = {k: v for k, v in self.__dict__.items() if k not in exclude}
+        other_d = {k: v for k, v in other.__dict__.items() if k not in exclude}
+        return self_d == other_d
+
+    def _get_semaphore(self) -> asyncio.Semaphore:
+        """Lazily create semaphore (Python 3.9 requires a running event loop)."""
+        if self._semaphore is None:
+            self._semaphore = asyncio.Semaphore(self._max_concurrent_requests)
+        return self._semaphore
 
     async def __add_port(self) -> None:
         """Asynchronously add first open port from known ports list to `ip` property."""
@@ -124,38 +142,48 @@ class VizioAsync:
             if await open_port(self.ip, port):
                 self.ip = f"{self.ip}:{port}"
 
+    async def connect(self) -> None:
+        """Eagerly resolve port if not already specified.
+
+        This is optional — lazy resolution still works if connect() is not called.
+        """
+        if ":" not in self.ip:
+            await self.__add_port()
+
     async def __invoke_api(
         self, cmd: CommandBase, log_api_exception: bool = True
     ) -> Any:
         """Asynchronously call SmartCast API without auth token."""
-        if ":" not in self.ip:
-            await self.__add_port()
+        async with self._get_semaphore():
+            if ":" not in self.ip:
+                await self.__add_port()
 
-        return await async_invoke_api(
-            self.ip,
-            cmd,
-            _LOGGER,
-            custom_timeout=self._timeout,
-            log_api_exception=log_api_exception,
-            session=self._session,
-        )
+            return await async_invoke_api(
+                self.ip,
+                cmd,
+                _LOGGER,
+                custom_timeout=self._timeout,
+                log_api_exception=log_api_exception,
+                session=self._session,
+            )
 
     async def __invoke_api_auth(
         self, cmd: CommandBase, log_api_exception: bool = True
     ) -> Any:
         """Asynchronously call SmartCast API with auth token."""
-        if ":" not in self.ip:
-            await self.__add_port()
+        async with self._get_semaphore():
+            if ":" not in self.ip:
+                await self.__add_port()
 
-        return await async_invoke_api_auth(
-            self.ip,
-            cmd,
-            _LOGGER,
-            auth_token=self._auth_token,
-            custom_timeout=self._timeout,
-            log_api_exception=log_api_exception,
-            session=self._session,
-        )
+            return await async_invoke_api_auth(
+                self.ip,
+                cmd,
+                _LOGGER,
+                auth_token=self._auth_token,
+                custom_timeout=self._timeout,
+                log_api_exception=log_api_exception,
+                session=self._session,
+            )
 
     async def __invoke_api_may_need_auth(
         self, cmd: CommandBase, log_api_exception: bool = True
@@ -857,10 +885,18 @@ class Vizio(VizioAsync):
         auth_token: str = "",
         device_type: str = DEFAULT_DEVICE_CLASS,
         timeout: int = DEFAULT_TIMEOUT,
+        max_concurrent_requests: int = 1,
     ) -> None:
         """Initialize synchronous class to interact with Vizio SmartCast devices."""
         super().__init__(
-            device_id, ip, name, auth_token, device_type, session=None, timeout=timeout
+            device_id,
+            ip,
+            name,
+            auth_token,
+            device_type,
+            session=None,
+            timeout=timeout,
+            max_concurrent_requests=max_concurrent_requests,
         )
 
     @staticmethod
@@ -935,7 +971,8 @@ if TYPE_CHECKING:
     # fmt: off
     # Stubs so type checkers/IDEs see the sync signatures on Vizio.
     class Vizio(VizioAsync):  # type: ignore[no-redef]
-        def __init__(self, device_id: str, ip: str, name: str, auth_token: str = "", device_type: str = DEFAULT_DEVICE_CLASS, timeout: int = DEFAULT_TIMEOUT) -> None: ...
+        def __init__(self, device_id: str, ip: str, name: str, auth_token: str = "", device_type: str = DEFAULT_DEVICE_CLASS, timeout: int = DEFAULT_TIMEOUT, max_concurrent_requests: int = 1) -> None: ...
+        def connect(self) -> None: ...  # type: ignore[override]
         @staticmethod
         def validate_ha_config(ip: str, auth_token: str, device_type: str, session: ClientSession | None = None, timeout: int = DEFAULT_TIMEOUT) -> bool: ...  # type: ignore[override]
         @staticmethod
