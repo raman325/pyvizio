@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 DEVICE_CLASS_SPEAKER = "speaker"
 DEVICE_CLASS_TV = "tv"
 DEVICE_CLASS_CRAVE360 = "crave360"
@@ -44,7 +46,7 @@ APP_HOME = {
 }
 
 # No longer needed but kept around in case the external source for APPS is unavailable
-APPS = [
+APPS: list[dict[str, Any]] = [
     {
         "name": "A&E Crime Central",
         "country": ["usa"],
