@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 import click
 from tabulate import tabulate
@@ -89,7 +88,7 @@ def cli(ctx, ip: str, auth: str, device_type: str) -> None:
     show_envvar=True,
 )
 def discover(include_device_type: bool, timeout: int) -> None:
-    devices: list[Any] = VizioAsync.discovery_zeroconf(timeout)
+    devices = VizioAsync.discovery_zeroconf(timeout)
 
     data = []
 
@@ -241,9 +240,8 @@ async def get_charging_status(vizio: VizioAsync) -> None:
 async def get_battery_level(vizio: VizioAsync) -> None:
     level = await vizio.get_battery_level()
     if 0 == level:
-        _LOGGER.info("Current battery level: %s", "Charging")
-    else:
-        _LOGGER.info("Current battery level: %s", level)
+        level = "Charging"
+    _LOGGER.info("Current battery level: %s", level)
 
 
 @cli.command()
@@ -431,7 +429,7 @@ async def get_all_audio_settings(vizio: VizioAsync) -> None:
 async def get_all_audio_settings_options(vizio: VizioAsync) -> None:
     audio_settings_options = await vizio.get_all_audio_settings_options()
     if audio_settings_options:
-        options: list[list[Any]] = []
+        options = []
         for k, v in audio_settings_options.items():
             if isinstance(v, dict):
                 options.append([k, v.get("default"), v["min"], v["max"], None])
@@ -524,11 +522,11 @@ async def get_all_settings(vizio: VizioAsync, setting_type: str) -> None:
 async def get_all_settings_options(vizio: VizioAsync, setting_type: str) -> None:
     settings_options = await vizio.get_all_settings_options(setting_type)
     if settings_options:
-        options: list[list[Any]] = []
+        options = []
         for k, v in settings_options.items():
             if isinstance(v, dict):
                 options.append([k, v.get("default"), v["min"], v["max"], None])
-            elif isinstance(v, list):
+            else:
                 options.append([k, None, None, None, ", ".join(v)])
         table = tabulate(options, headers=["Name", "Default", "Min", "Max", "Choices"])
         _LOGGER.info("\n%s", table)

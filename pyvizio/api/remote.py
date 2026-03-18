@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from pyvizio.api._protocol import ENDPOINT, KEY_ACTION
 from pyvizio.api.base import CommandBase
 
@@ -38,7 +36,3 @@ class EmulateRemoteCommand(CommandBase):
 
         for key_code in key_codes:
             self.KEYLIST.append(KeyPressEvent(key_code))
-
-    def process_response(self, json_obj: dict[str, Any]) -> bool:
-        """Return True on successful key press."""
-        return True

@@ -25,6 +25,7 @@ classifiers = [
 dependencies = [
     "aiohttp",
     "click",
+    "jsonpickle",
     "requests",
     "tabulate>=0.8.6",
     "xmltodict",
@@ -59,9 +60,6 @@ version = {attr = "pyvizio.version.__version__"}
 
 [tool.setuptools.packages.find]
 exclude = ["tests", "tests.*", "venv", "venv.*"]
-
-[tool.setuptools.package-data]
-"pyvizio.data" = ["*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

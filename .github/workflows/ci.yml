@@ -107,4 +107,4 @@ jobs:
         run: pip install dist/*.whl
 
       - name: Verify import
-        run: python -c "import pyvizio; print('pyvizio version:', pyvizio.__version__)"
+        run: python -c "import pyvizio; print(f'pyvizio version: {pyvizio.__version__}')"

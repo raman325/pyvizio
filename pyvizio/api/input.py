@@ -77,7 +77,3 @@ class ChangeInputCommand(ItemCommandBase):
     def __init__(self, device_type: str, id: int, name: str) -> None:
         """Initialize command to change active input by name."""
         super().__init__(device_type, "CURRENT_INPUT", id, name)
-
-    def process_response(self, json_obj: dict[str, Any]) -> bool:
-        """Return True on successful input change."""
-        return True

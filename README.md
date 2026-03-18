@@ -2,8 +2,8 @@
 
 ## Description
 
-Simple cli and API implementation for Vizio SmartCast TVs and Speakers (Sound Bars). Mainly created for
-integration with [HASS](http://home-assistant.io). Note that some of the interaction commands are not supported by
+Simple cli and API implementation for Vizio SmartCast TVs and Speakers (Sound Bars). Mainly created for 
+integration with [HASS](http://home-assistant.io). Note that some of the interaction commands are not supported by 
 speakers.
 
 Originally created by @vkorn who wrote most of the functionality but no longer had time/interest to maintain the library
@@ -23,7 +23,7 @@ if `pip3` is not found.
 
 ## Upgrade
 
-Use `pip`:
+Use `pip`: 
 ```bash
 pip3 install --upgrade pyvizio
 ```
@@ -65,8 +65,8 @@ Using these data points, finalize pairing procedure: (a pin is not necessary for
 ```bash
 pyvizio --ip={ip:port} --device_type={device_type} pair-finish --ch_type={challenge_type} --token={challenge_token} --pin={pin}
 ```
-If everything done correctly, you should see new connected device named `Python Vizio`
-in Vizio SmartCast mobile APP
+If everything done correctly, you should see new connected device named `Python Vizio` 
+in Vizio SmartCast mobile APP 
 
 
 > For a TV, you'll need auth code for any further commands. If you are interacting with a Speaker, and skipped the pairing process, you don't need to include the `--auth` parameter in any of the following calls since you don't have an auth code.
@@ -218,5 +218,5 @@ pyvizio --ip={ip:port} --device_type={device_type} --auth={auth_code} get-curren
 
 ## Contribution
 
-Thanks for great research uploaded [here](https://github.com/exiva/Vizio_SmartCast_API) and
+Thanks for great research uploaded [here](https://github.com/exiva/Vizio_SmartCast_API) and 
 absolutely awesome SSDP discovery [snippet](https://gist.github.com/dankrause/6000248)
