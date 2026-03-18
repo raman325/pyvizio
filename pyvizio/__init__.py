@@ -885,10 +885,18 @@ class Vizio(VizioAsync):
         auth_token: str = "",
         device_type: str = DEFAULT_DEVICE_CLASS,
         timeout: int = DEFAULT_TIMEOUT,
+        max_concurrent_requests: int = 1,
     ) -> None:
         """Initialize synchronous class to interact with Vizio SmartCast devices."""
         super().__init__(
-            device_id, ip, name, auth_token, device_type, session=None, timeout=timeout
+            device_id,
+            ip,
+            name,
+            auth_token,
+            device_type,
+            session=None,
+            timeout=timeout,
+            max_concurrent_requests=max_concurrent_requests,
         )
 
     @staticmethod
