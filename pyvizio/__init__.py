@@ -110,6 +110,8 @@ class VizioAsync:
         self.device_id = device_id
         self._session = session
         self._timeout = timeout
+        if max_concurrent_requests < 1:
+            raise VizioInvalidParameterError("max_concurrent_requests must be >= 1")
         self._max_concurrent_requests = max_concurrent_requests
         self._semaphore: asyncio.Semaphore | None = None
         self._latest_apps: list[dict[str, Any]] | None = None
@@ -118,9 +120,11 @@ class VizioAsync:
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.__dict__})"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if self is other:
             return True
+        if not isinstance(other, VizioAsync):
+            return NotImplemented
         exclude = {"_semaphore", "_max_concurrent_requests"}
         self_d = {k: v for k, v in self.__dict__.items() if k not in exclude}
         other_d = {k: v for k, v in other.__dict__.items() if k not in exclude}
@@ -150,10 +154,10 @@ class VizioAsync:
         self, cmd: CommandBase, log_api_exception: bool = True
     ) -> Any:
         """Asynchronously call SmartCast API without auth token."""
-        if ":" not in self.ip:
-            await self.__add_port()
-
         async with self._get_semaphore():
+            if ":" not in self.ip:
+                await self.__add_port()
+
             return await async_invoke_api(
                 self.ip,
                 cmd,
@@ -167,10 +171,10 @@ class VizioAsync:
         self, cmd: CommandBase, log_api_exception: bool = True
     ) -> Any:
         """Asynchronously call SmartCast API with auth token."""
-        if ":" not in self.ip:
-            await self.__add_port()
-
         async with self._get_semaphore():
+            if ":" not in self.ip:
+                await self.__add_port()
+
             return await async_invoke_api_auth(
                 self.ip,
                 cmd,
