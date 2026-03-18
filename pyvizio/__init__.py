@@ -621,7 +621,7 @@ class VizioAsync:
 
     async def get_all_settings_options_xlist(
         self, setting_type: str, log_api_exception: bool = True
-    ) -> dict[str, int | str] | None:
+    ) -> dict[str, list[str]] | None:
         """Asynchronously get all setting names and corresponding options for settings that are based on a user defined list."""
         item = await self.__invoke_api_may_need_auth(
             GetAllSettingsOptionsXListCommand(self.device_type, setting_type),
