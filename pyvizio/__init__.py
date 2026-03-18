@@ -29,17 +29,10 @@ from pyvizio.api.input import (
     InputItem,
 )
 from pyvizio.api.item import (
-    GetAltESNCommand,
-    GetAltSerialNumberCommand,
-    GetAltVersionCommand,
-    GetBatteryLevelCommand,
-    GetCurrentChargingStatusCommand,
-    GetCurrentPowerStateCommand,
+    AltItemInfoCommandBase,
     GetDeviceInfoCommand,
-    GetESNCommand,
     GetModelNameCommand,
-    GetSerialNumberCommand,
-    GetVersionCommand,
+    ItemInfoCommandBase,
 )
 from pyvizio.api.pair import (
     BeginPairCommand,
@@ -304,9 +297,11 @@ class VizioAsync:
     async def get_esn(self, log_api_exception: bool = True) -> str | None:
         """Asynchronously get device's ESN (electronic serial number?)."""
         item = await self.__invoke_api_may_need_auth(
-            GetESNCommand(self.device_type), log_api_exception=log_api_exception
+            ItemInfoCommandBase(self.device_type, "ESN"),
+            log_api_exception=log_api_exception,
         ) or await self.__invoke_api_may_need_auth(
-            GetAltESNCommand(self.device_type), log_api_exception=log_api_exception
+            AltItemInfoCommandBase(self.device_type, "_ALT_ESN", "ESN"),
+            log_api_exception=log_api_exception,
         )
 
         if item and item.value:
@@ -317,10 +312,12 @@ class VizioAsync:
     async def get_serial_number(self, log_api_exception: bool = True) -> str | None:
         """Asynchronously get device's serial number."""
         item = await self.__invoke_api(
-            GetSerialNumberCommand(self.device_type),
+            ItemInfoCommandBase(self.device_type, "SERIAL_NUMBER"),
             log_api_exception=log_api_exception,
         ) or await self.__invoke_api(
-            GetAltSerialNumberCommand(self.device_type),
+            AltItemInfoCommandBase(
+                self.device_type, "_ALT_SERIAL_NUMBER", "SERIAL_NUMBER"
+            ),
             log_api_exception=log_api_exception,
         )
 
@@ -332,9 +329,11 @@ class VizioAsync:
     async def get_version(self, log_api_exception: bool = True) -> str | None:
         """Asynchronously get SmartCast software version on device."""
         item = await self.__invoke_api(
-            GetVersionCommand(self.device_type), log_api_exception=log_api_exception
+            ItemInfoCommandBase(self.device_type, "VERSION"),
+            log_api_exception=log_api_exception,
         ) or await self.__invoke_api(
-            GetAltVersionCommand(self.device_type), log_api_exception=log_api_exception
+            AltItemInfoCommandBase(self.device_type, "_ALT_VERSION", "VERSION"),
+            log_api_exception=log_api_exception,
         )
 
         if item and item.value:
@@ -425,7 +424,7 @@ class VizioAsync:
     async def get_power_state(self, log_api_exception: bool = True) -> bool | None:
         """Asynchronously get device's current power state."""
         item = await self.__invoke_api_may_need_auth(
-            GetCurrentPowerStateCommand(self.device_type),
+            ItemInfoCommandBase(self.device_type, "POWER_MODE", 0),
             log_api_exception=log_api_exception,
         )
 
@@ -437,7 +436,7 @@ class VizioAsync:
     async def get_charging_status(self, log_api_exception: bool = True) -> int | None:
         """Asynchronously get device's current charging state."""
         item = await self.__invoke_api_may_need_auth(
-            GetCurrentChargingStatusCommand(self.device_type),
+            ItemInfoCommandBase(self.device_type, "CHARGING_STATUS", 0),
             log_api_exception=log_api_exception,
         )
 
@@ -449,7 +448,7 @@ class VizioAsync:
     async def get_battery_level(self, log_api_exception: bool = True) -> int | None:
         """Asynchronously get device's current battery level (will be 0 if charging)."""
         item = await self.__invoke_api_may_need_auth(
-            GetBatteryLevelCommand(self.device_type),
+            ItemInfoCommandBase(self.device_type, "BATTERY_LEVEL", 0),
             log_api_exception=log_api_exception,
         )
         if item:
