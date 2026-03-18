@@ -111,7 +111,8 @@ class VizioAsync:
         self.device_id = device_id
         self._session = session
         self._timeout = timeout
-        self._semaphore = asyncio.Semaphore(max_concurrent_requests)
+        self._max_concurrent_requests = max_concurrent_requests
+        self._semaphore: asyncio.Semaphore | None = None
         self._latest_apps: list[dict[str, Any]] | None = None
         self._latest_apps_last_updated: datetime | None = None
 
@@ -121,10 +122,16 @@ class VizioAsync:
     def __eq__(self, other) -> bool:
         if self is other:
             return True
-        exclude = {"_semaphore"}
+        exclude = {"_semaphore", "_max_concurrent_requests"}
         self_d = {k: v for k, v in self.__dict__.items() if k not in exclude}
         other_d = {k: v for k, v in other.__dict__.items() if k not in exclude}
         return self_d == other_d
+
+    def _get_semaphore(self) -> asyncio.Semaphore:
+        """Lazily create semaphore (Python 3.9 requires a running event loop)."""
+        if self._semaphore is None:
+            self._semaphore = asyncio.Semaphore(self._max_concurrent_requests)
+        return self._semaphore
 
     async def __add_port(self) -> None:
         """Asynchronously add first open port from known ports list to `ip` property."""
@@ -147,7 +154,7 @@ class VizioAsync:
         if ":" not in self.ip:
             await self.__add_port()
 
-        async with self._semaphore:
+        async with self._get_semaphore():
             return await async_invoke_api(
                 self.ip,
                 cmd,
@@ -164,7 +171,7 @@ class VizioAsync:
         if ":" not in self.ip:
             await self.__add_port()
 
-        async with self._semaphore:
+        async with self._get_semaphore():
             return await async_invoke_api_auth(
                 self.ip,
                 cmd,
