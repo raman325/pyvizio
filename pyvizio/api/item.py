@@ -157,7 +157,7 @@ class ItemCommandBase(CommandBase):
 
 
 class AltItemInfoCommandBase(ItemInfoCommandBase):
-    """Command to get individual item setting."""
+    """Command to get individual item setting from alternate endpoint."""
 
     def __init__(
         self,
@@ -166,7 +166,7 @@ class AltItemInfoCommandBase(ItemInfoCommandBase):
         item_name: str,
         default_return: int | str | None = None,
     ) -> None:
-        """Initialize command to get individual item setting."""
+        """Initialize command to get individual item setting from alternate endpoint."""
         super(ItemInfoCommandBase, self).__init__(ENDPOINT[device_type][endpoint_name])
         self.item_name = item_name.upper()
         self.default_return = default_return
