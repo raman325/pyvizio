@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 from asyncio import sleep
 from collections.abc import KeysView
 from datetime import datetime, timedelta
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlsplit
 
 from aiohttp import ClientSession
@@ -835,7 +836,11 @@ async def async_guess_device_type(
 
 
 class Vizio(VizioAsync):
-    """Synchronous class to interact with Vizio SmartCast devices."""
+    """Synchronous class to interact with Vizio SmartCast devices.
+
+    All async methods from VizioAsync are automatically available as synchronous
+    methods via auto-wrapping with asyncio.run().
+    """
 
     def __init__(
         self,
@@ -883,286 +888,6 @@ class Vizio(VizioAsync):
         """Get unique identifier for Vizio device."""
         return await super(Vizio, Vizio).get_unique_id(ip, device_type, timeout=timeout)
 
-    @async_to_sync
-    async def can_connect_with_auth_check(self) -> bool:
-        """Return whether or not device API can be connected to with valid authorization."""
-        return await super().can_connect_with_auth_check()
-
-    @async_to_sync
-    async def can_connect_no_auth_check(self) -> bool:
-        """Return whether or not device API can be connected to regardless of auth config."""
-        return await super().can_connect_no_auth_check()
-
-    @async_to_sync
-    async def get_esn(self, log_api_exception: bool = True) -> str | None:
-        """Get device's ESN (electronic serial number?)."""
-        return await super().get_esn(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def get_serial_number(self, log_api_exception: bool = True) -> str | None:
-        """Get device's serial number."""
-        return await super().get_serial_number(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def get_version(self, log_api_exception: bool = True) -> str | None:
-        """Get SmartCast software version on device."""
-        return await super().get_version(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def get_model_name(self, log_api_exception: bool = True) -> str | None:
-        """Get device's model number."""
-        return await super().get_model_name(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def start_pair(
-        self, log_api_exception: bool = True
-    ) -> BeginPairResponse | None:
-        """Begin pairing process to obtain challenge type and challenge token."""
-        return await super().start_pair(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def stop_pair(self, log_api_exception: bool = True) -> bool | None:
-        """Cancel pairing process."""
-        return await super().stop_pair(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def pair(
-        self, ch_type: int, token: int, pin: str, log_api_exception: bool = True
-    ) -> PairChallengeResponse | None:
-        """Complete pairing process to obtain auth token."""
-        return await super().pair(
-            ch_type, token, pin, log_api_exception=log_api_exception
-        )
-
-    @async_to_sync
-    async def get_inputs_list(
-        self, log_api_exception: bool = True
-    ) -> list[InputItem] | None:
-        """Get list of available inputs."""
-        return await super().get_inputs_list(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def get_current_input(self, log_api_exception: bool = True) -> str | None:
-        """Get device's active input."""
-        return await super().get_current_input(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def next_input(self, log_api_exception: bool = True) -> bool | None:
-        """Switch active input to next input."""
-        return await super().next_input(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def set_input(self, name: str, log_api_exception: bool = True) -> bool | None:
-        """Switch active input to named input."""
-        return await super().set_input(name, log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def get_power_state(self, log_api_exception: bool = True) -> bool | None:
-        """Get device's current power state."""
-        return await super().get_power_state(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def pow_on(self, log_api_exception: bool = True) -> bool | None:
-        """Power device off."""
-        return await super().pow_on(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def pow_off(self, log_api_exception: bool = True) -> bool | None:
-        """Power device off."""
-        return await super().pow_off(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def pow_toggle(self, log_api_exception: bool = True) -> bool | None:
-        """Toggle device power."""
-        return await super().pow_toggle(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def vol_up(self, num: int = 1, log_api_exception: bool = True) -> bool | None:
-        """Increase volume by number of steps."""
-        return await super().vol_up(num, log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def vol_down(
-        self, num: int = 1, log_api_exception: bool = True
-    ) -> bool | None:
-        """Decrease volume by number of steps."""
-        return await super().vol_down(num, log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def get_current_volume(self, log_api_exception: bool = True) -> int | None:
-        """Get device's current volume level."""
-        return await super().get_current_volume(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def is_muted(self, log_api_exception: bool = True) -> bool | None:
-        """Return whether or not device is muted."""
-        return await super().is_muted(log_api_exception=log_api_exception)
-
-    def get_max_volume(self) -> int:
-        """Return device's max volume based on device type."""
-        return super().get_max_volume()
-
-    @async_to_sync
-    async def ch_up(self, num: int = 1, log_api_exception: bool = True) -> bool | None:
-        """Channel up by number of steps."""
-        return await super().ch_up(num, log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def ch_down(
-        self, num: int = 1, log_api_exception: bool = True
-    ) -> bool | None:
-        """Channel down by number of steps."""
-        return await super().ch_down(num, log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def ch_prev(self, log_api_exception: bool = True) -> bool | None:
-        """Go to previous channel."""
-        return await super().ch_prev(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def mute_on(self, log_api_exception: bool = True) -> bool | None:
-        """Mute sound."""
-        return await super().mute_on(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def mute_off(self, log_api_exception: bool = True) -> bool | None:
-        """Unmute sound."""
-        return await super().mute_off(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def mute_toggle(self, log_api_exception: bool = True) -> bool | None:
-        """Toggle sound mute."""
-        return await super().mute_toggle(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def play(self, log_api_exception: bool = True) -> bool | None:
-        """Emulate 'play' key press."""
-        return await super().play(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def pause(self, log_api_exception: bool = True) -> bool | None:
-        """Emulate 'pause' key press."""
-        return await super().pause(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def remote(self, key: str, log_api_exception: bool = True) -> bool | None:
-        """Emulate key press by key name."""
-        return await super().remote(key, log_api_exception=log_api_exception)
-
-    def get_remote_keys_list(self) -> KeysView[str]:
-        """Get list of remote key names."""
-        return super().get_remote_keys_list()
-
-    @async_to_sync
-    async def get_setting_types_list(
-        self, setting_type: str, log_api_exception: bool = True
-    ) -> list[str] | None:
-        """Get list of all setting types."""
-        return await super().get_setting_types_list(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def get_all_settings(
-        self, setting_type: str, log_api_exception: bool = True
-    ) -> dict[str, int | str] | None:
-        """Get all setting names and corresponding values."""
-        return await super().get_all_settings(
-            setting_type, log_api_exception=log_api_exception
-        )
-
-    @async_to_sync
-    async def get_all_settings_options(
-        self, setting_type: str, log_api_exception: bool = True
-    ) -> dict[str, list[str] | dict[str, int | None]] | None:
-        """Get all setting names and corresponding options."""
-        return await super().get_all_settings_options(
-            setting_type, log_api_exception=log_api_exception
-        )
-
-    @async_to_sync
-    async def get_setting(
-        self, setting_type: str, setting_name: str, log_api_exception: bool = True
-    ) -> int | str | None:
-        """Get current value of named setting."""
-        return await super().get_setting(
-            setting_type, setting_name, log_api_exception=log_api_exception
-        )
-
-    @async_to_sync
-    async def get_setting_options(
-        self, setting_type: str, setting_name: str, log_api_exception: bool = True
-    ) -> list[str] | dict[str, int | None] | None:
-        """Get options of named setting."""
-        return await super().get_setting_options(
-            setting_type, setting_name, log_api_exception=log_api_exception
-        )
-
-    async def get_setting_options_xlist(
-        self, setting_type: str, setting_name: str, log_api_exception: bool = True
-    ) -> list[str] | None:
-        """Get options of named setting for settings based on a user defined list."""
-        return await super().get_setting_options_xlist(
-            setting_type, setting_name, log_api_exception=log_api_exception
-        )
-
-    @async_to_sync
-    async def set_setting(
-        self,
-        setting_type: str,
-        setting_name: str,
-        new_value: int | str,
-        log_api_exception: bool = True,
-    ) -> bool | None:
-        """Set new value for named setting."""
-        return await super().set_setting(
-            setting_type, setting_name, new_value, log_api_exception=log_api_exception
-        )
-
-    @async_to_sync
-    async def get_all_audio_settings(
-        self, log_api_exception: bool = True
-    ) -> dict[str, int | str] | None:
-        """Get all audio setting names and corresponding values."""
-        return await super().get_all_audio_settings(log_api_exception=log_api_exception)
-
-    @async_to_sync
-    async def get_all_audio_settings_options(
-        self, log_api_exception: bool = True
-    ) -> dict[str, list[str] | dict[str, int | None]] | None:
-        """Get all audio setting names and corresponding options."""
-        return await super().get_all_audio_settings_options(
-            log_api_exception=log_api_exception
-        )
-
-    @async_to_sync
-    async def get_audio_setting(
-        self, setting_name: str, log_api_exception: bool = True
-    ) -> int | str | None:
-        """Get current value of named audio setting."""
-        return await super().get_audio_setting(
-            setting_name, log_api_exception=log_api_exception
-        )
-
-    @async_to_sync
-    async def get_audio_setting_options(
-        self, setting_name: str, log_api_exception: bool = True
-    ) -> list[str] | dict[str, int | None] | None:
-        """Get options of named audio setting."""
-        return await super().get_audio_setting_options(
-            setting_name, log_api_exception=log_api_exception
-        )
-
-    @async_to_sync
-    async def set_audio_setting(
-        self,
-        setting_name: str,
-        new_value: int | str,
-        log_api_exception: bool = True,
-    ) -> bool | None:
-        """Set new value for named audio setting."""
-        return await super().set_audio_setting(
-            setting_name, new_value, log_api_exception=log_api_exception
-        )
-
     @staticmethod
     @async_to_sync
     async def get_apps_list(
@@ -1175,49 +900,91 @@ class Vizio(VizioAsync):
             country=country, apps_list=apps_list, session=session
         )
 
-    @async_to_sync
-    async def launch_app(
-        self,
-        app_name: str,
-        apps_list: list[dict[str, Any]] | None = None,
-        log_api_exception: bool = True,
-    ) -> bool | None:
-        """Launch known app by name."""
-        return await super().launch_app(
-            app_name, apps_list, log_api_exception=log_api_exception
-        )
 
-    @async_to_sync
-    async def launch_app_config(
-        self,
-        app_name: str,
-        APP_ID: str,
-        NAME_SPACE: int,
-        MESSAGE: str | None = None,
-        log_api_exception: bool = True,
-    ) -> bool | None:
-        """Launch app using app's config values."""
-        return await super().launch_app_config(
-            APP_ID, NAME_SPACE, MESSAGE, log_api_exception=log_api_exception
-        )
+# Auto-wrap all public async instance methods from VizioAsync onto Vizio
+def _generate_sync_wrappers() -> None:
+    vizio_vars = vars(Vizio)
+    for name, raw in vars(VizioAsync).items():
+        if name.startswith("_"):
+            continue
+        if isinstance(raw, (staticmethod, classmethod)):
+            continue
+        attr = getattr(VizioAsync, name)
+        if asyncio.iscoroutinefunction(attr) and name not in vizio_vars:
+            wrapper = async_to_sync(attr)
+            wrapper.__qualname__ = f"Vizio.{name}"
+            doc = (wrapper.__doc__ or "").removeprefix("Asynchronously ")
+            if doc:
+                doc = doc[0].upper() + doc[1:]
+            wrapper.__doc__ = doc
+            setattr(Vizio, name, wrapper)
 
-    @async_to_sync
-    async def get_current_app(
-        self,
-        apps_list: list[dict[str, Any]] | None = None,
-        log_api_exception: bool = True,
-    ) -> str | None:
-        """Get name of currently running app. Returns const APP_NOT_RUNNING if no app is currently running, const UNKNOWN_APP if app config isn't known by pyvizio."""
-        return await super().get_current_app(
-            apps_list, log_api_exception=log_api_exception
-        )
 
-    @async_to_sync
-    async def get_current_app_config(
-        self, log_api_exception: bool = True
-    ) -> AppConfig | None:
-        """Get config values of currently running app. Returns empty AppConfig if no app is currently running."""
-        return await super().get_current_app_config(log_api_exception=log_api_exception)
+_generate_sync_wrappers()
+del _generate_sync_wrappers
+
+
+if TYPE_CHECKING:
+    # fmt: off
+    # Stubs so type checkers/IDEs see the sync signatures on Vizio.
+    class Vizio(VizioAsync):  # type: ignore[no-redef]
+        def __init__(self, device_id: str, ip: str, name: str, auth_token: str = "", device_type: str = DEFAULT_DEVICE_CLASS, timeout: int = DEFAULT_TIMEOUT) -> None: ...
+        @staticmethod
+        def validate_ha_config(ip: str, auth_token: str, device_type: str, session: ClientSession | None = None, timeout: int = DEFAULT_TIMEOUT) -> bool: ...  # type: ignore[override]
+        @staticmethod
+        def get_unique_id(ip: str, device_type: str, timeout: int = DEFAULT_TIMEOUT) -> str | None: ...  # type: ignore[override]
+        @staticmethod
+        def get_apps_list(country: str = "all", apps_list: list[dict[str, Any]] | None = None, session: ClientSession | None = None) -> list[str]: ...  # type: ignore[override]
+        def can_connect_no_auth_check(self) -> bool: ...  # type: ignore[override]
+        def can_connect_with_auth_check(self) -> bool: ...  # type: ignore[override]
+        def ch_down(self, num: int = 1, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def ch_prev(self, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def ch_up(self, num: int = 1, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def get_all_audio_settings(self, log_api_exception: bool = True) -> dict[str, int | str] | None: ...  # type: ignore[override]
+        def get_all_audio_settings_options(self, log_api_exception: bool = True) -> dict[str, list[str] | dict[str, int | None]] | None: ...  # type: ignore[override]
+        def get_all_settings(self, setting_type: str, log_api_exception: bool = True) -> dict[str, int | str] | None: ...  # type: ignore[override]
+        def get_all_settings_options(self, setting_type: str, log_api_exception: bool = True) -> dict[str, list[str] | dict[str, int | None]] | None: ...  # type: ignore[override]
+        def get_all_settings_options_xlist(self, setting_type: str, log_api_exception: bool = True) -> dict[str, list[str]] | None: ...  # type: ignore[override]
+        def get_audio_setting(self, setting_name: str, log_api_exception: bool = True) -> int | str | None: ...  # type: ignore[override]
+        def get_audio_setting_options(self, setting_name: str, log_api_exception: bool = True) -> list[str] | dict[str, int | None] | None: ...  # type: ignore[override]
+        def get_battery_level(self, log_api_exception: bool = True) -> int | None: ...  # type: ignore[override]
+        def get_charging_status(self, log_api_exception: bool = True) -> int | None: ...  # type: ignore[override]
+        def get_current_app(self, apps_list: list[dict[str, Any]] | None = None, log_api_exception: bool = True) -> str | None: ...  # type: ignore[override]
+        def get_current_app_config(self, log_api_exception: bool = True) -> AppConfig | None: ...  # type: ignore[override]
+        def get_current_input(self, log_api_exception: bool = True) -> str | None: ...  # type: ignore[override]
+        def get_current_volume(self, log_api_exception: bool = True) -> int | None: ...  # type: ignore[override]
+        def get_esn(self, log_api_exception: bool = True) -> str | None: ...  # type: ignore[override]
+        def get_inputs_list(self, log_api_exception: bool = True) -> list[InputItem] | None: ...  # type: ignore[override]
+        def get_model_name(self, log_api_exception: bool = True) -> str | None: ...  # type: ignore[override]
+        def get_power_state(self, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def get_serial_number(self, log_api_exception: bool = True) -> str | None: ...  # type: ignore[override]
+        def get_setting(self, setting_type: str, setting_name: str, log_api_exception: bool = True) -> int | str | None: ...  # type: ignore[override]
+        def get_setting_options(self, setting_type: str, setting_name: str, log_api_exception: bool = True) -> list[str] | dict[str, int | None] | None: ...  # type: ignore[override]
+        def get_setting_options_xlist(self, setting_type: str, setting_name: str, log_api_exception: bool = True) -> list[str] | None: ...  # type: ignore[override]
+        def get_setting_types_list(self, log_api_exception: bool = True) -> list[str] | None: ...  # type: ignore[override]
+        def get_version(self, log_api_exception: bool = True) -> str | None: ...  # type: ignore[override]
+        def is_muted(self, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def launch_app(self, app_name: str, apps_list: list[dict[str, Any]] | None = None, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def launch_app_config(self, APP_ID: str, NAME_SPACE: int, MESSAGE: str | None = None, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def mute_off(self, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def mute_on(self, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def mute_toggle(self, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def next_input(self, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def pair(self, ch_type: int | str, token: int | str, pin: str = "", log_api_exception: bool = True) -> PairChallengeResponse | None: ...  # type: ignore[override]
+        def pause(self, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def play(self, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def pow_off(self, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def pow_on(self, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def pow_toggle(self, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def remote(self, key: str, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def set_audio_setting(self, setting_name: str, new_value: int | str, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def set_input(self, name: str, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def set_setting(self, setting_type: str, setting_name: str, new_value: int | str, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def start_pair(self, log_api_exception: bool = True) -> BeginPairResponse | None: ...  # type: ignore[override]
+        def stop_pair(self, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def vol_down(self, num: int = 1, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+        def vol_up(self, num: int = 1, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
+    # fmt: on
 
 
 @async_to_sync
