@@ -67,6 +67,13 @@ from pyvizio.const import (
 )
 from pyvizio.discovery.ssdp import SSDPDevice, discover as discover_ssdp
 from pyvizio.discovery.zeroconf import ZeroconfDevice, discover as discover_zc
+from pyvizio.errors import (
+    VizioAuthError,
+    VizioConnectionError as VizioConnectionError,
+    VizioError as VizioError,
+    VizioInvalidParameterError as VizioInvalidParameterError,
+    VizioResponseError as VizioResponseError,
+)
 from pyvizio.helpers import async_to_sync, open_port
 from pyvizio.util import gen_apps_list_from_url
 from pyvizio.version import __version__ as __version__
@@ -90,7 +97,7 @@ class VizioAsync:
         """Initialize asynchronous class to interact with Vizio SmartCast devices."""
         self.device_type = device_type.lower()
         if self.device_type not in DEVICE_CONFIGS:
-            raise Exception(
+            raise VizioInvalidParameterError(
                 f"Invalid device type specified. Use one of: "
                 f"{', '.join(repr(k) for k in DEVICE_CONFIGS)}"
             )
@@ -161,7 +168,7 @@ class VizioAsync:
                 no_auth_types = [
                     k for k, v in DEVICE_CONFIGS.items() if not v.requires_auth
                 ]
-                raise Exception(
+                raise VizioAuthError(
                     f"Empty auth token. Device types that don't require auth: "
                     f"{', '.join(repr(t) for t in no_auth_types)}"
                 )
@@ -813,7 +820,9 @@ async def async_guess_device_type(
 
     if port:
         if ":" in ip:
-            raise Exception("Port can't be included in both `ip` and `port` parameters")
+            raise VizioInvalidParameterError(
+                "Port can't be included in both `ip` and `port` parameters"
+            )
 
         device = VizioAsync(
             "test", f"{ip}:{port}", "test", "", DEVICE_CLASS_SPEAKER, timeout=timeout

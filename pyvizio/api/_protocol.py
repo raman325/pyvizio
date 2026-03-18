@@ -11,6 +11,11 @@ from aiohttp.client import DEFAULT_TIMEOUT as AIOHTTP_DEFAULT_TIMEOUT
 
 from pyvizio.api.base import CommandBase
 from pyvizio.const import DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV, DEVICE_CONFIGS
+from pyvizio.errors import (
+    VizioConnectionError,
+    VizioInvalidParameterError,
+    VizioResponseError,
+)
 from pyvizio.helpers import dict_get_case_insensitive
 
 _LOGGER = getLogger(__name__)
@@ -84,25 +89,29 @@ class ResponseKey:
 async def async_validate_response(web_response: ClientResponse) -> dict[str, Any]:
     """Validate response to API command is as expected and return response."""
     if HTTP_OK != web_response.status:
-        raise Exception(f"Device is unreachable? Status code: {web_response.status}")
+        raise VizioConnectionError(
+            f"Device is unreachable? Status code: {web_response.status}"
+        )
 
     try:
         data = json.loads(await web_response.text())
         _LOGGER.debug("Response: %s", data)
     except Exception as err:
-        raise Exception(f"Failed to parse response: {web_response.content}") from err
+        raise VizioResponseError(
+            f"Failed to parse response: {web_response.content}"
+        ) from err
 
     status_obj = dict_get_case_insensitive(data, "status")
 
     if not status_obj:
-        raise Exception("Unknown response")
+        raise VizioResponseError("Unknown response")
 
     result_status = dict_get_case_insensitive(status_obj, "result")
 
     if result_status and result_status.lower() == STATUS_INVALID_PARAMETER:
-        raise Exception("invalid value specified")
+        raise VizioInvalidParameterError("invalid value specified")
     elif not result_status or result_status.lower() != STATUS_SUCCESS:
-        raise Exception(
+        raise VizioResponseError(
             "unexpected status {}: {}".format(
                 result_status, dict_get_case_insensitive(status_obj, "detail")
             )
