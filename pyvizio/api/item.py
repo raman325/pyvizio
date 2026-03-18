@@ -35,7 +35,7 @@ class GetModelNameCommand(GetDeviceInfoCommand):
         """Initialize command to get device model name."""
         super().__init__(device_type)
 
-    def process_response(self, json_obj: dict[str, Any]) -> str | None:
+    def process_response(self, json_obj: dict[str, Any]) -> str | None:  # type: ignore[override]
         """Return response to command to get device model name."""
         return get_value_from_path(
             dict_get_case_insensitive(
@@ -109,7 +109,7 @@ class ItemInfoCommandBase(InfoCommandBase):
     """Command to get individual item setting."""
 
     def __init__(
-        self, device_type: str, item_name: str, default_return: int | str = None
+        self, device_type: str, item_name: str, default_return: int | str | None = None
     ) -> None:
         """Initialize command to get individual item setting."""
         super().__init__(ENDPOINT[device_type][item_name])
@@ -212,7 +212,7 @@ class AltItemInfoCommandBase(ItemInfoCommandBase):
         device_type: str,
         endpoint_name: str,
         item_name: str,
-        default_return: int | str = None,
+        default_return: int | str | None = None,
     ) -> None:
         """Initialize command to get individual item setting."""
         super(ItemInfoCommandBase, self).__init__(ENDPOINT[device_type][endpoint_name])

@@ -110,8 +110,8 @@ class VizioAsync:
         self.device_id = device_id
         self._session = session
         self._timeout = timeout
-        self._latest_apps = None
-        self._latest_apps_last_updated = None
+        self._latest_apps: list[dict[str, Any]] | None = None
+        self._latest_apps_last_updated: datetime | None = None
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.__dict__})"
@@ -207,17 +207,19 @@ class VizioAsync:
         key_codes = [key_code for _ in range(num)]
         return await self.__remote(key_codes, log_api_exception=log_api_exception)
 
-    async def __get_cached_apps_list(self) -> list[str]:
+    async def __get_cached_apps_list(self) -> list[dict[str, Any]]:
         if (
             self._latest_apps
+            and self._latest_apps_last_updated is not None
             and datetime.now() - self._latest_apps_last_updated < timedelta(days=1)
         ):
             await sleep(0)
             return self._latest_apps
         else:
-            self._latest_apps = (
+            result: list[dict[str, Any]] = (
                 await gen_apps_list_from_url(session=self._session) or APPS
             )
+            self._latest_apps = result
             self._latest_apps_last_updated = datetime.now()
             return self._latest_apps
 
@@ -583,7 +585,7 @@ class VizioAsync:
 
     async def get_all_settings_options(
         self, setting_type: str, log_api_exception: bool = True
-    ) -> dict[str, int | str] | None:
+    ) -> dict[str, list[str] | dict[str, int | None]] | None:
         """Asynchronously get all setting names and corresponding options."""
         item = await self.__invoke_api_may_need_auth(
             GetAllSettingsOptionsCommand(self.device_type, setting_type),
@@ -597,7 +599,7 @@ class VizioAsync:
 
     async def get_all_settings_options_xlist(
         self, setting_type: str, log_api_exception: bool = True
-    ) -> dict[str, int | str] | None:
+    ) -> dict[str, list[str]] | None:
         """Asynchronously get all setting names and corresponding options for settings that are based on a user defined list."""
         item = await self.__invoke_api_may_need_auth(
             GetAllSettingsOptionsXListCommand(self.device_type, setting_type),
@@ -629,7 +631,7 @@ class VizioAsync:
 
     async def get_setting_options(
         self, setting_type: str, setting_name: str, log_api_exception: bool = True
-    ) -> list[str] | dict[str, int | str] | None:
+    ) -> list[str] | dict[str, int | None] | None:
         """Asynchronously get options of named setting."""
         return await self.__invoke_api_may_need_auth(
             GetSettingOptionsCommand(self.device_type, setting_type, setting_name),
@@ -683,7 +685,7 @@ class VizioAsync:
 
     async def get_all_audio_settings_options(
         self, log_api_exception: bool = True
-    ) -> dict[str, int | str] | None:
+    ) -> dict[str, list[str] | dict[str, int | None]] | None:
         """Asynchronously get all audio setting names and corresponding options."""
         return await VizioAsync.get_all_settings_options(
             self, "audio", log_api_exception=log_api_exception
@@ -699,7 +701,7 @@ class VizioAsync:
 
     async def get_audio_setting_options(
         self, setting_name: str, log_api_exception: bool = True
-    ) -> list[str] | dict[str, int | str] | None:
+    ) -> list[str] | dict[str, int | None] | None:
         """Asynchronously get options of named audio setting."""
         return await VizioAsync.get_setting_options(
             self, "audio", setting_name, log_api_exception=log_api_exception
@@ -719,17 +721,21 @@ class VizioAsync:
     @staticmethod
     async def get_apps_list(
         country: str = "all",
-        apps_list: list[dict[str, str | list[str | dict[str, Any]]]] = None,
-        session: ClientSession = None,
+        apps_list: list[dict[str, Any]] | None = None,
+        session: ClientSession | None = None,
     ) -> list[str]:
         """Get list of known apps by name optionally filtered by supported country."""
         # Assumes "*" means all countries are supported
         if not apps_list:
-            apps_list = await gen_apps_list_from_url(session=session) or APPS
+            fetched: list[dict[str, Any]] = (
+                await gen_apps_list_from_url(session=session) or APPS
+            )
+            apps_list = fetched
 
+        home_name = str(APP_HOME["name"])
         if country.lower() != "all":
             return [
-                APP_HOME["name"],
+                home_name,
                 *sorted(
                     [
                         str(app["name"])
@@ -739,12 +745,12 @@ class VizioAsync:
                 ),
             ]
 
-        return [APP_HOME["name"], *sorted([str(app["name"]) for app in apps_list])]
+        return [home_name, *sorted([str(app["name"]) for app in apps_list])]
 
     async def launch_app(
         self,
         app_name: str,
-        apps_list: list[dict[str, str | list[str | dict[str, Any]]]] = None,
+        apps_list: list[dict[str, Any]] | None = None,
         log_api_exception: bool = True,
     ) -> bool | None:
         """Asynchronously launch known app by name."""
@@ -760,7 +766,7 @@ class VizioAsync:
         self,
         APP_ID: str,
         NAME_SPACE: int,
-        MESSAGE: str = None,
+        MESSAGE: str | None = None,
         log_api_exception: bool = True,
     ) -> bool | None:
         """Asynchronously launch app using app's config values."""
@@ -771,7 +777,7 @@ class VizioAsync:
 
     async def get_current_app(
         self,
-        apps_list: list[dict[str, str | list[str | dict[str, Any]]]] = None,
+        apps_list: list[dict[str, Any]] | None = None,
         log_api_exception: bool = True,
     ) -> str | None:
         """Asynchronously get name of currently running app. Returns const APP_NOT_RUNNING if no app is currently running, const UNKNOWN_APP if app config isn't known by pyvizio."""
@@ -1067,7 +1073,7 @@ class Vizio(VizioAsync):
     @async_to_sync
     async def get_all_settings_options(
         self, setting_type: str, log_api_exception: bool = True
-    ) -> dict[str, int | str] | None:
+    ) -> dict[str, list[str] | dict[str, int | None]] | None:
         """Get all setting names and corresponding options."""
         return await super().get_all_settings_options(
             setting_type, log_api_exception=log_api_exception
@@ -1085,7 +1091,7 @@ class Vizio(VizioAsync):
     @async_to_sync
     async def get_setting_options(
         self, setting_type: str, setting_name: str, log_api_exception: bool = True
-    ) -> list[str] | dict[str, int | str] | None:
+    ) -> list[str] | dict[str, int | None] | None:
         """Get options of named setting."""
         return await super().get_setting_options(
             setting_type, setting_name, log_api_exception=log_api_exception
@@ -1122,7 +1128,7 @@ class Vizio(VizioAsync):
     @async_to_sync
     async def get_all_audio_settings_options(
         self, log_api_exception: bool = True
-    ) -> dict[str, int | str] | None:
+    ) -> dict[str, list[str] | dict[str, int | None]] | None:
         """Get all audio setting names and corresponding options."""
         return await super().get_all_audio_settings_options(
             log_api_exception=log_api_exception
@@ -1140,7 +1146,7 @@ class Vizio(VizioAsync):
     @async_to_sync
     async def get_audio_setting_options(
         self, setting_name: str, log_api_exception: bool = True
-    ) -> list[str] | dict[str, int | str] | None:
+    ) -> list[str] | dict[str, int | None] | None:
         """Get options of named audio setting."""
         return await super().get_audio_setting_options(
             setting_name, log_api_exception=log_api_exception
@@ -1162,8 +1168,8 @@ class Vizio(VizioAsync):
     @async_to_sync
     async def get_apps_list(
         country: str = "all",
-        apps_list: list[dict[str, str | list[str | dict[str, Any]]]] = None,
-        session: ClientSession = None,
+        apps_list: list[dict[str, Any]] | None = None,
+        session: ClientSession | None = None,
     ) -> list[str]:
         """Get list of known apps by name optionally filtered by supported country."""
         return await super(Vizio, Vizio).get_apps_list(
@@ -1174,7 +1180,7 @@ class Vizio(VizioAsync):
     async def launch_app(
         self,
         app_name: str,
-        apps_list: list[dict[str, str | list[str | dict[str, Any]]]] = None,
+        apps_list: list[dict[str, Any]] | None = None,
         log_api_exception: bool = True,
     ) -> bool | None:
         """Launch known app by name."""
@@ -1188,7 +1194,7 @@ class Vizio(VizioAsync):
         app_name: str,
         APP_ID: str,
         NAME_SPACE: int,
-        MESSAGE: str = None,
+        MESSAGE: str | None = None,
         log_api_exception: bool = True,
     ) -> bool | None:
         """Launch app using app's config values."""
@@ -1199,7 +1205,7 @@ class Vizio(VizioAsync):
     @async_to_sync
     async def get_current_app(
         self,
-        apps_list: list[dict[str, str | list[str | dict[str, Any]]]] = None,
+        apps_list: list[dict[str, Any]] | None = None,
         log_api_exception: bool = True,
     ) -> str | None:
         """Get name of currently running app. Returns const APP_NOT_RUNNING if no app is currently running, const UNKNOWN_APP if app config isn't known by pyvizio."""
