@@ -21,7 +21,10 @@ class AppConfig:
     """Vizio SmartCast app config."""
 
     def __init__(
-        self, APP_ID: str = None, NAME_SPACE: int = None, MESSAGE: str = None
+        self,
+        APP_ID: str | None = None,
+        NAME_SPACE: int | None = None,
+        MESSAGE: str | None = None,
     ) -> None:
         self.APP_ID = APP_ID
         self.NAME_SPACE = NAME_SPACE
@@ -94,12 +97,16 @@ class LaunchAppConfigCommand(CommandBase):
     """Command to launch app by config."""
 
     def __init__(
-        self, device_type: str, APP_ID: str, NAME_SPACE: int, MESSAGE: str = None
+        self, device_type: str, APP_ID: str, NAME_SPACE: int, MESSAGE: str | None = None
     ) -> None:
         """Initialize command to launch app by config."""
         super().__init__(ENDPOINT[device_type]["LAUNCH_APP"])
 
         self.VALUE = AppConfig(APP_ID, NAME_SPACE, MESSAGE)
+
+    def process_response(self, json_obj: dict[str, Any]) -> bool:
+        """Return True on successful app launch."""
+        return True
 
 
 class LaunchAppNameCommand(LaunchAppConfigCommand):
@@ -109,10 +116,10 @@ class LaunchAppNameCommand(LaunchAppConfigCommand):
         self,
         device_type: str,
         app_name: str,
-        apps_list: list[dict[str, str | list[str | dict[str, Any]]]],
+        apps_list: list[dict[str, Any]],
     ) -> None:
         """Initialize command to launch app by name."""
-        app_def = next(
+        app_def: dict[str, Any] = next(
             (
                 app_def
                 for app_def in [APP_HOME, *apps_list]
@@ -122,7 +129,8 @@ class LaunchAppNameCommand(LaunchAppConfigCommand):
         )
 
         # Unpack config dict into expected key/value argument pairs
-        super().__init__(device_type, **app_def.get("config", [{}])[0])
+        config_list: list[dict[str, Any]] = app_def.get("config", [{}])
+        super().__init__(device_type, **config_list[0] if config_list else {})
 
 
 class GetCurrentAppConfigCommand(ItemInfoCommandBase):
@@ -149,13 +157,13 @@ class GetCurrentAppNameCommand(GetCurrentAppConfigCommand):
     def __init__(
         self,
         device_type: str,
-        apps_list: list[dict[str, str | list[str | dict[str, Any]]]],
+        apps_list: list[dict[str, Any]],
     ) -> None:
         """Initialize command to get currently running app's name."""
         super().__init__(device_type)
         self.apps_list = apps_list
 
-    def process_response(self, json_obj: dict[str, Any]) -> str:
+    def process_response(self, json_obj: dict[str, Any]) -> str:  # type: ignore[override]
         """
         Return response to command to get currently running app's name.
 
