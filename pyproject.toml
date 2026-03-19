@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "Python library for interfacing with Vizio SmartCast TVs and Sound Bars (2016+ models)"
 readme = "README.md"
 license = "GPL-3.0-only"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 authors = [
     { name = "Vlad Korniev", email = "vladimir.kornev@gmail.com" }
 ]
@@ -16,9 +16,6 @@ keywords = ["vizio", "smartcast"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
@@ -28,15 +25,18 @@ dependencies = [
     "requests",
     "tabulate>=0.8.6",
     "xmltodict",
-    "zeroconf>=0.24.4",
 ]
 
 [project.optional-dependencies]
+discovery = [
+    "zeroconf>=0.31",
+]
 test = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
     "pytest-cov>=4.0",
     "aioresponses>=0.7",
+    "zeroconf>=0.31",
 ]
 dev = [
     "pyvizio[test]",
@@ -68,7 +68,7 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py312"
 line-length = 88
 
 [tool.ruff.lint]
@@ -96,7 +96,7 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.12"
 ignore_missing_imports = true
 implicit_optional = true
 show_error_codes = true
