@@ -90,7 +90,7 @@ def discover(service, timeout=DEFAULT_TIMEOUT, retries=1, mx=3):
             try:
                 response = SSDPResponse(sock.recv(1024))
                 responses[response.location] = response
-            except socket.timeout:
+            except TimeoutError:
                 break
 
         return list(responses.values())

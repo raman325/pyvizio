@@ -21,3 +21,7 @@ class VizioInvalidParameterError(VizioError):
 
 class VizioResponseError(VizioError):
     """Unexpected or malformed response from device."""
+
+
+class VizioNotFoundError(VizioError):
+    """Requested item not found in device response."""

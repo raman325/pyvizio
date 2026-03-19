@@ -1,4 +1,8 @@
-"""Vizio SmartCast API commands for apps."""
+"""Vizio SmartCast API commands for apps.
+
+AppConfig and find_app_name are now canonical in pyvizio.apps;
+re-exported here for backward compatibility.
+"""
 
 from __future__ import annotations
 
@@ -7,90 +11,9 @@ from typing import Any
 from pyvizio.api._protocol import ENDPOINT, ResponseKey
 from pyvizio.api.base import CommandBase
 from pyvizio.api.input import ItemInfoCommandBase
-from pyvizio.const import (
-    APP_CAST,
-    APP_HOME,
-    EQUIVALENT_NAME_SPACES,
-    NO_APP_RUNNING,
-    UNKNOWN_APP,
-)
+from pyvizio.apps import AppConfig, find_app_name  # noqa: F401
+from pyvizio.const import APP_HOME, NO_APP_RUNNING
 from pyvizio.helpers import dict_get_case_insensitive
-
-
-class AppConfig:
-    """Vizio SmartCast app config."""
-
-    def __init__(
-        self,
-        APP_ID: str | None = None,
-        NAME_SPACE: int | None = None,
-        MESSAGE: str | None = None,
-    ) -> None:
-        self.APP_ID = APP_ID
-        self.NAME_SPACE = NAME_SPACE
-        self.MESSAGE = MESSAGE
-
-    def __repr__(self) -> str:
-        return f"{type(self).__name__}({self.__dict__})"
-
-    def __eq__(self, other) -> bool:
-        return self is other or self.__dict__ == other.__dict__
-
-    def __bool__(self) -> bool:
-        return self != AppConfig()
-
-
-def find_app_name(
-    config_to_check: AppConfig | None, app_list: list[dict[str, Any]]
-) -> str:
-    """
-    Return the app name for a given AppConfig based on a list of apps.
-
-    Returns UNKNOWN_APP if app name can't be found in APPS list for given AppConfig.
-    """
-    if not config_to_check:
-        return NO_APP_RUNNING
-
-    # Attempt to find an exact match from known apps list
-    for app_def in app_list:
-        if isinstance(app_def["config"], list):
-            for config in app_def["config"]:
-                if (
-                    config["APP_ID"] == config_to_check.APP_ID
-                    and config["NAME_SPACE"] == config_to_check.NAME_SPACE
-                ):
-                    return app_def["name"]
-        elif (
-            isinstance(app_def["config"], dict)
-            and app_def["config"]["APP_ID"] == config_to_check.APP_ID
-            and app_def["config"]["NAME_SPACE"] == config_to_check.NAME_SPACE
-        ):
-            return app_def["name"]
-
-    # If exact match couldn't be find, swap in equivalent name spaces
-    # and attempt to find a match
-    if config_to_check.NAME_SPACE in EQUIVALENT_NAME_SPACES:
-        for app_def in app_list:
-            if isinstance(app_def["config"], list):
-                for config in app_def["config"]:
-                    if (
-                        config["APP_ID"] == config_to_check.APP_ID
-                        and config["NAME_SPACE"] in EQUIVALENT_NAME_SPACES
-                    ):
-                        return app_def["name"]
-            elif (
-                isinstance(app_def["config"], dict)
-                and app_def["config"]["APP_ID"] == config_to_check.APP_ID
-                and app_def["config"]["NAME_SPACE"] in EQUIVALENT_NAME_SPACES
-            ):
-                return app_def["name"]
-
-    # So far only the SmartCast home screen appears to use the NAME_SPACE of 0
-    if config_to_check.NAME_SPACE == 0:
-        return APP_CAST
-
-    # If no match, app is unknown
-    return UNKNOWN_APP
 
 
 class LaunchAppConfigCommand(CommandBase):
