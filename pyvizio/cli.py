@@ -6,7 +6,7 @@ import click
 from tabulate import tabulate
 
 from pyvizio import VizioAsync, guess_device_type
-from pyvizio.api.apps import find_app_name
+from pyvizio.apps import find_app_name, gen_apps_list_from_url
 from pyvizio.const import (
     APP_HOME,
     APPS,
@@ -21,7 +21,6 @@ from pyvizio.const import (
     UNKNOWN_APP,
 )
 from pyvizio.helpers import async_to_sync
-from pyvizio.util import gen_apps_list_from_url
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -700,7 +699,7 @@ async def get_current_app_config(vizio: VizioAsync) -> None:
 @async_to_sync
 @pass_vizio
 async def get_version(vizio: VizioAsync) -> None:
-    item = await vizio.get_version(False)
+    item = await vizio.get_version(log_api_exception=False)
 
     if item is None:
         _LOGGER.error("Couldn't get version")
@@ -712,7 +711,7 @@ async def get_version(vizio: VizioAsync) -> None:
 @async_to_sync
 @pass_vizio
 async def get_esn(vizio: VizioAsync) -> None:
-    item = await vizio.get_esn(False)
+    item = await vizio.get_esn(log_api_exception=False)
 
     if item is None:
         _LOGGER.error("Couldn't get ESN")
@@ -724,7 +723,7 @@ async def get_esn(vizio: VizioAsync) -> None:
 @async_to_sync
 @pass_vizio
 async def get_serial_number(vizio: VizioAsync) -> None:
-    item = await vizio.get_serial_number(False)
+    item = await vizio.get_serial_number(log_api_exception=False)
 
     if item is None:
         _LOGGER.error("Couldn't get serial number")

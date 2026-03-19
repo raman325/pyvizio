@@ -33,21 +33,6 @@ def dict_get_case_insensitive(
     return out_dict.get(key.lower(), default_return)
 
 
-def get_value_from_path(
-    device_info: dict[str, Any], paths: list[list[str]]
-) -> Any | None:
-    """Iterate through known paths to return first valid path with value from Vizio device_info."""
-    for path in paths:
-        temp = ""
-        for step in path:
-            temp = dict_get_case_insensitive(device_info, step, {})
-
-        if temp:
-            return temp
-
-    return None
-
-
 # Adapted from https://gist.github.com/betrcode/0248f0fda894013382d7#gistcomment-3161499
 async def open_port(host, port):
     """Return whether or not host's port is open.

@@ -1,50 +1,11 @@
-"""Vizio SmartCast API commands and class for individual item settings."""
+"""Vizio SmartCast API item data type."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from pyvizio.api._protocol import (
-    ACTION_MODIFY,
-    ENDPOINT,
-    ITEM_CNAME,
-    PATH_MODEL,
-    ResponseKey,
-)
-from pyvizio.api.base import CommandBase, InfoCommandBase
-from pyvizio.helpers import dict_get_case_insensitive, get_value_from_path
-
-
-class GetDeviceInfoCommand(InfoCommandBase):
-    """Command to get device info."""
-
-    def __init__(self, device_type: str) -> None:
-        """Initialize command to get device info."""
-        super().__init__(ENDPOINT[device_type]["DEVICE_INFO"])
-        self.paths = PATH_MODEL[device_type]
-
-    def process_response(self, json_obj: dict[str, Any]) -> dict[str, Any]:
-        """Return response to command to get device info."""
-        return dict_get_case_insensitive(json_obj, ResponseKey.ITEMS, [{}])[0]
-
-
-class GetModelNameCommand(GetDeviceInfoCommand):
-    """Command to get device model name."""
-
-    def __init__(self, device_type: str) -> None:
-        """Initialize command to get device model name."""
-        super().__init__(device_type)
-
-    def process_response(self, json_obj: dict[str, Any]) -> str | None:  # type: ignore[override]
-        """Return response to command to get device model name."""
-        return get_value_from_path(
-            dict_get_case_insensitive(
-                super().process_response(json_obj),
-                ResponseKey.VALUE,
-                {},
-            ),
-            self.paths,
-        )
+from pyvizio.api._protocol import ResponseKey
+from pyvizio.helpers import dict_get_case_insensitive
 
 
 class Item:
@@ -89,84 +50,3 @@ class Item:
             and self.name == other.name
             and self.value == other.value
         )
-
-
-class DefaultReturnItem:
-    """Mock individual item setting response when item is not found."""
-
-    def __init__(self, value: Any) -> None:
-        """Initialize mock individual item setting response when item is not found."""
-        self.value = value
-
-    def __repr__(self) -> str:
-        return f"{type(self).__name__}({self.__dict__})"
-
-    def __eq__(self, other) -> bool:
-        return self is other or self.__dict__ == other.__dict__
-
-
-class ItemInfoCommandBase(InfoCommandBase):
-    """Command to get individual item setting."""
-
-    def __init__(
-        self, device_type: str, item_name: str, default_return: int | str | None = None
-    ) -> None:
-        """Initialize command to get individual item setting."""
-        super().__init__(ENDPOINT[device_type][item_name])
-        self.item_name = item_name.upper()
-        self.default_return = default_return
-
-    def process_response(self, json_obj: dict[str, Any]) -> Any:
-        """Return response to command to get individual item setting."""
-        items = [
-            Item(item)
-            for item in dict_get_case_insensitive(json_obj, ResponseKey.ITEMS, [])
-        ]
-
-        for itm in items:
-            if itm.c_name.lower() in (
-                ITEM_CNAME.get(self.item_name, ""),
-                self.item_name,
-            ) and (
-                itm.value is not None
-                or itm.center is not None
-                or itm.choices is not None
-            ):
-                return itm
-
-        if self.default_return is not None:
-            return DefaultReturnItem(self.default_return)
-
-        return None
-
-
-class ItemCommandBase(CommandBase):
-    """Command to set value of individual item setting."""
-
-    def __init__(
-        self, device_type: str, item_name: str, id: int, value: int | str
-    ) -> None:
-        """Initialize command to set value of individual item setting."""
-        super().__init__(ENDPOINT[device_type][item_name])
-        self.item_name = item_name
-
-        self.VALUE = value
-        # noinspection SpellCheckingInspection
-        self.HASHVAL = int(id)
-        self.REQUEST = ACTION_MODIFY.upper()
-
-
-class AltItemInfoCommandBase(ItemInfoCommandBase):
-    """Command to get individual item setting from alternate endpoint."""
-
-    def __init__(
-        self,
-        device_type: str,
-        endpoint_name: str,
-        item_name: str,
-        default_return: int | str | None = None,
-    ) -> None:
-        """Initialize command to get individual item setting from alternate endpoint."""
-        super(ItemInfoCommandBase, self).__init__(ENDPOINT[device_type][endpoint_name])
-        self.item_name = item_name.upper()
-        self.default_return = default_return

@@ -13,50 +13,15 @@ from aiohttp import ClientSession
 # New v2 internals
 from pyvizio._vizio import VizioAsync
 
-# Backward-compat re-exports: all old import paths still work
-from pyvizio.api._protocol import (  # noqa: F401
-    KEY_CODE,
-    async_invoke_api,
-    async_invoke_api_auth,
-)
-from pyvizio.api.apps import (  # noqa: F401
-    AppConfig,
-    GetCurrentAppConfigCommand,
-    GetCurrentAppNameCommand,
-    LaunchAppConfigCommand,
-    LaunchAppNameCommand,
-)
-from pyvizio.api.base import CommandBase  # noqa: F401
-from pyvizio.api.input import (  # noqa: F401
-    ChangeInputCommand,
-    GetCurrentInputCommand,
-    GetInputsListCommand,
-    InputItem,
-)
-from pyvizio.api.item import (  # noqa: F401
-    AltItemInfoCommandBase,
-    GetDeviceInfoCommand,
-    GetModelNameCommand,
-    ItemInfoCommandBase,
-)
+# Backward-compat re-exports: old import paths still work
+from pyvizio.api._protocol import KEY_CODE  # noqa: F401
+from pyvizio.api.apps import AppConfig  # noqa: F401
+from pyvizio.api.input import InputItem  # noqa: F401
 from pyvizio.api.pair import (  # noqa: F401
-    BeginPairCommand,
     BeginPairResponse,
-    CancelPairCommand,
-    PairChallengeCommand,
     PairChallengeResponse,
 )
-from pyvizio.api.remote import EmulateRemoteCommand  # noqa: F401
-from pyvizio.api.settings import (  # noqa: F401
-    ChangeSettingCommand,
-    GetAllSettingsCommand,
-    GetAllSettingsOptionsCommand,
-    GetAllSettingsOptionsXListCommand,
-    GetAllSettingTypesCommand,
-    GetSettingCommand,
-    GetSettingOptionsCommand,
-    GetSettingOptionsXListCommand,
-)
+from pyvizio.apps import gen_apps_list_from_url  # noqa: F401
 from pyvizio.const import (  # noqa: F401
     APP_HOME,
     APPS,
@@ -83,7 +48,6 @@ from pyvizio.errors import (  # noqa: F401
     VizioResponseError as VizioResponseError,
 )
 from pyvizio.helpers import async_to_sync, open_port  # noqa: F401
-from pyvizio.util import gen_apps_list_from_url  # noqa: F401
 from pyvizio.version import __version__ as __version__
 
 # ---- Sync wrapper class ----

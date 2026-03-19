@@ -1,11 +1,11 @@
-"""Vizio SmartCast API commands and class for device inputs."""
+"""Vizio SmartCast API input data type."""
 
 from __future__ import annotations
 
 from typing import Any
 
 from pyvizio.api._protocol import ResponseKey
-from pyvizio.api.item import Item, ItemCommandBase, ItemInfoCommandBase
+from pyvizio.api.item import Item
 from pyvizio.helpers import dict_get_case_insensitive
 
 
@@ -29,55 +29,3 @@ class InputItem(Item):
 
         if not self.meta_name:
             self.meta_name = self.c_name
-
-
-class GetInputsListCommand(ItemInfoCommandBase):
-    """Command to get list of available inputs."""
-
-    def __init__(self, device_type: str) -> None:
-        """Initialize command to get list of available inputs."""
-        super().__init__(device_type, "INPUTS")
-
-    def process_response(self, json_obj: dict[str, Any]) -> list[InputItem] | None:
-        """Return response to command to get list of available inputs."""
-        items = dict_get_case_insensitive(json_obj, ResponseKey.ITEMS)
-
-        if items:
-            return [
-                InputItem(itm, True)
-                for itm in items
-                if dict_get_case_insensitive(itm, ResponseKey.CNAME) != "current_input"
-            ]
-
-        return None
-
-
-class GetCurrentInputCommand(ItemInfoCommandBase):
-    """Command to get currently active input."""
-
-    def __init__(self, device_type: str) -> None:
-        """Initialize command to get currently active input."""
-        super().__init__(device_type, "CURRENT_INPUT")
-
-    def process_response(self, json_obj: dict[str, Any]) -> InputItem | None:
-        """Return response to command to get currently active input."""
-        items = dict_get_case_insensitive(json_obj, ResponseKey.ITEMS)
-
-        v_input = None
-
-        if items:
-            v_input = InputItem(items[0], False)
-
-        return v_input
-
-
-class ChangeInputCommand(ItemCommandBase):
-    """Command to change active input by name."""
-
-    def __init__(self, device_type: str, id: int, name: str) -> None:
-        """Initialize command to change active input by name."""
-        super().__init__(device_type, "CURRENT_INPUT", id, name)
-
-    def process_response(self, json_obj: dict[str, Any]) -> bool:
-        """Return True on successful input change."""
-        return True
