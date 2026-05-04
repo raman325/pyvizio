@@ -131,9 +131,45 @@ class TestVolume:
         result = await vizio_tv.is_muted()
         assert result is expected
 
-    @pytest.mark.parametrize("method", ["mute_on", "mute_off", "mute_toggle"])
-    async def test_mute_commands(self, vizio_tv, mock_aio, method):
+    async def test_mute_toggle(self, vizio_tv, mock_aio):
+        # mute_toggle is a single keypress with no state probe.
         mock_aio.put(tv_url("KEY_PRESS"), payload=make_key_press_response())
+        result = await vizio_tv.mute_toggle()
+        assert result is True
+
+    @pytest.mark.parametrize(
+        "method,probe_mute_value,expect_keypress",
+        [
+            # mute_on while unmuted → toggle fires.
+            ("mute_on", "Off", True),
+            # mute_on while already muted → no-op (idempotent).
+            ("mute_on", "On", False),
+            # mute_off while muted → toggle fires.
+            ("mute_off", "On", True),
+            # mute_off while already unmuted → no-op.
+            ("mute_off", "Off", False),
+        ],
+    )
+    async def test_mute_state_aware(
+        self,
+        vizio_tv,
+        mock_aio,
+        method,
+        probe_mute_value,
+        expect_keypress,
+    ):
+        """mute_on / mute_off probe the current state first and only
+        send MUTE_TOGGLE when the device isn't already in the desired
+        state. Verified live: discrete MUTE_ON / MUTE_OFF codes don't
+        exist as distinct actions on every firmware."""
+        from tests.conftest import tv_settings_url
+
+        mock_aio.get(
+            tv_settings_url("audio", "mute"),
+            payload=make_response(items=[make_item("mute", probe_mute_value)]),
+        )
+        if expect_keypress:
+            mock_aio.put(tv_url("KEY_PRESS"), payload=make_key_press_response())
         result = await getattr(vizio_tv, method)()
         assert result is True
 

@@ -215,6 +215,36 @@ class TestHttpStatusMapping:
 # ---------------------------------------------------------------------------
 
 
+class TestMuteStateAware:
+    """``mute_on`` / ``mute_off`` probe state via ``is_muted`` first.
+    Critical edge case: ``is_muted`` returns ``None`` on transport or
+    auth failures (it swallows the exception). We must NOT fall through
+    to MUTE_TOGGLE in that case — toggling on an unknown state could
+    invert an already-correct state."""
+
+    async def test_mute_on_no_op_when_probe_returns_none(
+        self, vizio_tv: VizioAsync, mock_aio
+    ) -> None:
+        from tests.conftest import tv_settings_url
+
+        # is_muted under the hood does GET on audio.mute. Make it 500
+        # so is_muted swallows the exception and returns None.
+        mock_aio.get(tv_settings_url("audio", "mute"), status=500)
+        # No KEY_PRESS mock — if mute_on incorrectly fell through to
+        # MUTE_TOGGLE, this test would error with "no mock matched".
+        result = await vizio_tv.mute_on(log_api_exception=False)
+        assert result is None
+
+    async def test_mute_off_no_op_when_probe_returns_none(
+        self, vizio_tv: VizioAsync, mock_aio
+    ) -> None:
+        from tests.conftest import tv_settings_url
+
+        mock_aio.get(tv_settings_url("audio", "mute"), status=500)
+        result = await vizio_tv.mute_off(log_api_exception=False)
+        assert result is None
+
+
 class TestIdentityAggregate:
     """Modern firmware exposes all identity fields (serial, firmware,
     model, …) under a single ``tv_information`` parent, and rejects

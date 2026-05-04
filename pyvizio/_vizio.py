@@ -506,6 +506,14 @@ class VizioAsync:
             current = await self.is_muted(**kwargs)
             if current is True:
                 return True
+            if current is None:
+                # Probe failed (transport/auth error). ``is_muted``
+                # swallowed the exception and returned None; we don't
+                # know the current state. Falling through to
+                # MUTE_TOGGLE here would risk inverting an already-
+                # muted device. Return None so the caller can decide
+                # whether to retry.
+                return None
             return await self._remote_key_internal("MUTE_TOGGLE", **kwargs)
         except VizioError as e:
             return self._handle_error(e, kwargs)
@@ -514,12 +522,16 @@ class VizioAsync:
         """Unmute sound (idempotent — no-op if already unmuted).
 
         See :meth:`mute_on` for the rationale on the read-then-toggle
-        pattern.
+        pattern, including the ``is_muted() == None`` guard against
+        inverting an already-correct state when the probe fails.
         """
         try:
             current = await self.is_muted(**kwargs)
             if current is False:
                 return True
+            if current is None:
+                # Probe failed; see mute_on docstring.
+                return None
             return await self._remote_key_internal("MUTE_TOGGLE", **kwargs)
         except VizioError as e:
             return self._handle_error(e, kwargs)
@@ -704,12 +716,39 @@ class VizioAsync:
         validator and parse the raw payload directly.
 
         Verified live on VHD24M-0810 fw 3.720.9.1-1.
+
+        Raises (via the caller-error path) :class:`VizioUnsupportedError`
+        when the device class doesn't define a ``STATE_EXTENDED``
+        endpoint (speakers, Crave) — guarding before any HTTP work.
         """
         from pyvizio.api.state_extended import parse_state_extended
+        from pyvizio.errors import VizioUnsupportedError
 
         try:
             self._check_auth()
+            if "STATE_EXTENDED" not in self._device_config.endpoints:
+                raise VizioUnsupportedError(
+                    f"{self.device_type!r} doesn't expose /state_extended"
+                )
             data = await self._get_raw_json(self._endpoint("STATE_EXTENDED"))
+            # ``get_raw_json`` skips envelope validation, so we have to
+            # detect URI_NOT_FOUND-shaped responses manually here. Older
+            # firmware that doesn't expose ``/state_extended`` returns
+            # the standard SCPL envelope ``{"STATUS": {"RESULT":
+            # "URI_NOT_FOUND", ...}}`` rather than the flat-keyed shape
+            # we want — without this check the parser would happily
+            # produce a default-filled StateExtended and callers couldn't
+            # distinguish "endpoint unsupported" from "real all-default
+            # state."
+            status_obj = data.get("STATUS") or data.get("status")
+            if isinstance(status_obj, dict):
+                result = status_obj.get("RESULT") or status_obj.get("result")
+                if isinstance(result, str) and result.lower() == "uri_not_found":
+                    raise VizioNotFoundError(
+                        status_obj.get("DETAIL")
+                        or status_obj.get("detail")
+                        or "/state_extended is not exposed by this firmware"
+                    )
         except VizioError as e:
             return self._handle_error(e, kwargs)
         return parse_state_extended(data)
@@ -1251,10 +1290,23 @@ class VizioAsync:
     # ---- Connection checks ----
 
     async def can_connect_with_auth_check(self) -> bool:
-        """Return whether or not device API can be connected to with valid authorization."""
-        return bool(
-            await VizioAsync.get_all_audio_settings(self, log_api_exception=False)
-        )
+        """Return whether or not device API can be connected to with valid authorization.
+
+        Probe-style helper — must always return a bool, never propagate.
+        With the new HTTP 401/403 → :class:`VizioAuthError` mapping
+        (re-pair invalidation surfaces here), the underlying call now
+        raises that exception instead of being suppressed by
+        ``log_api_exception=False``. ``_handle_error`` has a special
+        case that always re-raises ``VizioAuthError`` because it's
+        load-bearing for non-probe call sites; we catch it locally
+        here to preserve the bool contract callers expect.
+        """
+        try:
+            return bool(
+                await VizioAsync.get_all_audio_settings(self, log_api_exception=False)
+            )
+        except VizioAuthError:
+            return False
 
     async def can_connect_no_auth_check(self) -> bool:
         """Return whether or not device API can be connected to regardless of authorization."""

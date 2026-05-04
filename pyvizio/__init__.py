@@ -40,12 +40,15 @@ from pyvizio.discovery.zeroconf import (  # noqa: F401
     discover as discover_zc,
 )
 from pyvizio.errors import (  # noqa: F401
-    VizioAuthError,
+    VizioAuthError as VizioAuthError,
+    VizioBusyError as VizioBusyError,
     VizioConnectionError as VizioConnectionError,
     VizioError as VizioError,
+    VizioInvalidInputError as VizioInvalidInputError,
     VizioInvalidParameterError as VizioInvalidParameterError,
     VizioNotFoundError as VizioNotFoundError,
     VizioResponseError as VizioResponseError,
+    VizioUnsupportedError as VizioUnsupportedError,
 )
 from pyvizio.helpers import async_to_sync, open_port  # noqa: F401
 from pyvizio.version import __version__ as __version__

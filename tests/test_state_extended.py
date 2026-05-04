@@ -185,28 +185,49 @@ class TestVizioGetStateExtended:
         assert s.current_input == "HDMI-1"
         assert s.device_name == "Test TV"
 
-    async def test_uri_not_found_returns_none(
+    async def test_uri_not_found_envelope_raises_not_found(
         self, vizio_tv: VizioAsync, mock_aio
     ) -> None:
         """Older firmware that doesn't expose ``/state_extended`` returns
-        ``URI_NOT_FOUND`` from the regular envelope path, but our caller
-        uses ``get_raw_json`` which skips envelope validation. The HTTP
-        layer still completes and the parser handles whatever shape the
-        device returns. This test confirms a missing-URI response (HTTP
-        200 with the URI_NOT_FOUND payload shape) is consumed without
-        crashing — though we use the HTTP-error helper for graceful
-        degradation."""
+        the standard SCPL envelope ``{"STATUS": {"RESULT":
+        "URI_NOT_FOUND", ...}}`` rather than the flat-keyed shape we
+        want. ``get_raw_json`` deliberately skips envelope validation
+        (the success-case payload doesn't have ``STATUS``/``ITEMS``),
+        so ``get_state_extended`` detects an envelope-shaped error
+        manually and raises ``VizioNotFoundError``. Without this
+        check, the parser would happily produce a default-filled
+        ``StateExtended`` and callers couldn't distinguish "endpoint
+        unsupported" from "real all-default state".
+
+        ``_handle_error`` swallows ``VizioNotFoundError`` when
+        ``log_api_exception=False``, so the result is ``None`` (which
+        is the documented "not available" signal for compat callers).
+        """
         mock_aio.get(
             tv_url("STATE_EXTENDED"),
             payload={"STATUS": {"RESULT": "URI_NOT_FOUND", "DETAIL": "URI not found"}},
         )
-        # When skip_envelope=True the response lacks the expected
-        # state_extended top-level keys, so the parser degrades to
-        # default/empty values rather than raising.
-        s = await vizio_tv.get_state_extended()
-        assert s is not None
-        assert s.power_on is False
-        assert s.current_input == ""
+        s = await vizio_tv.get_state_extended(log_api_exception=False)
+        assert s is None
+
+    async def test_unsupported_device_class(self) -> None:
+        """Speakers and Crave don't define STATE_EXTENDED; library must
+        gate before any HTTP work rather than crashing with a KeyError
+        from the missing endpoint lookup. The compat-helper
+        ``_handle_error`` then suppresses the ``VizioUnsupportedError``
+        and returns ``None``, which is the documented signal for
+        "not available on this device class"."""
+        speaker = VizioAsync(
+            device_id="probe",
+            ip="192.168.1.50:9000",
+            name="Speaker",
+            auth_token="",
+            device_type="speaker",
+        )
+        # No HTTP mock needed — the endpoint-presence gate
+        # short-circuits before any request would fire.
+        assert await speaker.get_state_extended(log_api_exception=False) is None
+        assert await speaker.get_state_extended() is None
 
     async def test_http_error_returns_none(
         self, vizio_tv: VizioAsync, mock_aio
