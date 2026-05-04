@@ -85,6 +85,19 @@ DEVICE_CONFIGS: dict[str, DeviceConfig] = {
             "_ALT_ESN": "/menu_native/dynamic/tv_settings/admin_and_privacy/system_information/uli_information/esn",
             "_ALT_SERIAL_NUMBER": "/menu_native/dynamic/tv_settings/admin_and_privacy/system_information/tv_information/serial_number",
             "_ALT_VERSION": "/menu_native/dynamic/tv_settings/admin_and_privacy/system_information/tv_information/version",
+            # Aggregate identity endpoint. Modern firmware (~3.7+) returns
+            # all identity fields (tv_name, serial_number, model_name,
+            # firmware, cast_version, vizios, conjure, sc_config, ...)
+            # in one response and rejects per-field child paths above with
+            # URI_NOT_FOUND. Library tries this first; falls back to
+            # per-field paths on URI_NOT_FOUND for older firmware.
+            "TV_INFORMATION": "/menu_native/dynamic/tv_settings/admin_and_privacy/system_information/tv_information",
+            "_ALT_TV_INFORMATION": "/menu_native/dynamic/tv_settings/system/system_information/tv_information",
+            # Bulk state poll. Returns power, current input, current app,
+            # screen mode, media state in a single round trip with a
+            # flat-keyed envelope (no STATUS/ITEMS wrapper). Capability
+            # advertised under deviceinfo.scpl_capabilities.state_extended.
+            "STATE_EXTENDED": "/state_extended",
             "DEVICE_INFO": "/state/device/deviceinfo",
             "POWER_MODE": "/state/device/power_mode",
             "KEY_PRESS": "/key_command/",
@@ -125,6 +138,20 @@ DEVICE_CONFIGS: dict[str, DeviceConfig] = {
             "POW_OFF": (11, 0),
             "POW_ON": (11, 1),
             "POW_TOGGLE": (11, 2),
+            # Numeric keys for direct channel entry on tuner-equipped
+            # models. Tuner-less models (verified live on VHD24M-0810)
+            # reject these with FAILURE — better UX than absence from
+            # the keymap.
+            "NUM_0": (0, 0),
+            "NUM_1": (0, 1),
+            "NUM_2": (0, 2),
+            "NUM_3": (0, 3),
+            "NUM_4": (0, 4),
+            "NUM_5": (0, 5),
+            "NUM_6": (0, 6),
+            "NUM_7": (0, 7),
+            "NUM_8": (0, 8),
+            "NUM_9": (0, 9),
         },
     ),
     DEVICE_CLASS_SPEAKER: DeviceConfig(

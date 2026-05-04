@@ -12,6 +12,7 @@ from tests.conftest import (
     TV_IP_PORT,
     make_app_response,
     make_current_input_response,
+    make_inputs_list_response,
     make_item,
     make_key_press_response,
     make_power_response,
@@ -84,7 +85,18 @@ class TestSyncInput:
         assert result == "HDMI-1"
 
     def test_sync_set_input(self, vizio_sync):
+        # set_input now fetches INPUTS too (to resolve user input →
+        # cname before sending). Mocks updated to match.
         with aioresponses() as m:
+            m.get(
+                tv_url("INPUTS"),
+                payload=make_inputs_list_response(
+                    [
+                        ("hdmi1", "HDMI-1", "HDMI-1", 1),
+                        ("hdmi2", "HDMI-2", "HDMI-2", 2),
+                    ]
+                ),
+            )
             m.get(
                 tv_url("CURRENT_INPUT"),
                 payload=make_current_input_response("current_input", "HDMI-1", 5),
@@ -156,7 +168,7 @@ class TestSyncWrapperGeneration:
         name
         for name, raw in vars(VizioAsync).items()
         if not name.startswith("_")
-        and not isinstance(raw, (staticmethod, classmethod))
+        and not isinstance(raw, staticmethod | classmethod)
         and asyncio.iscoroutinefunction(getattr(VizioAsync, name))
     ]
 

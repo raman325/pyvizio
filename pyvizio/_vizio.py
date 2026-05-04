@@ -12,7 +12,10 @@ from asyncio import sleep
 from collections.abc import KeysView
 from datetime import datetime, timedelta
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pyvizio.api.state_extended import StateExtended
 
 from aiohttp import ClientSession
 
@@ -44,7 +47,13 @@ from pyvizio.const import (
     DEVICE_CLASS_TV,
     DEVICE_CONFIGS,
 )
-from pyvizio.errors import VizioAuthError, VizioError, VizioInvalidParameterError
+from pyvizio.errors import (
+    VizioAuthError,
+    VizioError,
+    VizioInvalidInputError,
+    VizioInvalidParameterError,
+    VizioNotFoundError,
+)
 from pyvizio.helpers import open_port
 
 _LOGGER = logging.getLogger(__name__)
@@ -72,6 +81,88 @@ KEY_ACTION_PRESS = "KEYPRESS"
 
 # Key codes derived from DEVICE_CONFIGS
 KEY_CODE = {k: v.key_codes for k, v in DEVICE_CONFIGS.items()}
+
+
+def _input_meta_name(input_item: dict[str, Any]) -> str:
+    """Extract the meta_name (VALUE.NAME) from an input list item.
+
+    Inputs return ``VALUE`` as a dict like ``{"NAME": "Mac",
+    "METADATA": ""}``. CAST is the canonical example where
+    name (``"CAST"``) and meta_name (``"SMARTCAST"``) diverge at
+    factory default.
+    """
+    value = _ci_get(input_item, "value")
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        name = _ci_get(value, "name")
+        if isinstance(name, str):
+            return name
+    return ""
+
+
+def _find_input_by_cname(
+    cname: str, inputs_data: dict[str, Any]
+) -> dict[str, Any] | None:
+    """Find an input item by its lowercase cname."""
+    target = cname.lower()
+    for raw in _ci_get(inputs_data, "items") or []:
+        if (_ci_get(raw, "cname") or "").lower() == target:
+            return raw
+    return None
+
+
+def _resolve_input_cname(name: str, inputs_data: dict[str, Any]) -> str:
+    """Resolve a user-supplied input identifier to its canonical cname.
+
+    The device's PUT body for ``current_input`` carries the lowercase
+    **cname** (e.g. ``"hdmi2"``), not the display name (``"HDMI-2"``)
+    or the meta_name (``"Mac"``). Verified live on VHD24M-0810 fw
+    3.720.9.1-1: PUT VALUE='HDMI-2' → FAILURE; PUT VALUE='Mac' →
+    HASHVAL_ERROR; PUT VALUE='hdmi2' → SUCCESS.
+
+    Resolution order, all case-insensitive:
+
+    1. Exact ``cname`` match (most specific).
+    2. Exact ``meta_name`` match (handles CAST/SMARTCAST and user
+       renames).
+    3. Exact display ``name`` match (label fallback).
+
+    Raises :class:`VizioInvalidInputError` when no input matches, or
+    when matching is ambiguous (user renamed two HDMIs to the same
+    label).
+    """
+    items = _ci_get(inputs_data, "items") or []
+    real = []
+    for raw in items:
+        if (_ci_get(raw, "cname") or "").lower() == "current_input":
+            continue
+        real.append(raw)
+
+    target = name.lower()
+    candidates_by = {
+        "cname": [
+            raw for raw in real if (_ci_get(raw, "cname") or "").lower() == target
+        ],
+        "meta_name": [raw for raw in real if _input_meta_name(raw).lower() == target],
+        "name": [raw for raw in real if (_ci_get(raw, "name") or "").lower() == target],
+    }
+    for label, hits in candidates_by.items():
+        if len(hits) == 1:
+            return (_ci_get(hits[0], "cname") or "").lower()
+        if len(hits) > 1:
+            raise VizioInvalidInputError(
+                f"input {name!r} matches multiple inputs by {label} "
+                f"({[_ci_get(h, 'cname') for h in hits]}); "
+                "rename one to disambiguate"
+            )
+
+    valid = sorted(
+        {(_ci_get(r, "cname") or "").lower() for r in real}
+        | {(_ci_get(r, "name") or "") for r in real}
+        | {_input_meta_name(r) for r in real if _input_meta_name(r)}
+    )
+    raise VizioInvalidInputError(f"input {name!r} not found. Valid: {valid}")
 
 
 class _KeyPressEvent:
@@ -122,6 +213,12 @@ class VizioAsync:
         self._semaphore: asyncio.Semaphore | None = None
         self._latest_apps: list[dict[str, Any]] | None = None
         self._latest_apps_last_updated: datetime | None = None
+        # Identity is immutable for the device lifetime, so we cache the
+        # aggregate tv_information response on the instance after the
+        # first fetch. ``_loaded`` distinguishes "never fetched yet"
+        # from "fetched and aggregate not exposed by this firmware."
+        self._cached_identity: dict[str, str] | None = None
+        self._cached_identity_loaded: bool = False
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.__dict__})"
@@ -168,6 +265,17 @@ class VizioAsync:
             await self._ensure_port()
             client = self._make_client(with_auth=bool(self._auth_token))
             return await client.get(path)
+
+    async def _get_raw_json(self, path: str) -> dict[str, Any]:
+        """GET an endpoint that returns a non-standard envelope.
+
+        Used for ``/state_extended``, which has a flat-keyed payload
+        instead of the usual ``STATUS``/``ITEMS`` wrapper.
+        """
+        async with self._get_semaphore():
+            await self._ensure_port()
+            client = self._make_client(with_auth=bool(self._auth_token))
+            return await client.get_raw_json(path)
 
     async def _put(
         self, path: str, body: dict[str, Any] | None = None
@@ -382,16 +490,38 @@ class VizioAsync:
     # ---- Mute ----
 
     async def mute_on(self, **kwargs) -> bool | None:
-        """Mute sound."""
+        """Mute sound (idempotent — no-op if already muted).
+
+        Verified live on VHD24M-0810 fw 3.720.9.1-1: discrete
+        ``MUTE_ON`` / ``MUTE_OFF`` codes don't actually exist as
+        discrete actions on TVs — codeset 5 codes 2/3/4 all behave
+        as toggles. Soundbars and Crave speakers may have true
+        discrete codes; ``MUTE_TOGGLE`` is the only universally
+        reliable behavior.
+
+        High-level API now reads current mute state and sends the
+        toggle only on mismatch. Power users wanting raw codes can
+        still call ``_remote_key_internal("MUTE_ON")`` directly.
+        """
         try:
-            return await self._remote_key_internal("MUTE_ON", **kwargs)
+            current = await self.is_muted(**kwargs)
+            if current is True:
+                return True
+            return await self._remote_key_internal("MUTE_TOGGLE", **kwargs)
         except VizioError as e:
             return self._handle_error(e, kwargs)
 
     async def mute_off(self, **kwargs) -> bool | None:
-        """Unmute sound."""
+        """Unmute sound (idempotent — no-op if already unmuted).
+
+        See :meth:`mute_on` for the rationale on the read-then-toggle
+        pattern.
+        """
         try:
-            return await self._remote_key_internal("MUTE_OFF", **kwargs)
+            current = await self.is_muted(**kwargs)
+            if current is False:
+                return True
+            return await self._remote_key_internal("MUTE_TOGGLE", **kwargs)
         except VizioError as e:
             return self._handle_error(e, kwargs)
 
@@ -495,19 +625,60 @@ class VizioAsync:
             return self._handle_error(e, kwargs)
 
     async def set_input(self, name: str, **kwargs) -> bool | None:
-        """Switch active input to named input."""
+        """Switch active input to a named input.
+
+        ``name`` accepts any of the input's three identifier forms,
+        case-insensitively:
+
+        - cname (e.g. ``"hdmi2"``) — the device's canonical lowercase
+          identifier; the only form the device actually accepts in
+          the PUT body
+        - display name (e.g. ``"HDMI-2"``) — the cname-derived label
+          that ``InputItem.c_name`` exposes
+        - meta_name (e.g. ``"Mac"``) — the user-customized friendly
+          name; for ``cast`` it's the factory default ``"SMARTCAST"``
+
+        Verified live on VHD24M-0810 fw 3.720.9.1-1: sending the
+        display name returns ``RESULT: FAILURE``; sending the
+        meta_name returns ``RESULT: HASHVAL_ERROR``; only the
+        lowercase cname returns ``SUCCESS``. This method translates
+        any of the three forms to the cname before sending.
+
+        Short-circuits when already on the target input — the device
+        explicitly rejects "switch to current input" with FAILURE,
+        so we treat target==current as a no-op success.
+        """
         try:
             self._check_auth()
-            data = await self._get(self._endpoint("CURRENT_INPUT"))
-            item = parse_current_input_item(data)
+            inputs_data = await self._get(self._endpoint("INPUTS"))
+            current_data = await self._get(self._endpoint("CURRENT_INPUT"))
 
-            if not item:
+            target_cname = _resolve_input_cname(name, inputs_data)
+
+            current_item = parse_current_input_item(current_data)
+            if not current_item:
                 _LOGGER.error("Couldn't detect current input")
                 return None
 
-            hashval = item.get("hashval", 0)
+            # Short-circuit when already on target. The device's
+            # current_input.VALUE is inconsistent across input types
+            # (display name for HDMI, meta_name for CAST), so check
+            # any of the three identifying forms.
+            current_value = current_item.get("value")
+            if isinstance(current_value, str):
+                target_input = _find_input_by_cname(target_cname, inputs_data)
+                if target_input:
+                    candidates = {
+                        target_cname.lower(),
+                        (target_input.get("name") or "").lower(),
+                        _input_meta_name(target_input).lower(),
+                    }
+                    if current_value.lower() in candidates:
+                        return True
+
+            hashval = current_item.get("hashval", 0)
             body = {
-                "VALUE": name,
+                "VALUE": target_cname,
                 "HASHVAL": int(hashval) if hashval is not None else 0,
                 "REQUEST": "MODIFY",
             }
@@ -516,12 +687,91 @@ class VizioAsync:
         except VizioError as e:
             return self._handle_error(e, kwargs)
 
-    # ---- Device Info ----
+    # ---- State Extended (bulk poll) ----
 
-    async def get_esn(self, **kwargs) -> str | None:
-        """Get device's ESN (electronic serial number)."""
+    async def get_state_extended(self, **kwargs) -> StateExtended | None:
+        """Fetch aggregate device state in one HTTP round trip.
+
+        Returns power, current input, current app, screen mode, and
+        media state — meaningfully cheaper than five individual GETs
+        for HA-style polling integrations. Capability is advertised
+        under ``deviceinfo.scpl_capabilities.state_extended``; older
+        firmware that doesn't expose the endpoint surfaces as
+        :class:`pyvizio.errors.VizioNotFoundError`.
+
+        The on-the-wire envelope is **distinct** from the regular
+        SCPL response shape — flat top-level keys, no
+        ``STATUS``/``ITEMS``. We bypass the standard envelope
+        validator and parse the raw payload directly.
+
+        Verified live on VHD24M-0810 fw 3.720.9.1-1.
+        """
+        from pyvizio.api.state_extended import parse_state_extended
+
         try:
             self._check_auth()
+            data = await self._get_raw_json(self._endpoint("STATE_EXTENDED"))
+        except VizioError as e:
+            return self._handle_error(e, kwargs)
+        return parse_state_extended(data)
+
+    # ---- Device Info ----
+
+    async def _get_identity_aggregate(
+        self, *, require_auth: bool = True
+    ) -> dict[str, str] | None:
+        """Fetch aggregate tv_information; cache on the instance.
+
+        Modern firmware (~3.7+, verified VHD24M-0810 fw 3.720.9.1-1)
+        returns all identity fields (tv_name, serial_number, model_name,
+        firmware, cast_version, vizios, conjure, sc_config, ...) in
+        one envelope. The per-field child paths return URI_NOT_FOUND
+        on the same firmware. Try the aggregate first; fall back to
+        per-field on URI_NOT_FOUND.
+
+        Returns a ``cname → value`` mapping, or ``None`` when the
+        aggregate isn't exposed at either path. Cached after first
+        attempt so repeat callers (get_esn + get_serial_number +
+        get_version, plus get_device_info via legacy callers) don't
+        re-fetch.
+        """
+        if self._cached_identity_loaded:
+            return self._cached_identity
+        self._cached_identity_loaded = True
+        for endpoint_key in ("TV_INFORMATION", "_ALT_TV_INFORMATION"):
+            if endpoint_key not in self._device_config.endpoints:
+                continue
+            try:
+                getter = self._get if require_auth else self._get_no_auth
+                if require_auth:
+                    self._check_auth()
+                data = await getter(self._endpoint(endpoint_key))
+            except (VizioNotFoundError, VizioError):
+                continue
+            items = _ci_get(data, "items") or []
+            mapping: dict[str, str] = {}
+            for item in items:
+                cname = (_ci_get(item, "cname") or "").lower()
+                value = _ci_get(item, "value")
+                if cname and value is not None:
+                    mapping[cname] = str(value)
+            if mapping:
+                self._cached_identity = mapping
+                return mapping
+        self._cached_identity = None
+        return None
+
+    async def get_esn(self, **kwargs) -> str | None:
+        """Get device's ESN (electronic serial number).
+
+        Prefers the aggregate ``TV_INFORMATION`` endpoint; falls back
+        to per-field ``ESN`` / ``_ALT_ESN`` paths for older firmware.
+        """
+        try:
+            self._check_auth()
+            agg = await self._get_identity_aggregate()
+            if agg and agg.get("esn"):
+                return agg["esn"]
             try:
                 data = await self._get(self._endpoint("ESN"))
                 item = parse_item_by_cname(data, "esn", cname_aliases=ITEM_CNAME)
@@ -541,8 +791,15 @@ class VizioAsync:
             return self._handle_error(e, kwargs)
 
     async def get_serial_number(self, **kwargs) -> str | None:
-        """Get device's serial number."""
+        """Get device's serial number.
+
+        Prefers the aggregate ``TV_INFORMATION`` endpoint; falls back
+        to per-field paths for older firmware.
+        """
         try:
+            agg = await self._get_identity_aggregate(require_auth=False)
+            if agg and agg.get("serial_number"):
+                return agg["serial_number"]
             try:
                 data = await self._get_no_auth(self._endpoint("SERIAL_NUMBER"))
                 item = parse_item_by_cname(
@@ -562,8 +819,20 @@ class VizioAsync:
             return self._handle_error(e, kwargs)
 
     async def get_version(self, **kwargs) -> str | None:
-        """Get SmartCast software version on device."""
+        """Get SmartCast software version on device.
+
+        Prefers the aggregate ``TV_INFORMATION`` endpoint, where the
+        version is exposed under cname ``"firmware"`` (modern firmware)
+        or ``"version"`` (older). Falls back to per-field paths.
+        """
         try:
+            agg = await self._get_identity_aggregate(require_auth=False)
+            if agg:
+                # Modern firmware exposes the version under 'firmware';
+                # older firmware uses 'version'. Try both.
+                for cname in ("version", "firmware"):
+                    if agg.get(cname):
+                        return agg[cname]
             try:
                 data = await self._get_no_auth(self._endpoint("VERSION"))
                 item = parse_item_by_cname(data, "version", cname_aliases=ITEM_CNAME)

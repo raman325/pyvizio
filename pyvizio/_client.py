@@ -18,8 +18,11 @@ from aiohttp.client import DEFAULT_TIMEOUT as AIOHTTP_DEFAULT_TIMEOUT
 
 from pyvizio._parse import _ci_get
 from pyvizio.errors import (
+    VizioAuthError,
+    VizioBusyError,
     VizioConnectionError,
     VizioInvalidParameterError,
+    VizioNotFoundError,
     VizioResponseError,
 )
 
@@ -28,6 +31,26 @@ _LOGGER = logging.getLogger(__name__)
 HEADER_AUTH = "AUTH"
 STATUS_SUCCESS = "success"
 STATUS_INVALID_PARAMETER = "invalid_parameter"
+STATUS_URI_NOT_FOUND = "uri_not_found"
+"""Modern firmware (~3.7+) returns this for paths the device doesn't
+expose. Mapped to :class:`VizioNotFoundError`. Verified live on
+VHD24M-0810 fw 3.720.9.1-1: per-field identity paths
+(``.../tv_information/esn``, etc.) return this status while the
+aggregate parent path returns SUCCESS."""
+
+STATUS_HASHVAL_ERROR = "hashval_error"
+"""Modern firmware distinguishes stale-hashval errors from generic
+``invalid_parameter``. Both surface as
+:class:`VizioInvalidParameterError` so any caller's existing retry
+logic fires for either code."""
+
+STATUS_BLOCKED = "blocked"
+"""Device temporarily refused — another writer holds a lock, or the
+device is mid-update."""
+
+STATUS_REQUIRES_PAIRING = "requires_pairing"
+STATUS_PAIRING_DENIED = "pairing_denied"
+
 HTTP_OK = 200
 
 
@@ -56,6 +79,17 @@ class SmartCastClient:
         """GET endpoint, validate, return JSON. Raises on failure."""
         return await self._request("get", path)
 
+    async def get_raw_json(self, path: str) -> dict[str, Any]:
+        """GET an endpoint that returns a non-standard envelope.
+
+        Used for ``/state_extended``, which returns flat top-level
+        keys (``POWER_MODE``, ``APP_CURRENT``, …) with no
+        ``STATUS``/``ITEMS`` wrapper. The HTTP-level checks (200 vs
+        401/403/etc.) still apply, but envelope-status validation is
+        skipped — the caller is responsible for shape validation.
+        """
+        return await self._request("get", path, skip_envelope=True)
+
     async def put(
         self, path: str, body: dict[str, Any] | None = None
     ) -> dict[str, Any]:
@@ -63,7 +97,12 @@ class SmartCastClient:
         return await self._request("put", path, body)
 
     async def _request(
-        self, method: str, path: str, body: dict[str, Any] | None = None
+        self,
+        method: str,
+        path: str,
+        body: dict[str, Any] | None = None,
+        *,
+        skip_envelope: bool = False,
     ) -> dict[str, Any]:
         url = f"https://{self.host}{path}"
         headers: dict[str, str] = {}
@@ -74,12 +113,24 @@ class SmartCastClient:
         async with self._get_semaphore():
             if self.session:
                 return await self._do_request(
-                    self.session, method, url, headers, body, timeout
+                    self.session,
+                    method,
+                    url,
+                    headers,
+                    body,
+                    timeout,
+                    skip_envelope=skip_envelope,
                 )
             else:
                 async with ClientSession() as local_session:
                     return await self._do_request(
-                        local_session, method, url, headers, body, timeout
+                        local_session,
+                        method,
+                        url,
+                        headers,
+                        body,
+                        timeout,
+                        skip_envelope=skip_envelope,
                     )
 
     async def _do_request(
@@ -90,6 +141,8 @@ class SmartCastClient:
         headers: dict[str, str],
         body: dict[str, Any] | None,
         timeout: ClientTimeout,
+        *,
+        skip_envelope: bool = False,
     ) -> dict[str, Any]:
         try:
             if method == "get":
@@ -105,14 +158,33 @@ class SmartCastClient:
                     url=url, data=data, headers=headers, ssl=False, timeout=timeout
                 )
 
-            return await self._validate_response(resp)
-        except (VizioConnectionError, VizioResponseError, VizioInvalidParameterError):
+            return await self._validate_response(resp, skip_envelope=skip_envelope)
+        except (
+            VizioAuthError,
+            VizioBusyError,
+            VizioConnectionError,
+            VizioInvalidParameterError,
+            VizioNotFoundError,
+            VizioResponseError,
+        ):
             raise
         except Exception as e:
             raise VizioConnectionError(f"Connection failed: {e}") from e
 
     @staticmethod
-    async def _validate_response(resp) -> dict[str, Any]:
+    async def _validate_response(
+        resp, *, skip_envelope: bool = False
+    ) -> dict[str, Any]:
+        # Auth-related rejections come back as raw HTTP 401/403 (not as
+        # SCPL envelope errors), so they need to surface as
+        # VizioAuthError. Verified live on VHD24M-0810 fw 3.720.9.1-1:
+        # re-pairing with the same device_id invalidates the previous
+        # token, and subsequent calls with the old token return HTTP 403.
+        if resp.status in (401, 403):
+            raise VizioAuthError(
+                f"device returned HTTP {resp.status} — token rejected "
+                f"(may have been invalidated by re-pair)"
+            )
         if HTTP_OK != resp.status:
             raise VizioConnectionError(
                 f"Device is unreachable? Status code: {resp.status}"
@@ -126,17 +198,43 @@ class SmartCastClient:
                 f"Failed to parse response: {resp.content}"
             ) from err
 
+        # Endpoints with non-standard envelope shape (currently only
+        # ``/state_extended``) skip the STATUS/ITEMS validation —
+        # caller is responsible for shape interpretation.
+        if skip_envelope:
+            return data
+
         status_obj = _ci_get(data, "status")
         if not status_obj:
             raise VizioResponseError("Unknown response")
 
         result_status = _ci_get(status_obj, "result")
-        if result_status and result_status.lower() == STATUS_INVALID_PARAMETER:
-            raise VizioInvalidParameterError("invalid value specified")
-        elif not result_status or result_status.lower() != STATUS_SUCCESS:
-            raise VizioResponseError(
-                f"unexpected status {result_status}: {_ci_get(status_obj, 'detail')}"
-            )
+        result_lower = result_status.lower() if result_status else ""
+        detail = _ci_get(status_obj, "detail") or ""
+
+        # Both INVALID_PARAMETER and the more-specific HASHVAL_ERROR map
+        # to the same exception so any hashval-race retry logic fires
+        # for both. Captured live: stale-hashval PUTs return HASHVAL_ERROR
+        # on modern firmware, INVALID_PARAMETER on older.
+        if result_lower in (STATUS_INVALID_PARAMETER, STATUS_HASHVAL_ERROR):
+            raise VizioInvalidParameterError(detail or "invalid value specified")
+
+        # URI_NOT_FOUND is HTTP-200-with-status, not HTTP 404. Modern
+        # firmware uses it for paths that don't exist (per-field
+        # identity leaves on firmwares that only expose the aggregate).
+        # Surface as VizioNotFoundError so multi-path-fallback callers
+        # can chain to the next candidate path.
+        if result_lower == STATUS_URI_NOT_FOUND:
+            raise VizioNotFoundError(detail or "endpoint not found on device")
+
+        if result_lower == STATUS_BLOCKED:
+            raise VizioBusyError(detail or "device blocked the request")
+
+        if result_lower in (STATUS_REQUIRES_PAIRING, STATUS_PAIRING_DENIED):
+            raise VizioAuthError(detail or result_lower)
+
+        if result_lower != STATUS_SUCCESS:
+            raise VizioResponseError(f"unexpected status {result_status}: {detail}")
 
         return data
 

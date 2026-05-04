@@ -192,12 +192,52 @@ class TestInput:
         assert result == "HDMI-1"
 
     async def test_set_input(self, vizio_tv, mock_aio):
+        # set_input now fetches both INPUTS and CURRENT_INPUT (to
+        # resolve user input → cname before sending) then PUTs the
+        # cname. Verified live that the device requires the lowercase
+        # cname (e.g. 'hdmi2'), not the display name.
+        mock_aio.get(
+            tv_url("INPUTS"),
+            payload=make_inputs_list_response(
+                [
+                    ("hdmi1", "HDMI-1", "HDMI-1", 1),
+                    ("hdmi2", "HDMI-2", "HDMI-2", 2),
+                ]
+            ),
+        )
         mock_aio.get(
             tv_url("CURRENT_INPUT"),
             payload=make_current_input_response("current_input", "HDMI-1", 5),
         )
         mock_aio.put(tv_url("CURRENT_INPUT"), payload=make_response())
         result = await vizio_tv.set_input("HDMI-2")
+        assert result is True
+
+    async def test_set_input_translates_display_name_to_cname(self, vizio_tv, mock_aio):
+        """set_input must translate any of cname/name/meta_name to the
+        canonical lowercase cname before PUT. Captured live: the device
+        rejects the display name with FAILURE and the meta_name with
+        HASHVAL_ERROR; only the cname succeeds."""
+        mock_aio.get(
+            tv_url("INPUTS"),
+            payload=make_inputs_list_response(
+                [
+                    ("cast", "CAST", "SMARTCAST", 1),
+                    ("hdmi1", "HDMI-1", "PS5", 2),
+                ]
+            ),
+        )
+        mock_aio.get(
+            tv_url("CURRENT_INPUT"),
+            payload=make_current_input_response("current_input", "PS5", 99),
+        )
+        # We just need to assert the PUT was made; aioresponses doesn't
+        # easily expose request bodies, so the smoke is "set_input
+        # returned True." (Body shape is asserted by the unit-mocked
+        # tests in vizio-smartcast where we have body inspection.)
+        mock_aio.put(tv_url("CURRENT_INPUT"), payload=make_response())
+        # User passes display name 'CAST' — must resolve to cname 'cast'.
+        result = await vizio_tv.set_input("CAST")
         assert result is True
 
     async def test_next_input(self, vizio_tv, mock_aio):
