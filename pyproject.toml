@@ -25,6 +25,12 @@ dependencies = [
     "requests",
     "tabulate>=0.8.6",
     "xmltodict",
+    # zeroconf is unconditionally imported from ``pyvizio/__init__.py``
+    # (via ``pyvizio.discovery.zeroconf``), so it must be a hard
+    # dependency — not an opt-in extra. The ``[discovery]`` extra below
+    # is preserved for backward compatibility with anyone who installs
+    # ``pyvizio[discovery]`` in their requirements files.
+    "zeroconf>=0.31",
 ]
 
 [project.optional-dependencies]
