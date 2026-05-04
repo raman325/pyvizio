@@ -7,8 +7,7 @@ and maps failures to typed exceptions.
 
 from __future__ import annotations
 
-import asyncio
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import json
 import logging
 from typing import Any
@@ -56,19 +55,21 @@ HTTP_OK = 200
 
 @dataclass
 class SmartCastClient:
-    """Low-level HTTP client for SmartCast devices."""
+    """Low-level HTTP client for SmartCast devices.
+
+    Throttling is the caller's concern — :class:`pyvizio.VizioAsync`
+    owns the semaphore that serializes its own requests. We
+    deliberately don't add a second per-client semaphore here because
+    ``VizioAsync._make_client`` instantiates a fresh ``SmartCastClient``
+    per request, which would make a per-client semaphore dead weight
+    (it would throttle a single request against itself, never across
+    requests).
+    """
 
     host: str
     auth_token: str | None = None
     timeout: int | None = None
     session: ClientSession | None = None
-    max_concurrent: int = 1
-    _semaphore: asyncio.Semaphore | None = field(default=None, repr=False, init=False)
-
-    def _get_semaphore(self) -> asyncio.Semaphore:
-        if self._semaphore is None:
-            self._semaphore = asyncio.Semaphore(self.max_concurrent)
-        return self._semaphore
 
     def _client_timeout(self) -> ClientTimeout:
         if self.timeout is not None:
@@ -110,28 +111,26 @@ class SmartCastClient:
             headers[HEADER_AUTH] = self.auth_token
         timeout = self._client_timeout()
 
-        async with self._get_semaphore():
-            if self.session:
-                return await self._do_request(
-                    self.session,
-                    method,
-                    url,
-                    headers,
-                    body,
-                    timeout,
-                    skip_envelope=skip_envelope,
-                )
-            else:
-                async with ClientSession() as local_session:
-                    return await self._do_request(
-                        local_session,
-                        method,
-                        url,
-                        headers,
-                        body,
-                        timeout,
-                        skip_envelope=skip_envelope,
-                    )
+        if self.session:
+            return await self._do_request(
+                self.session,
+                method,
+                url,
+                headers,
+                body,
+                timeout,
+                skip_envelope=skip_envelope,
+            )
+        async with ClientSession() as local_session:
+            return await self._do_request(
+                local_session,
+                method,
+                url,
+                headers,
+                body,
+                timeout,
+                skip_envelope=skip_envelope,
+            )
 
     async def _do_request(
         self,
@@ -145,20 +144,29 @@ class SmartCastClient:
         skip_envelope: bool = False,
     ) -> dict[str, Any]:
         try:
+            # ``async with`` ensures the response is released on every
+            # exit path, including when ``_validate_response`` raises.
+            # Without this, errors leak the connection back to the pool
+            # uncleared and the pool eventually exhausts on long-running
+            # callers (HA polling).
             if method == "get":
                 _LOGGER.debug("GET %s headers=%s", url, headers)
-                resp = await session.get(
+                async with session.get(
                     url=url, headers=headers, ssl=False, timeout=timeout
-                )
+                ) as resp:
+                    return await self._validate_response(
+                        resp, skip_envelope=skip_envelope
+                    )
             else:
                 data = json.dumps(body or {})
                 headers["Content-Type"] = "application/json"
                 _LOGGER.debug("PUT %s headers=%s body=%s", url, headers, body)
-                resp = await session.put(
+                async with session.put(
                     url=url, data=data, headers=headers, ssl=False, timeout=timeout
-                )
-
-            return await self._validate_response(resp, skip_envelope=skip_envelope)
+                ) as resp:
+                    return await self._validate_response(
+                        resp, skip_envelope=skip_envelope
+                    )
         except (
             VizioAuthError,
             VizioBusyError,
@@ -190,12 +198,24 @@ class SmartCastClient:
                 f"Device is unreachable? Status code: {resp.status}"
             )
 
+        # Capture the body text first so the parse-failure exception
+        # can include a useful snippet of what came back. The previous
+        # version interpolated ``resp.content`` (a stream object) into
+        # the message, which printed as ``<StreamReader ...>`` and was
+        # useless for debugging.
         try:
-            data = json.loads(await resp.text())
-            _LOGGER.debug("Response: %s", data)
+            body_text = await resp.text()
         except Exception as err:
             raise VizioResponseError(
-                f"Failed to parse response: {resp.content}"
+                "Failed to read response body (transport error)"
+            ) from err
+        try:
+            data = json.loads(body_text)
+            _LOGGER.debug("Response: %s", data)
+        except ValueError as err:
+            raise VizioResponseError(
+                f"Failed to parse response body (truncated to 200 chars): "
+                f"{body_text[:200]}"
             ) from err
 
         # Endpoints with non-standard envelope shape (currently only

@@ -242,7 +242,6 @@ class VizioAsync:
             auth_token=self._auth_token if with_auth else None,
             timeout=self._timeout,
             session=self._session,
-            max_concurrent=self._max_concurrent_requests,
         )
 
     def _get_semaphore(self) -> asyncio.Semaphore:

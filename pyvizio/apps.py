@@ -38,8 +38,17 @@ class AppConfig:
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.__dict__})"
 
-    def __eq__(self, other) -> bool:
-        return self is other or self.__dict__ == other.__dict__
+    def __eq__(self, other: object) -> bool:
+        # Guard against non-AppConfig comparisons. Without this,
+        # ``AppConfig() == None`` raised ``AttributeError`` because
+        # ``None.__dict__`` doesn't exist. Returning ``NotImplemented``
+        # lets Python fall back to the right-hand operand's __eq__ and
+        # ultimately resolves to ``False`` for non-AppConfig types.
+        if self is other:
+            return True
+        if not isinstance(other, AppConfig):
+            return NotImplemented
+        return self.__dict__ == other.__dict__
 
     def __bool__(self) -> bool:
         return self != AppConfig()
