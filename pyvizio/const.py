@@ -86,11 +86,14 @@ DEVICE_CONFIGS: dict[str, DeviceConfig] = {
             "_ALT_SERIAL_NUMBER": "/menu_native/dynamic/tv_settings/admin_and_privacy/system_information/tv_information/serial_number",
             "_ALT_VERSION": "/menu_native/dynamic/tv_settings/admin_and_privacy/system_information/tv_information/version",
             # Aggregate identity endpoint. Modern firmware (~3.7+) returns
-            # all identity fields (tv_name, serial_number, model_name,
-            # firmware, cast_version, vizios, conjure, sc_config, ...)
-            # in one response and rejects per-field child paths above with
-            # URI_NOT_FOUND. Library tries this first; falls back to
-            # per-field paths on URI_NOT_FOUND for older firmware.
+            # the tv_information fields (tv_name, serial_number, model_name,
+            # firmware, cast_version, vizios, conjure, sc_config, ...) in
+            # one response and rejects the per-field children of
+            # tv_information/ (SERIAL_NUMBER, VERSION above) with
+            # URI_NOT_FOUND. Note: ESN lives under uli_information/, not
+            # tv_information/, so the aggregate doesn't carry it. Library
+            # tries this first; falls back to per-field on URI_NOT_FOUND
+            # for older firmware.
             "TV_INFORMATION": "/menu_native/dynamic/tv_settings/admin_and_privacy/system_information/tv_information",
             "_ALT_TV_INFORMATION": "/menu_native/dynamic/tv_settings/system/system_information/tv_information",
             # Bulk state poll. Returns power, current input, current app,

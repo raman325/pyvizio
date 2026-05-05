@@ -171,6 +171,21 @@ class TestVolume:
         mock_aio.get(tv_settings_url("audio", "mute"), status=500)
         assert await getattr(vizio_tv, method)() is None
 
+    async def test_mute_on_key_press_failure_after_probe_returns_none(
+        self, vizio_tv, mock_aio
+    ):
+        # Probe succeeds, KEY_PRESS PUT fails. Should not falsely report
+        # success — the toggle was attempted but didn't land.
+        mock_aio.get(
+            tv_settings_url("audio", "mute"),
+            payload=make_response(items=[make_item("mute", "Off")]),
+        )
+        mock_aio.put(tv_url("KEY_PRESS"), status=500)
+        # __remote returns False on failure (result is not None == False
+        # for None), so mute_on inherits that. Either way, never True.
+        result = await vizio_tv.mute_on(log_api_exception=False)
+        assert result is not True
+
     @pytest.mark.parametrize(
         "fixture,expected",
         [
@@ -245,6 +260,65 @@ class TestInput:
         mock_aio.put(tv_url("CURRENT_INPUT"), payload=make_response())
         result = await vizio_tv.set_input("HDMI-2")
         assert result is True
+
+    @pytest.mark.parametrize(
+        "current_value,target",
+        [
+            # HDMI inputs return the display name in current_input.value
+            ("HDMI-1", "hdmi1"),
+            ("HDMI-1", "HDMI-1"),
+            ("HDMI-1", "Living Room"),  # meta_name match
+            # CAST inputs return the meta_name
+            ("SMARTCAST", "cast"),
+            ("SMARTCAST", "SMARTCAST"),
+        ],
+    )
+    async def test_set_input_short_circuits_on_already_target(
+        self, vizio_tv, mock_aio, current_value, target
+    ):
+        # Verified live: device returns FAILURE for "switch to current
+        # input." The short-circuit checks current_value against any of
+        # the target's three identifying forms (cname / display name /
+        # meta_name) since the device's current_input shape varies by
+        # input type. NO PUT mock — aioresponses raises if it fires.
+        mock_aio.get(
+            tv_url("CURRENT_INPUT"),
+            payload=make_current_input_response("current_input", current_value, 5),
+        )
+        mock_aio.get(
+            tv_url("INPUTS"),
+            payload=make_inputs_list_response(
+                [
+                    ("cast", "CAST", "SMARTCAST", 0),
+                    ("hdmi1", "HDMI-1", "Living Room", 1),
+                    ("hdmi2", "HDMI-2", "Console", 2),
+                ]
+            ),
+        )
+        assert await vizio_tv.set_input(target) is True
+
+    async def test_set_input_put_failure_returns_none(self, vizio_tv, mock_aio):
+        # PUT fails after resolution succeeds (e.g. stale hashval). The
+        # broad-catch in async_invoke_api swallows the typed error and
+        # returns None; set_input returns that None unchanged.
+        mock_aio.get(
+            tv_url("CURRENT_INPUT"),
+            payload=make_current_input_response("current_input", "HDMI-1", 5),
+        )
+        mock_aio.get(
+            tv_url("INPUTS"),
+            payload=make_inputs_list_response(
+                [
+                    ("hdmi1", "HDMI-1", "Living Room", 1),
+                    ("hdmi2", "HDMI-2", "Console", 2),
+                ]
+            ),
+        )
+        mock_aio.put(
+            tv_url("CURRENT_INPUT"),
+            payload={"STATUS": {"RESULT": "HASHVAL_ERROR", "DETAIL": "stale"}},
+        )
+        assert await vizio_tv.set_input("HDMI-2", log_api_exception=False) is None
 
     async def test_next_input(self, vizio_tv, mock_aio):
         mock_aio.put(tv_url("KEY_PRESS"), payload=make_key_press_response())

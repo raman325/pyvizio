@@ -202,11 +202,13 @@ class TestVizioGetStateExtended:
         )
         assert await vizio_tv.get_state_extended(log_api_exception=False) is None
 
-    async def test_unsupported_device_class(self) -> None:
-        """Speakers and Crave don't define STATE_EXTENDED; library must
-        gate before any HTTP work rather than crashing with a KeyError
-        from the missing endpoint lookup. Returns ``None`` (the
-        documented "not available" signal)."""
+    async def test_unsupported_device_class_raises(self) -> None:
+        """Speakers and Crave don't define STATE_EXTENDED; the library
+        gates before any HTTP work and raises VizioUnsupportedError
+        (a programming-level invariant, not a runtime device error,
+        so it always raises rather than swallowing into None)."""
+        from pyvizio import VizioUnsupportedError
+
         speaker = VizioAsync(
             device_id="probe",
             ip="192.168.1.50:9000",
@@ -216,9 +218,66 @@ class TestVizioGetStateExtended:
         )
         # No HTTP mock needed — the endpoint-presence gate
         # short-circuits before any request would fire.
-        assert await speaker.get_state_extended(log_api_exception=False) is None
+        with pytest.raises(VizioUnsupportedError, match="doesn't expose"):
+            await speaker.get_state_extended(log_api_exception=False)
+        with pytest.raises(VizioUnsupportedError):
+            await speaker.get_state_extended()
 
     async def test_http_error_returns_none(self, vizio_tv, mock_aio) -> None:
         """Connection failure with log_api_exception=False returns None."""
         mock_aio.get(tv_url("STATE_EXTENDED"), status=500)
         assert await vizio_tv.get_state_extended(log_api_exception=False) is None
+
+    async def test_http_403_propagates_auth_error(self, vizio_tv, mock_aio) -> None:
+        """HTTP 403 must propagate as VizioAuthError even with
+        log_api_exception=False — the try/except VizioAuthError: raise
+        ordering is load-bearing. A refactor that drops it would let
+        re-pair invalidation silently produce None on /state_extended."""
+        from pyvizio import VizioAuthError
+
+        mock_aio.get(tv_url("STATE_EXTENDED"), status=403)
+        with pytest.raises(VizioAuthError):
+            await vizio_tv.get_state_extended(log_api_exception=False)
+
+    async def test_minimal_payload_round_trip(self, vizio_tv, mock_aio) -> None:
+        """End-to-end coverage that the parser's degradation behavior
+        survives the HTTP path — only POWER_STATUS in the response."""
+        mock_aio.get(
+            tv_url("STATE_EXTENDED"),
+            payload={"POWER_STATUS": {"VALUE": 1}},
+        )
+        s = await vizio_tv.get_state_extended()
+        assert s is not None
+        assert s.power_on is True
+        assert s.current_input == ""
+        assert s.current_app is None
+
+    async def test_blocked_envelope_returns_none_without_caching(
+        self, vizio_tv, mock_aio
+    ) -> None:
+        """A BLOCKED envelope is transient — must not cache as
+        unavailable. A second call should re-probe and succeed."""
+        mock_aio.get(
+            tv_url("STATE_EXTENDED"),
+            payload={"STATUS": {"RESULT": "BLOCKED", "DETAIL": "busy"}},
+        )
+        assert await vizio_tv.get_state_extended(log_api_exception=False) is None
+
+        mock_aio.get(
+            tv_url("STATE_EXTENDED"),
+            payload={"POWER_STATUS": {"VALUE": 1}, "DEVICE_NAME": "TV"},
+        )
+        s = await vizio_tv.get_state_extended()
+        assert s is not None and s.device_name == "TV"
+
+    async def test_uri_not_found_caches_unavailable(self, vizio_tv, mock_aio) -> None:
+        """A URI_NOT_FOUND envelope is definitive — cache it so polling
+        integrations don't re-pay every cycle. Second call returns None
+        without an HTTP mock (aioresponses raises if it fires)."""
+        mock_aio.get(
+            tv_url("STATE_EXTENDED"),
+            payload={"STATUS": {"RESULT": "URI_NOT_FOUND", "DETAIL": "no"}},
+        )
+        assert await vizio_tv.get_state_extended() is None
+        # No new mock — second call must not hit the network.
+        assert await vizio_tv.get_state_extended() is None

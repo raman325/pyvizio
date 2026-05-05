@@ -21,6 +21,7 @@ from pyvizio.errors import (
     VizioAuthError,
     VizioBusyError,
     VizioConnectionError,
+    VizioHashvalError,
     VizioInvalidInputError,
     VizioInvalidParameterError,
     VizioNotFoundError,
@@ -88,8 +89,19 @@ class TestResolveInputCname:
                 ("hdmi2", "HDMI-2", "Living Room", 2),
             ]
         )
-        with pytest.raises(VizioInvalidInputError, match="multiple"):
+        with pytest.raises(VizioInvalidInputError, match="multiple.*by meta_name"):
             _resolve_input_cname("Living Room", inputs)
+
+    def test_ambiguous_display_name_raises(self) -> None:
+        """Two inputs with same display name (firmware oddity / corruption)."""
+        inputs = _input_items(
+            [
+                ("hdmi1", "HDMI-1", "Mac", 1),
+                ("hdmi2", "HDMI-1", "PS5", 2),
+            ]
+        )
+        with pytest.raises(VizioInvalidInputError, match="multiple.*by name"):
+            _resolve_input_cname("HDMI-1", inputs)
 
 
 # ---------------------------------------------------------------------------
@@ -118,6 +130,9 @@ class TestEnvelopeStatusMapping:
         "result,exc_type",
         [
             ("URI_NOT_FOUND", VizioNotFoundError),
+            # HASHVAL_ERROR is a subclass of VizioInvalidParameterError
+            # for backward-compat — the parent still catches it.
+            ("HASHVAL_ERROR", VizioHashvalError),
             ("HASHVAL_ERROR", VizioInvalidParameterError),
             ("BLOCKED", VizioBusyError),
             ("REQUIRES_PAIRING", VizioAuthError),
@@ -260,3 +275,123 @@ class TestIdentityAggregate:
         mock_aio.get(tv_url("TV_INFORMATION"), payload=self._aggregate_payload())
         await vizio_tv.get_serial_number()
         assert await vizio_tv.get_version() == "3.720.9.1-1"
+
+    async def test_aggregate_uri_not_found_falls_back_to_per_field(
+        self, vizio_tv, mock_aio
+    ) -> None:
+        """When the aggregate is genuinely not exposed (URI_NOT_FOUND
+        on both candidate paths), identity getters fall through to the
+        per-field paths."""
+        for endpoint in ("TV_INFORMATION", "_ALT_TV_INFORMATION"):
+            mock_aio.get(
+                tv_url(endpoint),
+                payload={"STATUS": {"RESULT": "URI_NOT_FOUND", "DETAIL": "no"}},
+            )
+        mock_aio.get(
+            tv_url("SERIAL_NUMBER"),
+            payload={
+                "STATUS": {"RESULT": "SUCCESS", "DETAIL": "Success"},
+                "ITEMS": [{"CNAME": "serial_number", "VALUE": "FALLBACK-SN-1"}],
+            },
+        )
+        assert await vizio_tv.get_serial_number() == "FALLBACK-SN-1"
+
+    async def test_aggregate_uri_not_found_caches_negative_result(
+        self, vizio_tv, mock_aio
+    ) -> None:
+        """After both aggregate paths return URI_NOT_FOUND, subsequent
+        identity calls must NOT re-probe the aggregate. With only the
+        per-field URLs mocked, a second call would error if the cache
+        weren't honored."""
+        for endpoint in ("TV_INFORMATION", "_ALT_TV_INFORMATION"):
+            mock_aio.get(
+                tv_url(endpoint),
+                payload={"STATUS": {"RESULT": "URI_NOT_FOUND", "DETAIL": "no"}},
+            )
+        mock_aio.get(
+            tv_url("SERIAL_NUMBER"),
+            payload={
+                "STATUS": {"RESULT": "SUCCESS", "DETAIL": "Success"},
+                "ITEMS": [{"CNAME": "serial_number", "VALUE": "SN-1"}],
+            },
+        )
+        mock_aio.get(
+            tv_url("VERSION"),
+            payload={
+                "STATUS": {"RESULT": "SUCCESS", "DETAIL": "Success"},
+                "ITEMS": [{"CNAME": "version", "VALUE": "1.2.3"}],
+            },
+        )
+        assert await vizio_tv.get_serial_number() == "SN-1"
+        # Second call: only per-field VERSION is mocked. If cache wasn't
+        # honored, this would re-hit TV_INFORMATION, but aioresponses
+        # would consume both URI_NOT_FOUND mocks on the first call.
+        assert await vizio_tv.get_version() == "1.2.3"
+
+    async def test_identity_cache_is_per_instance(self, mock_aio) -> None:
+        """Two VizioAsync instances must not share an identity cache —
+        identity is per-device, not per-class. Catches the bug class
+        where ``_cached_identity`` accidentally lives on the class
+        rather than ``self``."""
+        v1 = VizioAsync(
+            device_id="t1",
+            ip="192.168.1.10:7345",
+            name="T1",
+            auth_token=AUTH_TOKEN,
+            device_type="tv",
+        )
+        v2 = VizioAsync(
+            device_id="t2",
+            ip="192.168.1.20:7345",
+            name="T2",
+            auth_token=AUTH_TOKEN,
+            device_type="tv",
+        )
+        mock_aio.get(
+            "https://192.168.1.10:7345/menu_native/dynamic/tv_settings/admin_and_privacy/system_information/tv_information",
+            payload={
+                "STATUS": {"RESULT": "SUCCESS"},
+                "ITEMS": [{"CNAME": "serial_number", "VALUE": "SN-FROM-V1"}],
+            },
+        )
+        mock_aio.get(
+            "https://192.168.1.20:7345/menu_native/dynamic/tv_settings/admin_and_privacy/system_information/tv_information",
+            payload={
+                "STATUS": {"RESULT": "SUCCESS"},
+                "ITEMS": [{"CNAME": "serial_number", "VALUE": "SN-FROM-V2"}],
+            },
+        )
+        assert await v1.get_serial_number() == "SN-FROM-V1"
+        assert await v2.get_serial_number() == "SN-FROM-V2"
+
+    async def test_aggregate_transient_failure_does_not_poison_cache(
+        self, vizio_tv, mock_aio
+    ) -> None:
+        """A transient HTTP 500 on the aggregate must NOT cache None.
+        The next identity call should retry the aggregate (and ideally
+        succeed). Without the propagate_errors fix, a single transient
+        blip would permanently disable the optimization."""
+        # First aggregate call: transport error.
+        mock_aio.get(tv_url("TV_INFORMATION"), status=500)
+        mock_aio.get(tv_url("_ALT_TV_INFORMATION"), status=500)
+        # Per-field fallback succeeds for the first call.
+        mock_aio.get(
+            tv_url("SERIAL_NUMBER"),
+            payload={
+                "STATUS": {"RESULT": "SUCCESS", "DETAIL": "Success"},
+                "ITEMS": [{"CNAME": "serial_number", "VALUE": "FALLBACK-SN"}],
+            },
+        )
+        assert (
+            await vizio_tv.get_serial_number(log_api_exception=False) == "FALLBACK-SN"
+        )
+        # Second aggregate call: now succeeds. Cache wasn't poisoned,
+        # so the aggregate is re-tried and the value comes from there.
+        mock_aio.get(
+            tv_url("TV_INFORMATION"),
+            payload={
+                "STATUS": {"RESULT": "SUCCESS"},
+                "ITEMS": [{"CNAME": "firmware", "VALUE": "9.9.9"}],
+            },
+        )
+        assert await vizio_tv.get_version() == "9.9.9"

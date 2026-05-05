@@ -74,6 +74,7 @@ from pyvizio.errors import (
     VizioBusyError as VizioBusyError,
     VizioConnectionError as VizioConnectionError,
     VizioError as VizioError,
+    VizioHashvalError as VizioHashvalError,
     VizioInvalidInputError,
     VizioInvalidParameterError as VizioInvalidParameterError,
     VizioNotFoundError as VizioNotFoundError,
@@ -122,10 +123,17 @@ def _resolve_input_cname(name: str, inputs: list[InputItem]) -> str:
                 f"({[h.c_name for h in hits]}); rename one to disambiguate"
             )
 
+    # Build a deduplicated list of valid identifiers, normalized to
+    # lowercase and stripped of empties so the user-facing error
+    # message is clean.
     valid = sorted(
-        {(i.c_name or "").lower() for i in inputs}
-        | {i.name or "" for i in inputs}
-        | {i.meta_name or "" for i in inputs if i.meta_name}
+        v.lower()
+        for v in (
+            {i.c_name or "" for i in inputs}
+            | {i.name or "" for i in inputs}
+            | {i.meta_name or "" for i in inputs if i.meta_name}
+        )
+        if v
     )
     raise VizioInvalidInputError(f"input {name!r} not found. Valid: {valid}")
 
@@ -173,6 +181,11 @@ class VizioAsync:
         # aggregate would each pay the round-trip + URI_NOT_FOUND.
         self._cached_identity: dict[str, str] | None = None
         self._cached_identity_loaded: bool = False
+        # Capability cache for /state_extended. Once a device has
+        # answered URI_NOT_FOUND we don't re-probe — capabilities are
+        # immutable for the session, and HA-style polling otherwise
+        # pays the round trip on every poll cycle.
+        self._state_extended_unavailable: bool = False
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.__dict__})"
@@ -208,7 +221,10 @@ class VizioAsync:
             await self.__add_port()
 
     async def __invoke_api(
-        self, cmd: CommandBase, log_api_exception: bool = True
+        self,
+        cmd: CommandBase,
+        log_api_exception: bool = True,
+        propagate_errors: bool = False,
     ) -> Any:
         """Asynchronously call SmartCast API without auth token."""
         async with self._get_semaphore():
@@ -222,6 +238,7 @@ class VizioAsync:
                 custom_timeout=self._timeout,
                 log_api_exception=log_api_exception,
                 session=self._session,
+                propagate_errors=propagate_errors,
             )
 
     async def __invoke_api_auth(
@@ -229,11 +246,14 @@ class VizioAsync:
         cmd: CommandBase,
         log_api_exception: bool = True,
         skip_envelope: bool = False,
+        propagate_errors: bool = False,
     ) -> Any:
         """Asynchronously call SmartCast API with auth token.
 
         ``skip_envelope=True`` is for endpoints with non-standard
         response shapes (currently only ``/state_extended``).
+        ``propagate_errors=True`` re-raises typed VizioError instead of
+        returning ``None`` — used by multi-path-fallback callers.
         """
         async with self._get_semaphore():
             if ":" not in self.ip:
@@ -248,15 +268,24 @@ class VizioAsync:
                 log_api_exception=log_api_exception,
                 session=self._session,
                 skip_envelope=skip_envelope,
+                propagate_errors=propagate_errors,
             )
 
     async def __invoke_api_may_need_auth(
-        self, cmd: CommandBase, log_api_exception: bool = True
+        self,
+        cmd: CommandBase,
+        log_api_exception: bool = True,
+        propagate_errors: bool = False,
+        skip_envelope: bool = False,
     ) -> Any:
         """Asynchronously call SmartCast API command with or without auth token depending on device type."""
         if not self._auth_token:
             if not self._device_config.requires_auth:
-                return await self.__invoke_api(cmd, log_api_exception=log_api_exception)
+                return await self.__invoke_api(
+                    cmd,
+                    log_api_exception=log_api_exception,
+                    propagate_errors=propagate_errors,
+                )
             else:
                 no_auth_types = [
                     k for k, v in DEVICE_CONFIGS.items() if not v.requires_auth
@@ -265,7 +294,12 @@ class VizioAsync:
                     f"Empty auth token. Device types that don't require auth: "
                     f"{', '.join(repr(t) for t in no_auth_types)}"
                 )
-        return await self.__invoke_api_auth(cmd, log_api_exception=log_api_exception)
+        return await self.__invoke_api_auth(
+            cmd,
+            log_api_exception=log_api_exception,
+            propagate_errors=propagate_errors,
+            skip_envelope=skip_envelope,
+        )
 
     async def __remote(
         self, key_list: str | list[str], log_api_exception: bool = True
@@ -300,37 +334,66 @@ class VizioAsync:
         return await self.__remote(key_codes, log_api_exception=log_api_exception)
 
     async def __get_identity_aggregate(
-        self, log_api_exception: bool = True
+        self,
+        log_api_exception: bool = True,
+        require_auth: bool = True,
     ) -> dict[str, str] | None:
         """Asynchronously fetch the aggregate ``tv_information`` envelope.
 
         Result is cached on the instance — identity is immutable for a
-        device's lifetime. Three identity calls (esn + serial_number +
-        version) now make one HTTP round trip instead of three when the
-        aggregate is exposed.
+        device's lifetime. When the aggregate is exposed, three identity
+        calls (esn + serial_number + version) make one HTTP round trip
+        instead of three.
 
-        Returns a ``cname → value`` mapping, or ``None`` when the
-        aggregate isn't exposed at either path. Returning ``None`` is
-        cached too, so older firmware that requires per-field paths
-        doesn't re-pay the URI_NOT_FOUND round trip on every call.
+        Cache write rules:
+          * Mapping returned: cache the mapping.
+          * Every candidate path returned ``URI_NOT_FOUND``: cache
+            ``None`` (this firmware definitively doesn't expose the
+            aggregate, so identity getters can stop trying).
+          * Transient failure (transport, auth, busy, malformed): do
+            **not** cache; the next call will re-attempt.
+
+        ``VizioAuthError`` always propagates — callers like
+        ``can_connect_with_auth_check`` rely on the typed exception to
+        distinguish "token invalidated" from generic failure.
         """
         if self._cached_identity_loaded:
             return self._cached_identity
-        self._cached_identity_loaded = True
         for endpoint_key in ("TV_INFORMATION", "_ALT_TV_INFORMATION"):
             if endpoint_key not in self._device_config.endpoints:
                 continue
             try:
-                mapping = await self.__invoke_api_may_need_auth(
-                    GetTvInformationCommand(self.device_type, endpoint_key),
-                    log_api_exception=log_api_exception,
-                )
-            except VizioError:
+                # Probe-style identity calls (e.g. get_unique_id, which
+                # uses an empty auth_token) need the no-auth invoker.
+                # ESN-bearing callers want the auth-aware invoker so the
+                # device returns the auth-gated fields.
+                if require_auth:
+                    mapping = await self.__invoke_api_may_need_auth(
+                        GetTvInformationCommand(self.device_type, endpoint_key),
+                        log_api_exception=log_api_exception,
+                        # Propagate typed errors so we can distinguish
+                        # "not exposed at this path" (URI_NOT_FOUND →
+                        # try next candidate) from transient/auth
+                        # failures (don't cache; retry next call).
+                        propagate_errors=True,
+                    )
+                else:
+                    mapping = await self.__invoke_api(
+                        GetTvInformationCommand(self.device_type, endpoint_key),
+                        log_api_exception=log_api_exception,
+                        propagate_errors=True,
+                    )
+            except VizioNotFoundError:
                 continue
             if mapping:
                 self._cached_identity = mapping
+                self._cached_identity_loaded = True
                 return mapping
+        # Every candidate either returned URI_NOT_FOUND or returned an
+        # empty mapping. Cache the negative result so identity getters
+        # stop probing the aggregate on every call.
         self._cached_identity = None
+        self._cached_identity_loaded = True
         return None
 
     async def __get_cached_apps_list(self) -> list[dict[str, Any]]:
@@ -417,11 +480,10 @@ class VizioAsync:
         """Asynchronously return whether or not device API can be connected to with valid authorization.
 
         Probe-style helper — must always return a bool, never propagate.
-        With the new HTTP 401/403 → :class:`VizioAuthError` mapping
-        (re-pair invalidation surfaces here), the underlying call now
-        raises that exception instead of being suppressed by
-        ``log_api_exception=False`` — the propagation is load-bearing
-        for non-probe callers, but here we want the bool contract.
+        HTTP 401/403 raises :class:`VizioAuthError` from the transport;
+        non-probe callers rely on that propagation to detect re-pair
+        invalidation, so this probe catches it locally and surfaces it
+        as a ``False`` result.
         """
         try:
             return bool(
@@ -442,9 +504,18 @@ class VizioAsync:
         """Asynchronously get device's ESN (electronic serial number?).
 
         Prefers the aggregate ``TV_INFORMATION`` endpoint; falls back
-        to per-field ``ESN`` / ``_ALT_ESN`` paths for older firmware.
+        to per-field ``ESN`` / ``_ALT_ESN`` paths for older firmware
+        or after a transient aggregate failure. ``VizioAuthError``
+        always propagates.
         """
-        agg = await self.__get_identity_aggregate(log_api_exception=log_api_exception)
+        try:
+            agg = await self.__get_identity_aggregate(
+                log_api_exception=log_api_exception
+            )
+        except VizioAuthError:
+            raise
+        except VizioError:
+            agg = None
         if agg and agg.get("esn"):
             return agg["esn"]
 
@@ -465,9 +536,17 @@ class VizioAsync:
         """Asynchronously get device's serial number.
 
         Prefers the aggregate ``TV_INFORMATION`` endpoint; falls back
-        to per-field paths for older firmware.
+        to per-field paths for older firmware or after a transient
+        aggregate failure. ``VizioAuthError`` always propagates.
         """
-        agg = await self.__get_identity_aggregate(log_api_exception=log_api_exception)
+        try:
+            agg = await self.__get_identity_aggregate(
+                log_api_exception=log_api_exception, require_auth=False
+            )
+        except VizioAuthError:
+            raise
+        except VizioError:
+            agg = None
         if agg and agg.get("serial_number"):
             return agg["serial_number"]
 
@@ -491,9 +570,18 @@ class VizioAsync:
 
         Prefers the aggregate ``TV_INFORMATION`` endpoint, where the
         version is exposed under cname ``"firmware"`` (modern firmware)
-        or ``"version"`` (older). Falls back to per-field paths.
+        or ``"version"`` (older). Falls back to per-field paths for
+        older firmware or after a transient aggregate failure.
+        ``VizioAuthError`` always propagates.
         """
-        agg = await self.__get_identity_aggregate(log_api_exception=log_api_exception)
+        try:
+            agg = await self.__get_identity_aggregate(
+                log_api_exception=log_api_exception, require_auth=False
+            )
+        except VizioAuthError:
+            raise
+        except VizioError:
+            agg = None
         if agg:
             for cname in ("version", "firmware"):
                 if agg.get(cname):
@@ -589,6 +677,9 @@ class VizioAsync:
 
         Short-circuits when already on the target input — the device
         explicitly rejects "switch to current input" with FAILURE.
+
+        This issues two GETs (current input + inputs list) before the
+        PUT to perform the name → cname resolution.
         """
         curr_input_item = await self.__invoke_api_may_need_auth(
             GetCurrentInputCommand(self.device_type),
@@ -621,10 +712,16 @@ class VizioAsync:
             None,
         )
         if target_input and isinstance(curr_input_item.value, str):
+            # Drop empty strings so a missing meta_name doesn't make the
+            # short-circuit match an empty-string current_value.
             candidates = {
-                target_cname,
-                (target_input.name or "").lower(),
-                (target_input.meta_name or "").lower(),
+                c
+                for c in (
+                    target_cname,
+                    (target_input.name or "").lower(),
+                    (target_input.meta_name or "").lower(),
+                )
+                if c
             }
             if curr_input_item.value.lower() in candidates:
                 return True
@@ -642,28 +739,40 @@ class VizioAsync:
         Returns power, current input, current app, screen mode, and
         media state — meaningfully cheaper than five individual GETs
         for HA-style polling integrations. Capability is advertised
-        under ``deviceinfo.scpl_capabilities.state_extended``; older
-        firmware that doesn't expose the endpoint surfaces as ``None``
-        (the underlying :class:`VizioNotFoundError` is suppressed by
-        the standard ``log_api_exception`` path).
+        under ``deviceinfo.scpl_capabilities.state_extended``.
 
-        The on-the-wire envelope is **distinct** from the regular
-        SCPL response shape — flat top-level keys, no
-        ``STATUS``/``ITEMS`` — so we invoke with
-        ``skip_envelope=True`` and detect URI_NOT_FOUND-shaped
-        fall-through manually.
+        The on-the-wire success payload is **distinct** from the
+        regular SCPL response shape — flat top-level keys, no
+        ``STATUS``/``ITEMS`` — so this method invokes with
+        ``skip_envelope=True``. When the device instead returns a
+        normal SCPL envelope (older firmware that doesn't expose the
+        endpoint, or transient errors like ``BLOCKED`` /
+        ``REQUIRES_PAIRING``), the bypassed validator would let the
+        parser silently produce a default-filled ``StateExtended``;
+        this method detects any ``STATUS.RESULT`` envelope on the raw
+        payload and returns ``None`` (URI_NOT_FOUND, BLOCKED) or
+        raises (auth-class envelopes) accordingly.
 
-        Returns ``None`` for device types that don't expose the
-        endpoint (speakers, Crave) — they have no ``STATE_EXTENDED``
-        in :data:`DEVICE_CONFIGS`.
+        Raises :class:`VizioUnsupportedError` for device types that
+        don't expose the endpoint (speakers, Crave). The standard
+        ``log_api_exception=False`` swallow turns it back into ``None``
+        for compat callers.
         """
         if "STATE_EXTENDED" not in self._device_config.endpoints:
-            if log_api_exception:
-                _LOGGER.debug("%r doesn't expose /state_extended", self.device_type)
+            # Device-class capability is a programming-level invariant
+            # (set by the constructor), not a runtime device condition,
+            # so this always raises — the swallow-and-return-None path
+            # is reserved for transport / device failures.
+            raise VizioUnsupportedError(
+                f"{self.device_type!r} doesn't expose /state_extended"
+            )
+        if self._state_extended_unavailable:
+            # Earlier call definitively confirmed the firmware doesn't
+            # expose this endpoint; don't re-probe.
             return None
 
         try:
-            result = await self.__invoke_api_auth(
+            result = await self.__invoke_api_may_need_auth(
                 GetStateExtendedCommand(self.device_type),
                 log_api_exception=log_api_exception,
                 skip_envelope=True,
@@ -678,19 +787,38 @@ class VizioAsync:
         if result is None:
             return None
 
-        # ``skip_envelope`` bypassed standard validation, so older
-        # firmware that returns the SCPL envelope ``{"STATUS":
-        # {"RESULT": "URI_NOT_FOUND", ...}}`` here would otherwise
-        # produce a default-filled StateExtended that callers can't
-        # distinguish from a real all-default state. Detect that
-        # shape manually and treat as "endpoint unsupported".
+        # ``skip_envelope`` bypassed standard validation. Detect any
+        # SCPL-envelope-shaped error here so callers can't be confused
+        # by a default-filled StateExtended:
+        #   * URI_NOT_FOUND  → endpoint not exposed → return None
+        #   * BLOCKED        → device busy           → return None
+        #   * REQUIRES_PAIRING / PAIRING_DENIED → re-raise VizioAuthError
+        #   * other unrecognized → return None (defensive)
         raw = result.raw if isinstance(result, StateExtended) else {}
         status_obj = dict_get_case_insensitive(raw, "status")
         if isinstance(status_obj, dict):
             res = dict_get_case_insensitive(status_obj, "result")
-            if isinstance(res, str) and res.lower() == "uri_not_found":
+            res_lower = res.lower() if isinstance(res, str) else ""
+            if res_lower in ("requires_pairing", "pairing_denied"):
+                raise VizioAuthError(
+                    dict_get_case_insensitive(status_obj, "detail") or res_lower
+                )
+            if res_lower == "uri_not_found":
+                # Definitive: this firmware doesn't expose the endpoint.
+                # Cache so the next poll doesn't re-probe.
+                self._state_extended_unavailable = True
                 if log_api_exception:
                     _LOGGER.debug("/state_extended not exposed by this firmware")
+                return None
+            if res_lower:
+                # Other envelope statuses (BLOCKED, etc.) are transient
+                # — don't poison the capability cache.
+                if log_api_exception:
+                    _LOGGER.debug(
+                        "/state_extended returned envelope status %r — "
+                        "treating as unavailable",
+                        res,
+                    )
                 return None
         return result
 
@@ -769,12 +897,17 @@ class VizioAsync:
         read (transport / device error). The state-aware
         :meth:`mute_on` / :meth:`mute_off` rely on the ``None`` signal
         to avoid blindly toggling on an unknown state.
+
+        Note: every :class:`VizioError` (including :class:`VizioAuthError`
+        and :class:`VizioBusyError`) is swallowed as ``None`` here. If
+        a caller needs to distinguish auth invalidation from a transport
+        blip, call ``get_audio_setting('mute')`` directly.
         """
         try:
             mute_val = await VizioAsync.get_audio_setting(
                 self, "mute", log_api_exception=log_api_exception
             )
-        except (VizioError, AttributeError):
+        except VizioError:
             return None
         if mute_val is None:
             return None

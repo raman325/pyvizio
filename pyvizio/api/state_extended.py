@@ -8,9 +8,9 @@ endpoint).
 
 Capability is advertised by the device under
 ``deviceinfo.scpl_capabilities.state_extended``. Older firmware that
-doesn't expose it returns ``URI_NOT_FOUND`` from
-:meth:`pyvizio.VizioAsync.get_state_extended`, which surfaces as
-:class:`pyvizio.errors.VizioNotFoundError`.
+doesn't expose it returns the SCPL ``URI_NOT_FOUND`` envelope;
+:meth:`pyvizio.VizioAsync.get_state_extended` detects that shape on
+the raw payload and returns ``None``.
 
 Verified live on VHD24M-0810 firmware 3.720.9.1-1.
 """
@@ -18,14 +18,22 @@ Verified live on VHD24M-0810 firmware 3.720.9.1-1.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TypedDict
 
 from pyvizio.api.base import InfoCommandBase
 from pyvizio.const import DEVICE_CONFIGS
 from pyvizio.helpers import dict_get_case_insensitive
 
 
-@dataclass
+class CurrentApp(TypedDict):
+    """Active SmartCast app config as returned in ``/state_extended``."""
+
+    app_id: str
+    name_space: int
+    message: str | None
+
+
+@dataclass(frozen=True)
 class StateExtended:
     """Typed view of the ``/state_extended`` payload.
 
@@ -34,6 +42,8 @@ class StateExtended:
     than raising. This lets a polling integration consume one snapshot
     per loop iteration regardless of which fields the device chose
     to populate.
+
+    Frozen so cached snapshots can't be mutated by accident.
     """
 
     power_on: bool = False
@@ -44,22 +54,19 @@ class StateExtended:
     ``"Quick Start"``."""
 
     current_input: str = ""
-    """Meta-name of the active input. For consistency with
-    :meth:`pyvizio.VizioAsync.get_current_input`, this is the same
-    value the device returns for ``current_input`` — which can be
-    the cname-derived display name OR the meta_name depending on
-    input type (verified live: cast inputs return the meta_name
-    ``"SMARTCAST"`` while HDMI inputs return the display name
-    ``"HDMI-2"`` even when user-renamed)."""
+    """Device-reported current_input value. Note: shape varies by
+    input type — HDMI inputs return the cname-derived display name
+    (``"HDMI-2"``, even when user-renamed), cast inputs return the
+    meta_name (``"SMARTCAST"``). Verified live on VHD24M-0810
+    fw 3.720.9.1-1."""
 
     current_input_hashval: int | None = None
     """Hashval of the current_input setting — useful for callers that
     want to write back without an additional GET."""
 
-    current_app: dict[str, Any] | None = None
-    """Active SmartCast app config as ``{"app_id", "name_space",
-    "message"}``, or ``None`` when no app is running. For the
-    SmartCast Home screen this is populated with
+    current_app: CurrentApp | None = None
+    """Active SmartCast app config, or ``None`` when no app is running.
+    For the SmartCast Home screen this is populated with
     ``{"app_id": "1", "name_space": 4, ...}``."""
 
     screen_mode: str = ""
@@ -94,7 +101,12 @@ def parse_state_extended(payload: dict[str, Any]) -> StateExtended:
     power_status = dict_get_case_insensitive(payload, "power_status")
     power_on = False
     if isinstance(power_status, dict):
-        power_on = bool(dict_get_case_insensitive(power_status, "value", 0))
+        # Coerce via int() rather than bool(): firmware may serialize
+        # the value as the string "0" / "1", and bool("0") is True.
+        try:
+            power_on = int(dict_get_case_insensitive(power_status, "value", 0)) == 1
+        except (TypeError, ValueError):
+            power_on = False
 
     power_mode_raw = dict_get_case_insensitive(payload, "power_mode")
     power_mode = ""
@@ -113,22 +125,18 @@ def parse_state_extended(payload: dict[str, Any]) -> StateExtended:
             current_input_hashval = None
 
     app_current_raw = dict_get_case_insensitive(payload, "app_current")
-    current_app: dict[str, Any] | None = None
+    current_app: CurrentApp | None = None
     if isinstance(app_current_raw, dict):
         app_id = dict_get_case_insensitive(app_current_raw, "app_id")
         name_space = dict_get_case_insensitive(app_current_raw, "name_space")
         if app_id is not None and name_space is not None:
             try:
-                current_app = {
-                    "app_id": str(app_id),
-                    "name_space": int(name_space),
-                    "message": (
-                        str(dict_get_case_insensitive(app_current_raw, "message"))
-                        if dict_get_case_insensitive(app_current_raw, "message")
-                        is not None
-                        else None
-                    ),
-                }
+                msg_raw = dict_get_case_insensitive(app_current_raw, "message")
+                current_app = CurrentApp(
+                    app_id=str(app_id),
+                    name_space=int(name_space),
+                    message=str(msg_raw) if msg_raw is not None else None,
+                )
             except (TypeError, ValueError):
                 current_app = None
 

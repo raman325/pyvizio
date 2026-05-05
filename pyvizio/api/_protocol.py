@@ -15,6 +15,8 @@ from pyvizio.errors import (
     VizioAuthError,
     VizioBusyError,
     VizioConnectionError,
+    VizioError,
+    VizioHashvalError,
     VizioInvalidParameterError,
     VizioNotFoundError,
     VizioResponseError,
@@ -145,17 +147,24 @@ async def async_validate_response(
     result_lower = result_status.lower() if result_status else ""
     detail = dict_get_case_insensitive(status_obj, "detail") or ""
 
-    # Both INVALID_PARAMETER and HASHVAL_ERROR map to the same exception
-    # so any caller's existing retry logic fires for both. Captured live:
-    # stale-hashval PUTs return HASHVAL_ERROR on modern firmware,
-    # INVALID_PARAMETER on older.
-    if result_lower in (STATUS_INVALID_PARAMETER, STATUS_HASHVAL_ERROR):
+    # HASHVAL_ERROR gets a more specific subclass so callers that want
+    # to retry on stale-hashval (refetch + resend) can do so without
+    # broadening to all invalid-parameter errors. Existing
+    # ``except VizioInvalidParameterError`` blocks still catch it via
+    # the parent. Captured live: stale-hashval PUTs return HASHVAL_ERROR
+    # on modern firmware, INVALID_PARAMETER on older.
+    if result_lower == STATUS_HASHVAL_ERROR:
+        raise VizioHashvalError(detail or "stale hashval — refetch and retry")
+    if result_lower == STATUS_INVALID_PARAMETER:
         raise VizioInvalidParameterError(detail or "invalid value specified")
     # URI_NOT_FOUND is HTTP-200-with-status, not HTTP 404. Modern
     # firmware uses it for paths that don't exist (per-field identity
     # leaves on firmwares that only expose the aggregate). Surface as
-    # VizioNotFoundError so multi-path-fallback callers can chain to
-    # the next candidate path.
+    # VizioNotFoundError so callers using ``propagate_errors=True``
+    # (currently only the multi-path-fallback in
+    # ``__get_identity_aggregate``) can distinguish it from transient
+    # failures and chain to the next candidate path. Default callers
+    # see ``None`` via the standard swallow path.
     if result_lower == STATUS_URI_NOT_FOUND:
         raise VizioNotFoundError(detail or "endpoint not found on device")
     if result_lower == STATUS_BLOCKED:
@@ -204,12 +213,21 @@ async def async_invoke_api(
     log_api_exception: bool = True,
     session: ClientSession = None,
     skip_envelope: bool = False,
+    propagate_errors: bool = False,
 ) -> Any:
     """Call API endpoints with appropriate request bodies and headers.
 
     ``skip_envelope=True`` forwards to :func:`async_validate_response` to
     skip SCPL ``STATUS``/``ITEMS`` validation for endpoints with
     non-standard response shapes (e.g. ``/state_extended``).
+
+    ``propagate_errors=True`` re-raises every :class:`VizioError` instead
+    of returning ``None``. Used by callers (e.g. multi-path-fallback
+    helpers like ``__get_identity_aggregate``) that need to distinguish
+    typed failure modes — ``VizioNotFoundError`` for "not exposed at
+    this path, try next" vs transport/busy errors that should not poison
+    a cache. ``VizioAuthError`` always propagates regardless of this
+    flag.
     """
     if headers is None:
         headers = {}
@@ -246,6 +264,12 @@ async def async_invoke_api(
         # network / device failures, and that distinction would be lost
         # if we returned None.
         raise
+    except VizioError as e:
+        if propagate_errors:
+            raise
+        if log_api_exception:
+            logger.error("Failed to execute command: %s", e)
+        return None
     except Exception as e:
         if log_api_exception:
             logger.error("Failed to execute command: %s", e)
@@ -262,6 +286,7 @@ async def async_invoke_api_auth(
     log_api_exception: bool = True,
     session: ClientSession = None,
     skip_envelope: bool = False,
+    propagate_errors: bool = False,
 ) -> Any:
     """Call auth protected API endpoints using CommandBase and subclass request bodies."""
 
@@ -274,4 +299,5 @@ async def async_invoke_api_auth(
         log_api_exception=log_api_exception,
         session=session,
         skip_envelope=skip_envelope,
+        propagate_errors=propagate_errors,
     )

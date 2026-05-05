@@ -175,11 +175,15 @@ class AltItemInfoCommandBase(ItemInfoCommandBase):
 class GetTvInformationCommand(InfoCommandBase):
     """Command to GET the aggregate ``tv_information`` envelope.
 
-    Modern firmware (~3.7+, verified VHD24M-0810 fw 3.720.9.1-1) returns
-    all identity fields (esn, serial_number, firmware, version, ...) in
-    one response under the parent path, and rejects the per-field child
-    paths with ``URI_NOT_FOUND``. The library tries the aggregate first
-    and falls back to per-field endpoints on older firmware.
+    Modern firmware (~3.7+, verified VHD24M-0810 fw 3.720.9.1-1)
+    returns the ``tv_information`` identity fields (``serial_number``,
+    ``firmware``, ``version``, ``model_name``, ``tv_name``, ...) in
+    one response under the parent path, and rejects the per-field
+    children of ``tv_information/`` with ``URI_NOT_FOUND``. ``esn``
+    lives under ``uli_information/`` and is **not** part of this
+    aggregate; ``get_esn()`` always falls through to its per-field
+    path. The library tries the aggregate first and falls back to
+    per-field endpoints on older firmware.
     """
 
     def __init__(self, device_type: str, endpoint_key: str = "TV_INFORMATION") -> None:

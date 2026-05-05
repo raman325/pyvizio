@@ -46,6 +46,18 @@ class VizioInvalidInputError(VizioInvalidParameterError):
     """
 
 
+class VizioHashvalError(VizioInvalidParameterError):
+    """Stale hashval submitted in a write — the value the caller had
+    when constructing the PUT no longer matches the device's current
+    hashval (someone else, or the iPhone app, modified the setting).
+
+    Subclass of :class:`VizioInvalidParameterError` for backward
+    compatibility — existing ``except VizioInvalidParameterError``
+    blocks still catch it. New code that wants to retry on stale
+    hashval (refetch + resend) can catch this specifically.
+    """
+
+
 class VizioUnsupportedError(VizioError):
     """The requested operation is not supported by this device class.
 
