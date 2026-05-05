@@ -39,10 +39,18 @@ class VizioBusyError(VizioError):
 
 
 class VizioInvalidInputError(VizioInvalidParameterError):
-    """The named input does not exist on this device.
+    """The named input does not exist on this device, or matches
+    multiple inputs ambiguously.
 
     Subclass of :class:`VizioInvalidParameterError` so callers that
     catch the parent still see input-specific errors.
+
+    Note: raised by the internal input cname resolver, but the public
+    :meth:`pyvizio.VizioAsync.set_input` catches it and returns
+    ``None`` per the library's ``bool | None`` convention. Use
+    :func:`pyvizio._resolve_input_cname` directly if you need the
+    typed signal (e.g. to surface a "did you mean X?" hint to the
+    user).
     """
 
 
@@ -51,10 +59,11 @@ class VizioHashvalError(VizioInvalidParameterError):
     when constructing the PUT no longer matches the device's current
     hashval (someone else, or the iPhone app, modified the setting).
 
-    Subclass of :class:`VizioInvalidParameterError` for backward
-    compatibility — existing ``except VizioInvalidParameterError``
-    blocks still catch it. New code that wants to retry on stale
-    hashval (refetch + resend) can catch this specifically.
+    Catch this subclass specifically to drive a refetch-and-retry
+    loop (re-GET the parent setting to obtain the fresh hashval, then
+    re-issue the PUT). ``except VizioInvalidParameterError`` continues
+    to catch it via the parent for callers that want to lump all
+    invalid-parameter cases together.
     """
 
 

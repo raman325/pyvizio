@@ -171,20 +171,21 @@ class TestVolume:
         mock_aio.get(tv_settings_url("audio", "mute"), status=500)
         assert await getattr(vizio_tv, method)() is None
 
-    async def test_mute_on_key_press_failure_after_probe_returns_none(
+    async def test_mute_on_key_press_failure_after_probe_returns_false(
         self, vizio_tv, mock_aio
     ):
-        # Probe succeeds, KEY_PRESS PUT fails. Should not falsely report
-        # success — the toggle was attempted but didn't land.
+        # Probe succeeds, KEY_PRESS PUT fails. ``__remote`` returns
+        # ``False`` on PUT failure (not ``None`` — None is reserved for
+        # "probe failed, state unknown"). Asserting the exact False
+        # value catches a regression that returns None instead and
+        # vice versa.
         mock_aio.get(
             tv_settings_url("audio", "mute"),
             payload=make_response(items=[make_item("mute", "Off")]),
         )
         mock_aio.put(tv_url("KEY_PRESS"), status=500)
-        # __remote returns False on failure (result is not None == False
-        # for None), so mute_on inherits that. Either way, never True.
         result = await vizio_tv.mute_on(log_api_exception=False)
-        assert result is not True
+        assert result is False
 
     @pytest.mark.parametrize(
         "fixture,expected",

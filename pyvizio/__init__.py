@@ -225,6 +225,7 @@ class VizioAsync:
         cmd: CommandBase,
         log_api_exception: bool = True,
         propagate_errors: bool = False,
+        skip_envelope: bool = False,
     ) -> Any:
         """Asynchronously call SmartCast API without auth token."""
         async with self._get_semaphore():
@@ -238,6 +239,7 @@ class VizioAsync:
                 custom_timeout=self._timeout,
                 log_api_exception=log_api_exception,
                 session=self._session,
+                skip_envelope=skip_envelope,
                 propagate_errors=propagate_errors,
             )
 
@@ -285,6 +287,7 @@ class VizioAsync:
                     cmd,
                     log_api_exception=log_api_exception,
                     propagate_errors=propagate_errors,
+                    skip_envelope=skip_envelope,
                 )
             else:
                 no_auth_types = [
@@ -359,6 +362,20 @@ class VizioAsync:
         """
         if self._cached_identity_loaded:
             return self._cached_identity
+        # Probe-style callers (empty auth_token) on a device class that
+        # requires auth would receive a 401/403 from the no-auth
+        # aggregate call, which propagates as ``VizioAuthError`` and
+        # would break the caller's bool/None contract (e.g.
+        # ``get_unique_id`` is documented to return ``str | None``).
+        # Skip the aggregate entirely in that case and let the caller
+        # fall through to the per-field paths, which historically work
+        # without auth on the same firmware.
+        if (
+            not require_auth
+            and not self._auth_token
+            and self._device_config.requires_auth
+        ):
+            return None
         for endpoint_key in ("TV_INFORMATION", "_ALT_TV_INFORMATION"):
             if endpoint_key not in self._device_config.endpoints:
                 continue
@@ -678,8 +695,10 @@ class VizioAsync:
         Short-circuits when already on the target input — the device
         explicitly rejects "switch to current input" with FAILURE.
 
-        This issues two GETs (current input + inputs list) before the
-        PUT to perform the name → cname resolution.
+        Issues two GETs unconditionally — current_input (for the
+        hashval and the short-circuit comparison) and the inputs
+        list (for cname resolution). A third request (the PUT) fires
+        only when the device is not already on the target input.
         """
         curr_input_item = await self.__invoke_api_may_need_auth(
             GetCurrentInputCommand(self.device_type),
@@ -754,9 +773,10 @@ class VizioAsync:
         raises (auth-class envelopes) accordingly.
 
         Raises :class:`VizioUnsupportedError` for device types that
-        don't expose the endpoint (speakers, Crave). The standard
-        ``log_api_exception=False`` swallow turns it back into ``None``
-        for compat callers.
+        don't expose the endpoint (speakers, Crave). This is a
+        programming-level invariant set at construction time, not a
+        runtime device condition, so it always propagates —
+        ``log_api_exception`` does not silence it.
         """
         if "STATE_EXTENDED" not in self._device_config.endpoints:
             # Device-class capability is a programming-level invariant
@@ -807,18 +827,28 @@ class VizioAsync:
                 # Definitive: this firmware doesn't expose the endpoint.
                 # Cache so the next poll doesn't re-probe.
                 self._state_extended_unavailable = True
-                if log_api_exception:
-                    _LOGGER.debug("/state_extended not exposed by this firmware")
+                _LOGGER.info(
+                    "/state_extended not exposed by %s (%s); caching as "
+                    "unavailable for the rest of this session",
+                    self.ip,
+                    self.device_type,
+                )
                 return None
             if res_lower:
-                # Other envelope statuses (BLOCKED, etc.) are transient
-                # — don't poison the capability cache.
-                if log_api_exception:
-                    _LOGGER.debug(
-                        "/state_extended returned envelope status %r — "
-                        "treating as unavailable",
-                        res,
-                    )
+                # Other envelope statuses (BLOCKED, REQUIRES_PAIRING was
+                # handled above, plus anything we don't yet model) are
+                # transient — return None for this poll without caching
+                # unavailable. Logged at WARNING (and not gated on
+                # ``log_api_exception``) because an unmodeled status
+                # signals firmware behavior the library doesn't yet
+                # understand and is worth surfacing once.
+                _LOGGER.warning(
+                    "/state_extended on %s (%s) returned envelope status "
+                    "%r — returning None for this poll (not cached)",
+                    self.ip,
+                    self.device_type,
+                    res,
+                )
                 return None
         return result
 
@@ -898,10 +928,15 @@ class VizioAsync:
         :meth:`mute_on` / :meth:`mute_off` rely on the ``None`` signal
         to avoid blindly toggling on an unknown state.
 
-        Note: every :class:`VizioError` (including :class:`VizioAuthError`
-        and :class:`VizioBusyError`) is swallowed as ``None`` here. If
-        a caller needs to distinguish auth invalidation from a transport
-        blip, call ``get_audio_setting('mute')`` directly.
+        Note: this is the **only** public method that intentionally
+        swallows :class:`VizioAuthError` (along with every other
+        :class:`VizioError`). Everywhere else in the library, auth
+        errors propagate so callers can detect re-pair invalidation.
+        Here the swallow is load-bearing for the state-aware mute
+        contract — but if a caller needs to distinguish auth
+        invalidation from a transport blip on the mute probe
+        specifically, they should call ``get_audio_setting('mute')``
+        directly.
         """
         try:
             mute_val = await VizioAsync.get_audio_setting(

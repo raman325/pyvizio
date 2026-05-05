@@ -75,6 +75,26 @@ class TestParseStateExtended:
         assert s.power_on is False
         assert s.power_mode == "Active Off"
 
+    @pytest.mark.parametrize(
+        "raw_value,expected",
+        [
+            (1, True),
+            (0, False),
+            ("1", True),
+            ("0", False),  # Critical: bool("0") is True; we use int().
+            ("anything-else", False),
+            (None, False),
+        ],
+    )
+    def test_power_on_coercion(self, raw_value, expected) -> None:
+        """``POWER_STATUS.VALUE`` is coerced via ``int()`` rather than
+        ``bool()``. Firmware has been observed to serialize the value
+        as either int or string; ``bool("0")`` is truthy and would
+        incorrectly report powered-on, so the parser uses
+        ``int(...) == 1`` with a guarded fallback."""
+        s = parse_state_extended({"POWER_STATUS": {"VALUE": raw_value}})
+        assert s.power_on is expected
+
     def test_minimal_payload_degrades_gracefully(self) -> None:
         """Older or partial firmware may omit fields — every getter
         degrades to empty / None / () instead of raising."""

@@ -86,7 +86,9 @@ class StateExtended:
 
     raw: dict[str, Any] = field(default_factory=dict)
     """Original parsed JSON payload. Escape hatch for fields we don't
-    model (firmware-specific extensions)."""
+    model (firmware-specific extensions). Note: the dataclass is
+    frozen, but ``raw`` is itself a dict and is shallowly mutable —
+    treat it as read-only."""
 
 
 def parse_state_extended(payload: dict[str, Any]) -> StateExtended:
@@ -162,9 +164,13 @@ def parse_state_extended(payload: dict[str, Any]) -> StateExtended:
 class GetStateExtendedCommand(InfoCommandBase):
     """Command to GET ``/state_extended`` and parse into :class:`StateExtended`.
 
-    Note: the response has a non-standard envelope (no STATUS/ITEMS),
-    so callers must invoke this command with ``skip_envelope=True``
-    against :func:`pyvizio.api._protocol.async_invoke_api_auth`.
+    Note: the success-case response has a non-standard envelope (flat
+    top-level keys, no ``STATUS``/``ITEMS`` wrapper), so callers must
+    thread ``skip_envelope=True`` through whichever invoker they use
+    (``async_invoke_api`` / ``async_invoke_api_auth``). Older firmware
+    that doesn't expose the endpoint returns the standard SCPL envelope
+    with ``RESULT: URI_NOT_FOUND``; the caller is responsible for
+    detecting that shape on the parsed payload.
     """
 
     def __init__(self, device_type: str) -> None:

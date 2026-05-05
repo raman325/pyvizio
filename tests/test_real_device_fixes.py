@@ -1,9 +1,7 @@
-"""Tests for the new code paths added in the real-device-fixes commit.
-
-Covers status-code mappings, HTTP-status mappings, the input cname
-resolver, the aggregate identity endpoint helper, and state-aware mute.
-These are the new behaviors introduced alongside the bug-fix work; the
-existing test suite continues to cover the unchanged surface.
+"""Regression tests for the input cname resolver, envelope/HTTP status
+mapping, ``VizioAuthError`` propagation through the invoke chain, the
+aggregate ``tv_information`` identity helper (and its caching contract),
+and adjacent error-path behaviors.
 """
 
 from __future__ import annotations
@@ -158,9 +156,9 @@ class TestEnvelopeStatusMapping:
             await async_validate_response(resp)
 
     async def test_parse_failure_includes_body_snippet(self) -> None:
-        """Malformed JSON used to interpolate ``response.content`` (a
-        stream object that rendered as ``<StreamReader ...>``). Now
-        the captured text is included so reporters can paste it."""
+        """Malformed JSON surfaces as ``VizioResponseError`` whose
+        message includes up to 200 chars of the actual body, so bug
+        reporters can paste the device's real response into an issue."""
         resp = _fake_response(200, "not-json-at-all <html>broken</html>")
         with pytest.raises(VizioResponseError, match="not-json-at-all"):
             await async_validate_response(resp)
@@ -363,6 +361,56 @@ class TestIdentityAggregate:
         )
         assert await v1.get_serial_number() == "SN-FROM-V1"
         assert await v2.get_serial_number() == "SN-FROM-V2"
+
+    async def test_probe_style_with_auth_required_skips_aggregate(
+        self, mock_aio
+    ) -> None:
+        """``get_unique_id`` is documented to return ``str | None`` —
+        it must not raise. With an empty auth_token on a TV (which
+        requires auth), the aggregate call would 401/403 and
+        ``VizioAuthError`` would propagate. The aggregate helper
+        skips the aggregate entirely when probe-style + auth-required
+        so the caller falls through cleanly to the per-field path."""
+        # No mock for TV_INFORMATION — assertion is that it's never hit.
+        # If the aggregate weren't skipped, aioresponses would raise
+        # ConnectionError → wrapped → propagate → break get_unique_id.
+        mock_aio.get(
+            "https://192.168.1.100:7345/menu_native/dynamic/tv_settings/system/system_information/tv_information/serial_number",
+            payload={
+                "STATUS": {"RESULT": "SUCCESS", "DETAIL": "Success"},
+                "ITEMS": [{"CNAME": "serial_number", "VALUE": "PROBE-SN"}],
+            },
+        )
+        result = await VizioAsync.get_unique_id("192.168.1.100:7345", "tv")
+        assert result == "PROBE-SN"
+
+    async def test_aggregate_aiohttp_transport_error_does_not_poison_cache(
+        self, vizio_tv, mock_aio
+    ) -> None:
+        """A raw aiohttp transport error (DNS failure, connection
+        refused, timeout, etc.) must be wrapped into VizioConnectionError
+        in _do_request so the typed-error path in async_invoke_api fires
+        and the aggregate cache is not poisoned. Without the wrapping,
+        the bare ``except Exception`` in async_invoke_api would swallow
+        these unconditionally and ignore propagate_errors=True."""
+        import asyncio
+
+        # Simulate a raw transport-level error (not a VizioError) on
+        # the aggregate path. aioresponses raises whatever Exception
+        # subclass is passed via ``exception=``. asyncio.TimeoutError
+        # is the simplest example that's not a VizioError subclass and
+        # will hit _do_request's wrapping branch.
+        mock_aio.get(tv_url("TV_INFORMATION"), exception=asyncio.TimeoutError())
+        mock_aio.get(tv_url("SERIAL_NUMBER"), exception=asyncio.TimeoutError())
+        mock_aio.get(tv_url("_ALT_SERIAL_NUMBER"), exception=asyncio.TimeoutError())
+
+        # First call should fail cleanly (return None) without raising.
+        assert await vizio_tv.get_serial_number(log_api_exception=False) is None
+        # Cache state must NOT be marked loaded — a transient transport
+        # error on the aggregate is not a definitive "not exposed"
+        # signal, so the next call must retry rather than short-circuit.
+        assert vizio_tv._cached_identity_loaded is False
+        assert vizio_tv._cached_identity is None
 
     async def test_aggregate_transient_failure_does_not_poison_cache(
         self, vizio_tv, mock_aio
