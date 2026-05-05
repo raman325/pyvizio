@@ -21,3 +21,34 @@ class VizioInvalidParameterError(VizioError):
 
 class VizioResponseError(VizioError):
     """Unexpected or malformed response from device."""
+
+
+class VizioNotFoundError(VizioError):
+    """Requested item not found in device response.
+
+    Also used for ``URI_NOT_FOUND`` envelope status from the device,
+    which modern firmware (~3.7+) returns for paths that aren't
+    exposed (HTTP 200 + this status, not HTTP 404).
+    """
+
+
+class VizioBusyError(VizioError):
+    """Device temporarily refused — typically returned as
+    ``RESULT: BLOCKED`` envelope status. Another writer holds a lock,
+    or the device is mid-update."""
+
+
+class VizioInvalidInputError(VizioInvalidParameterError):
+    """The named input does not exist on this device.
+
+    Subclass of :class:`VizioInvalidParameterError` so callers that
+    catch the parent still see input-specific errors.
+    """
+
+
+class VizioUnsupportedError(VizioError):
+    """The requested operation is not supported by this device class.
+
+    Raised before any HTTP work when the operation is gated by device
+    profile capabilities (e.g., battery on a TV, apps on a soundbar).
+    """

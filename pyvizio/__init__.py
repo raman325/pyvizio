@@ -33,6 +33,7 @@ from pyvizio.api.item import (
     AltItemInfoCommandBase,
     GetDeviceInfoCommand,
     GetModelNameCommand,
+    GetTvInformationCommand,
     ItemInfoCommandBase,
 )
 from pyvizio.api.pair import (
@@ -53,6 +54,7 @@ from pyvizio.api.settings import (
     GetSettingOptionsCommand,
     GetSettingOptionsXListCommand,
 )
+from pyvizio.api.state_extended import GetStateExtendedCommand, StateExtended
 from pyvizio.const import (
     APP_HOME,
     APPS,
@@ -69,16 +71,63 @@ from pyvizio.discovery.ssdp import SSDPDevice, discover as discover_ssdp
 from pyvizio.discovery.zeroconf import ZeroconfDevice, discover as discover_zc
 from pyvizio.errors import (
     VizioAuthError,
+    VizioBusyError as VizioBusyError,
     VizioConnectionError as VizioConnectionError,
     VizioError as VizioError,
+    VizioInvalidInputError,
     VizioInvalidParameterError as VizioInvalidParameterError,
+    VizioNotFoundError as VizioNotFoundError,
     VizioResponseError as VizioResponseError,
+    VizioUnsupportedError as VizioUnsupportedError,
 )
-from pyvizio.helpers import async_to_sync, open_port
+from pyvizio.helpers import async_to_sync, dict_get_case_insensitive, open_port
 from pyvizio.util import gen_apps_list_from_url
 from pyvizio.version import __version__ as __version__
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _resolve_input_cname(name: str, inputs: list[InputItem]) -> str:
+    """Resolve a user-supplied input identifier to its canonical cname.
+
+    The device's PUT body for ``current_input`` carries the lowercase
+    **cname** (e.g. ``"hdmi2"``), not the display name (``"HDMI-2"``)
+    or the meta_name (``"Mac"``). Verified live on VHD24M-0810 fw
+    3.720.9.1-1: PUT VALUE=``HDMI-2`` → FAILURE; PUT VALUE=``Mac`` →
+    HASHVAL_ERROR; PUT VALUE=``hdmi2`` → SUCCESS.
+
+    Resolution order, all case-insensitive:
+
+    1. Exact ``cname`` match (most specific).
+    2. Exact ``meta_name`` match (handles CAST/SMARTCAST and user
+       renames).
+    3. Exact display ``name`` match (label fallback).
+
+    Raises :class:`VizioInvalidInputError` when no input matches, or
+    when a label is ambiguous within the same resolution tier (user
+    renamed two HDMIs to the same label).
+    """
+    target = name.lower()
+    candidates_by_tier = {
+        "cname": [i for i in inputs if (i.c_name or "").lower() == target],
+        "meta_name": [i for i in inputs if (i.meta_name or "").lower() == target],
+        "name": [i for i in inputs if (i.name or "").lower() == target],
+    }
+    for tier, hits in candidates_by_tier.items():
+        if len(hits) == 1:
+            return (hits[0].c_name or "").lower()
+        if len(hits) > 1:
+            raise VizioInvalidInputError(
+                f"input {name!r} matches multiple inputs by {tier} "
+                f"({[h.c_name for h in hits]}); rename one to disambiguate"
+            )
+
+    valid = sorted(
+        {(i.c_name or "").lower() for i in inputs}
+        | {i.name or "" for i in inputs}
+        | {i.meta_name or "" for i in inputs if i.meta_name}
+    )
+    raise VizioInvalidInputError(f"input {name!r} not found. Valid: {valid}")
 
 
 class VizioAsync:
@@ -116,6 +165,14 @@ class VizioAsync:
         self._semaphore: asyncio.Semaphore | None = None
         self._latest_apps: list[dict[str, Any]] | None = None
         self._latest_apps_last_updated: datetime | None = None
+        # Identity (esn / serial_number / firmware / version) is
+        # immutable for a device's lifetime, so the aggregate fetch is
+        # cached on the instance after the first attempt. ``_loaded``
+        # captures both success (mapping) and failure (None) — without
+        # it, three identity calls on a device that doesn't expose the
+        # aggregate would each pay the round-trip + URI_NOT_FOUND.
+        self._cached_identity: dict[str, str] | None = None
+        self._cached_identity_loaded: bool = False
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.__dict__})"
@@ -168,9 +225,16 @@ class VizioAsync:
             )
 
     async def __invoke_api_auth(
-        self, cmd: CommandBase, log_api_exception: bool = True
+        self,
+        cmd: CommandBase,
+        log_api_exception: bool = True,
+        skip_envelope: bool = False,
     ) -> Any:
-        """Asynchronously call SmartCast API with auth token."""
+        """Asynchronously call SmartCast API with auth token.
+
+        ``skip_envelope=True`` is for endpoints with non-standard
+        response shapes (currently only ``/state_extended``).
+        """
         async with self._get_semaphore():
             if ":" not in self.ip:
                 await self.__add_port()
@@ -183,6 +247,7 @@ class VizioAsync:
                 custom_timeout=self._timeout,
                 log_api_exception=log_api_exception,
                 session=self._session,
+                skip_envelope=skip_envelope,
             )
 
     async def __invoke_api_may_need_auth(
@@ -233,6 +298,40 @@ class VizioAsync:
         """Asynchronously call key press API with list of same key repeated multiple times."""
         key_codes = [key_code for _ in range(num)]
         return await self.__remote(key_codes, log_api_exception=log_api_exception)
+
+    async def __get_identity_aggregate(
+        self, log_api_exception: bool = True
+    ) -> dict[str, str] | None:
+        """Asynchronously fetch the aggregate ``tv_information`` envelope.
+
+        Result is cached on the instance — identity is immutable for a
+        device's lifetime. Three identity calls (esn + serial_number +
+        version) now make one HTTP round trip instead of three when the
+        aggregate is exposed.
+
+        Returns a ``cname → value`` mapping, or ``None`` when the
+        aggregate isn't exposed at either path. Returning ``None`` is
+        cached too, so older firmware that requires per-field paths
+        doesn't re-pay the URI_NOT_FOUND round trip on every call.
+        """
+        if self._cached_identity_loaded:
+            return self._cached_identity
+        self._cached_identity_loaded = True
+        for endpoint_key in ("TV_INFORMATION", "_ALT_TV_INFORMATION"):
+            if endpoint_key not in self._device_config.endpoints:
+                continue
+            try:
+                mapping = await self.__invoke_api_may_need_auth(
+                    GetTvInformationCommand(self.device_type, endpoint_key),
+                    log_api_exception=log_api_exception,
+                )
+            except VizioError:
+                continue
+            if mapping:
+                self._cached_identity = mapping
+                return mapping
+        self._cached_identity = None
+        return None
 
     async def __get_cached_apps_list(self) -> list[dict[str, Any]]:
         if (
@@ -315,10 +414,21 @@ class VizioAsync:
         ).get_serial_number(log_api_exception=False)
 
     async def can_connect_with_auth_check(self) -> bool:
-        """Asynchronously return whether or not device API can be connected to with valid authorization."""
-        return bool(
-            await VizioAsync.get_all_audio_settings(self, log_api_exception=False)
-        )
+        """Asynchronously return whether or not device API can be connected to with valid authorization.
+
+        Probe-style helper — must always return a bool, never propagate.
+        With the new HTTP 401/403 → :class:`VizioAuthError` mapping
+        (re-pair invalidation surfaces here), the underlying call now
+        raises that exception instead of being suppressed by
+        ``log_api_exception=False`` — the propagation is load-bearing
+        for non-probe callers, but here we want the bool contract.
+        """
+        try:
+            return bool(
+                await VizioAsync.get_all_audio_settings(self, log_api_exception=False)
+            )
+        except VizioAuthError:
+            return False
 
     async def can_connect_no_auth_check(self) -> bool:
         """Asynchronously return whether or not device API can be connected to regardless of authorization."""
@@ -329,7 +439,15 @@ class VizioAsync:
         )
 
     async def get_esn(self, log_api_exception: bool = True) -> str | None:
-        """Asynchronously get device's ESN (electronic serial number?)."""
+        """Asynchronously get device's ESN (electronic serial number?).
+
+        Prefers the aggregate ``TV_INFORMATION`` endpoint; falls back
+        to per-field ``ESN`` / ``_ALT_ESN`` paths for older firmware.
+        """
+        agg = await self.__get_identity_aggregate(log_api_exception=log_api_exception)
+        if agg and agg.get("esn"):
+            return agg["esn"]
+
         item = await self.__invoke_api_may_need_auth(
             ItemInfoCommandBase(self.device_type, "ESN"),
             log_api_exception=log_api_exception,
@@ -344,7 +462,15 @@ class VizioAsync:
         return None
 
     async def get_serial_number(self, log_api_exception: bool = True) -> str | None:
-        """Asynchronously get device's serial number."""
+        """Asynchronously get device's serial number.
+
+        Prefers the aggregate ``TV_INFORMATION`` endpoint; falls back
+        to per-field paths for older firmware.
+        """
+        agg = await self.__get_identity_aggregate(log_api_exception=log_api_exception)
+        if agg and agg.get("serial_number"):
+            return agg["serial_number"]
+
         item = await self.__invoke_api(
             ItemInfoCommandBase(self.device_type, "SERIAL_NUMBER"),
             log_api_exception=log_api_exception,
@@ -361,7 +487,18 @@ class VizioAsync:
         return None
 
     async def get_version(self, log_api_exception: bool = True) -> str | None:
-        """Asynchronously get SmartCast software version on device."""
+        """Asynchronously get SmartCast software version on device.
+
+        Prefers the aggregate ``TV_INFORMATION`` endpoint, where the
+        version is exposed under cname ``"firmware"`` (modern firmware)
+        or ``"version"`` (older). Falls back to per-field paths.
+        """
+        agg = await self.__get_identity_aggregate(log_api_exception=log_api_exception)
+        if agg:
+            for cname in ("version", "firmware"):
+                if agg.get(cname):
+                    return agg[cname]
+
         item = await self.__invoke_api(
             ItemInfoCommandBase(self.device_type, "VERSION"),
             log_api_exception=log_api_exception,
@@ -440,20 +577,122 @@ class VizioAsync:
         )
 
     async def set_input(self, name: str, log_api_exception: bool = True) -> bool | None:
-        """Asynchronously switch active input to named input."""
+        """Asynchronously switch active input to named input.
+
+        ``name`` accepts any of the input's three identifier forms,
+        case-insensitively: cname (``"hdmi2"``), display name
+        (``"HDMI-2"``), or meta_name (``"Mac"`` / ``"SMARTCAST"``).
+        Verified live on VHD24M-0810 fw 3.720.9.1-1: only the
+        lowercase cname succeeds in the PUT body — display name
+        returns FAILURE, meta_name returns HASHVAL_ERROR. This method
+        translates any of the three forms before sending.
+
+        Short-circuits when already on the target input — the device
+        explicitly rejects "switch to current input" with FAILURE.
+        """
         curr_input_item = await self.__invoke_api_may_need_auth(
             GetCurrentInputCommand(self.device_type),
             log_api_exception=log_api_exception,
         )
-
         if not curr_input_item:
             _LOGGER.error("Couldn't detect current input")
             return None
 
-        return await self.__invoke_api_may_need_auth(
-            ChangeInputCommand(self.device_type, curr_input_item.id, name),
+        inputs = await self.__invoke_api_may_need_auth(
+            GetInputsListCommand(self.device_type),
             log_api_exception=log_api_exception,
         )
+        if not inputs:
+            _LOGGER.error("Couldn't fetch inputs list")
+            return None
+
+        try:
+            target_cname = _resolve_input_cname(name, inputs)
+        except VizioInvalidInputError as err:
+            if log_api_exception:
+                _LOGGER.error("%s", err)
+            return None
+
+        # Short-circuit when already on target. ``current_input.value``
+        # is inconsistent across input types (display name for HDMI,
+        # meta_name for CAST) so check against any of the three forms.
+        target_input = next(
+            (i for i in inputs if (i.c_name or "").lower() == target_cname),
+            None,
+        )
+        if target_input and isinstance(curr_input_item.value, str):
+            candidates = {
+                target_cname,
+                (target_input.name or "").lower(),
+                (target_input.meta_name or "").lower(),
+            }
+            if curr_input_item.value.lower() in candidates:
+                return True
+
+        return await self.__invoke_api_may_need_auth(
+            ChangeInputCommand(self.device_type, curr_input_item.id, target_cname),
+            log_api_exception=log_api_exception,
+        )
+
+    async def get_state_extended(
+        self, log_api_exception: bool = True
+    ) -> StateExtended | None:
+        """Asynchronously fetch aggregate device state in one HTTP round trip.
+
+        Returns power, current input, current app, screen mode, and
+        media state — meaningfully cheaper than five individual GETs
+        for HA-style polling integrations. Capability is advertised
+        under ``deviceinfo.scpl_capabilities.state_extended``; older
+        firmware that doesn't expose the endpoint surfaces as ``None``
+        (the underlying :class:`VizioNotFoundError` is suppressed by
+        the standard ``log_api_exception`` path).
+
+        The on-the-wire envelope is **distinct** from the regular
+        SCPL response shape — flat top-level keys, no
+        ``STATUS``/``ITEMS`` — so we invoke with
+        ``skip_envelope=True`` and detect URI_NOT_FOUND-shaped
+        fall-through manually.
+
+        Returns ``None`` for device types that don't expose the
+        endpoint (speakers, Crave) — they have no ``STATE_EXTENDED``
+        in :data:`DEVICE_CONFIGS`.
+        """
+        if "STATE_EXTENDED" not in self._device_config.endpoints:
+            if log_api_exception:
+                _LOGGER.debug("%r doesn't expose /state_extended", self.device_type)
+            return None
+
+        try:
+            result = await self.__invoke_api_auth(
+                GetStateExtendedCommand(self.device_type),
+                log_api_exception=log_api_exception,
+                skip_envelope=True,
+            )
+        except VizioAuthError:
+            raise
+        except VizioError as err:
+            if log_api_exception:
+                _LOGGER.error("Failed to fetch /state_extended: %s", err)
+            return None
+
+        if result is None:
+            return None
+
+        # ``skip_envelope`` bypassed standard validation, so older
+        # firmware that returns the SCPL envelope ``{"STATUS":
+        # {"RESULT": "URI_NOT_FOUND", ...}}`` here would otherwise
+        # produce a default-filled StateExtended that callers can't
+        # distinguish from a real all-default state. Detect that
+        # shape manually and treat as "endpoint unsupported".
+        raw = result.raw if isinstance(result, StateExtended) else {}
+        status_obj = dict_get_case_insensitive(raw, "status")
+        if isinstance(status_obj, dict):
+            res = dict_get_case_insensitive(status_obj, "result")
+            if isinstance(res, str) and res.lower() == "uri_not_found":
+                if log_api_exception:
+                    _LOGGER.debug("/state_extended not exposed by this firmware")
+                return None
+        return result
 
     async def get_power_state(self, log_api_exception: bool = True) -> bool | None:
         """Asynchronously get device's current power state."""
@@ -524,19 +763,22 @@ class VizioAsync:
         return int(volume) if volume else None
 
     async def is_muted(self, log_api_exception: bool = True) -> bool | None:
-        """Asynchronously determine whether or not device is muted."""
-        # If None is returned lower() will fail, if not we can do a simple boolean check
+        """Asynchronously determine whether or not device is muted.
+
+        Returns ``None`` when the underlying mute setting can't be
+        read (transport / device error). The state-aware
+        :meth:`mute_on` / :meth:`mute_off` rely on the ``None`` signal
+        to avoid blindly toggling on an unknown state.
+        """
         try:
-            return (
-                str(
-                    await VizioAsync.get_audio_setting(
-                        self, "mute", log_api_exception=log_api_exception
-                    )
-                ).lower()
-                == "on"
+            mute_val = await VizioAsync.get_audio_setting(
+                self, "mute", log_api_exception=log_api_exception
             )
-        except AttributeError:
+        except (VizioError, AttributeError):
             return None
+        if mute_val is None:
+            return None
+        return str(mute_val).lower() == "on"
 
     def get_max_volume(self) -> int:
         """Get device's max volume based on device type."""
@@ -561,12 +803,40 @@ class VizioAsync:
         return await self.__remote("CH_PREV", log_api_exception=log_api_exception)
 
     async def mute_on(self, log_api_exception: bool = True) -> bool | None:
-        """Asynchronously mute sound."""
-        return await self.__remote("MUTE_ON", log_api_exception=log_api_exception)
+        """Asynchronously mute sound (idempotent — no-op if already muted).
+
+        Verified live on VHD24M-0810 fw 3.720.9.1-1: discrete
+        ``MUTE_ON`` / ``MUTE_OFF`` codes don't actually exist as
+        discrete actions on TVs — codeset 5 codes 2/3/4 all behave
+        as toggles. ``MUTE_TOGGLE`` is the only universally reliable
+        behavior, so this method reads current mute state and sends
+        the toggle only on mismatch.
+
+        Returns ``None`` when the state probe fails (transport / auth
+        error during ``is_muted``) — falling through to a blind
+        toggle would risk inverting an already-muted device. Power
+        users wanting raw codes can still call ``remote("MUTE_ON")``.
+        """
+        current = await self.is_muted(log_api_exception=log_api_exception)
+        if current is True:
+            return True
+        if current is None:
+            return None
+        return await self.__remote("MUTE_TOGGLE", log_api_exception=log_api_exception)
 
     async def mute_off(self, log_api_exception: bool = True) -> bool | None:
-        """Asynchronously unmute sound."""
-        return await self.__remote("MUTE_OFF", log_api_exception=log_api_exception)
+        """Asynchronously unmute sound (idempotent — no-op if already unmuted).
+
+        See :meth:`mute_on` for the rationale on the read-then-toggle
+        pattern, including the ``is_muted() == None`` guard against
+        inverting an already-correct state when the probe fails.
+        """
+        current = await self.is_muted(log_api_exception=log_api_exception)
+        if current is False:
+            return True
+        if current is None:
+            return None
+        return await self.__remote("MUTE_TOGGLE", log_api_exception=log_api_exception)
 
     async def mute_toggle(self, log_api_exception: bool = True) -> bool | None:
         """Asynchronously toggle sound mute."""
@@ -1006,6 +1276,7 @@ if TYPE_CHECKING:
         def get_setting_options(self, setting_type: str, setting_name: str, log_api_exception: bool = True) -> list[str] | dict[str, int | None] | None: ...  # type: ignore[override]
         def get_setting_options_xlist(self, setting_type: str, setting_name: str, log_api_exception: bool = True) -> list[str] | None: ...  # type: ignore[override]
         def get_setting_types_list(self, log_api_exception: bool = True) -> list[str] | None: ...  # type: ignore[override]
+        def get_state_extended(self, log_api_exception: bool = True) -> StateExtended | None: ...  # type: ignore[override]
         def get_version(self, log_api_exception: bool = True) -> str | None: ...  # type: ignore[override]
         def is_muted(self, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
         def launch_app(self, app_name: str, apps_list: list[dict[str, Any]] | None = None, log_api_exception: bool = True) -> bool | None: ...  # type: ignore[override]
