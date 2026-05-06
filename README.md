@@ -1,5 +1,7 @@
 # `pyvizio`
 
+> NOTE: This project is in maintenance mode. A new library has been created in its place: https://github.com/raman325/vizaio
+
 ## Description
 
 Simple cli and API implementation for Vizio SmartCast TVs and Speakers (Sound Bars). Mainly created for
