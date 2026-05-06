@@ -106,3 +106,4 @@ ENV/
 
 # Claude Code
 .claude/
+.serena/

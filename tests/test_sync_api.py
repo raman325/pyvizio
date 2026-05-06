@@ -12,6 +12,7 @@ from tests.conftest import (
     TV_IP_PORT,
     make_app_response,
     make_current_input_response,
+    make_inputs_list_response,
     make_item,
     make_key_press_response,
     make_power_response,
@@ -88,6 +89,15 @@ class TestSyncInput:
             m.get(
                 tv_url("CURRENT_INPUT"),
                 payload=make_current_input_response("current_input", "HDMI-1", 5),
+            )
+            m.get(
+                tv_url("INPUTS"),
+                payload=make_inputs_list_response(
+                    [
+                        ("hdmi1", "HDMI-1", "Living Room", 1),
+                        ("hdmi2", "HDMI-2", "Console", 2),
+                    ]
+                ),
             )
             m.put(tv_url("CURRENT_INPUT"), payload=make_response())
             result = vizio_sync.set_input("HDMI-2")

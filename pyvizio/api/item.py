@@ -170,3 +170,39 @@ class AltItemInfoCommandBase(ItemInfoCommandBase):
         super(ItemInfoCommandBase, self).__init__(ENDPOINT[device_type][endpoint_name])
         self.item_name = item_name.upper()
         self.default_return = default_return
+
+
+class GetTvInformationCommand(InfoCommandBase):
+    """Command to GET the aggregate ``tv_information`` envelope.
+
+    Modern firmware (~3.7+, verified VHD24M-0810 fw 3.720.9.1-1)
+    returns the ``tv_information`` identity fields (``serial_number``,
+    ``firmware``, ``version``, ``model_name``, ``tv_name``, ...) in
+    one response under the parent path, and rejects the per-field
+    children of ``tv_information/`` with ``URI_NOT_FOUND``. ``esn``
+    lives under ``uli_information/`` and is **not** part of this
+    aggregate; ``get_esn()`` always falls through to its per-field
+    path. The library tries the aggregate first and falls back to
+    per-field endpoints on older firmware.
+    """
+
+    def __init__(self, device_type: str, endpoint_key: str = "TV_INFORMATION") -> None:
+        """Initialize aggregate tv_information GET command.
+
+        ``endpoint_key`` selects ``TV_INFORMATION`` (admin_and_privacy
+        path) or ``_ALT_TV_INFORMATION`` (legacy ``system`` path).
+        """
+        super().__init__(ENDPOINT[device_type][endpoint_key])
+
+    def process_response(self, json_obj: dict[str, Any]) -> dict[str, str]:
+        """Return ``cname → value`` mapping of every populated item."""
+        items = dict_get_case_insensitive(json_obj, ResponseKey.ITEMS, [])
+        mapping: dict[str, str] = {}
+        for itm in items:
+            cname = (
+                dict_get_case_insensitive(itm, ResponseKey.CNAME, "") or ""
+            ).lower()
+            value = dict_get_case_insensitive(itm, ResponseKey.VALUE)
+            if cname and value is not None:
+                mapping[cname] = str(value)
+        return mapping

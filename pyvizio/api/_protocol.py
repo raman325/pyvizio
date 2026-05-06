@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from logging import Logger, getLogger
+import ssl
 from typing import Any
 
 from aiohttp import ClientResponse, ClientSession, ClientTimeout
@@ -12,9 +14,15 @@ from aiohttp.client import DEFAULT_TIMEOUT as AIOHTTP_DEFAULT_TIMEOUT
 from pyvizio.api.base import CommandBase
 from pyvizio.const import DEVICE_CLASS_SPEAKER, DEVICE_CLASS_TV, DEVICE_CONFIGS
 from pyvizio.errors import (
+    VizioAuthError,
+    VizioBusyError,
     VizioConnectionError,
+    VizioError,
+    VizioHashvalError,
     VizioInvalidParameterError,
+    VizioNotFoundError,
     VizioResponseError,
+    VizioUnsupportedError,
 )
 from pyvizio.helpers import dict_get_case_insensitive
 
@@ -29,6 +37,10 @@ HEADER_AUTH = "AUTH"
 STATUS_SUCCESS = "success"
 STATUS_URI_NOT_FOUND = "uri_not_found"
 STATUS_INVALID_PARAMETER = "invalid_parameter"
+STATUS_HASHVAL_ERROR = "hashval_error"
+STATUS_BLOCKED = "blocked"
+STATUS_REQUIRES_PAIRING = "requires_pairing"
+STATUS_PAIRING_DENIED = "pairing_denied"
 
 TYPE_SLIDER = "t_value_abs_v1"
 TYPE_LIST = "t_list_v1"
@@ -86,20 +98,48 @@ class ResponseKey:
     CENTER = "center"
 
 
-async def async_validate_response(web_response: ClientResponse) -> dict[str, Any]:
-    """Validate response to API command is as expected and return response."""
+async def async_validate_response(
+    web_response: ClientResponse, *, skip_envelope: bool = False
+) -> dict[str, Any]:
+    """Validate response to API command is as expected and return response.
+
+    When ``skip_envelope`` is True the HTTP-level checks still apply
+    (200 vs 401/403/etc.) but the SCPL ``STATUS``/``ITEMS`` envelope
+    validation is skipped — used for non-standard endpoints like
+    ``/state_extended`` whose payloads use flat top-level keys with
+    no envelope wrapper.
+    """
+    # Auth-related rejections come back as raw HTTP 401/403 (not as
+    # SCPL envelope errors). Verified live on VHD24M-0810 fw 3.720.9.1-1:
+    # re-pairing with the same device_id immediately invalidates the
+    # previous token, and subsequent calls with the old token return
+    # raw HTTP 403 (not the PAIRING_DENIED envelope).
+    if web_response.status in (401, 403):
+        raise VizioAuthError(
+            f"device returned HTTP {web_response.status} — token rejected "
+            f"(may have been invalidated by re-pair)"
+        )
     if HTTP_OK != web_response.status:
         raise VizioConnectionError(
             f"Device is unreachable? Status code: {web_response.status}"
         )
 
     try:
-        data = json.loads(await web_response.text())
-        _LOGGER.debug("Response: %s", data)
+        body_text = await web_response.text()
     except Exception as err:
         raise VizioResponseError(
-            f"Failed to parse response: {web_response.content}"
+            "Failed to read response body (transport error)"
         ) from err
+    try:
+        data = json.loads(body_text)
+        _LOGGER.debug("Response: %s", data)
+    except ValueError as err:
+        raise VizioResponseError(
+            f"Failed to parse response body (truncated to 200 chars): {body_text[:200]}"
+        ) from err
+
+    if skip_envelope:
+        return data
 
     status_obj = dict_get_case_insensitive(data, "status")
 
@@ -107,15 +147,34 @@ async def async_validate_response(web_response: ClientResponse) -> dict[str, Any
         raise VizioResponseError("Unknown response")
 
     result_status = dict_get_case_insensitive(status_obj, "result")
+    result_lower = result_status.lower() if result_status else ""
+    detail = dict_get_case_insensitive(status_obj, "detail") or ""
 
-    if result_status and result_status.lower() == STATUS_INVALID_PARAMETER:
-        raise VizioInvalidParameterError("invalid value specified")
-    elif not result_status or result_status.lower() != STATUS_SUCCESS:
-        raise VizioResponseError(
-            "unexpected status {}: {}".format(
-                result_status, dict_get_case_insensitive(status_obj, "detail")
-            )
-        )
+    # HASHVAL_ERROR gets a more specific subclass so callers that want
+    # to retry on stale-hashval (refetch + resend) can do so without
+    # broadening to all invalid-parameter errors. Existing
+    # ``except VizioInvalidParameterError`` blocks still catch it via
+    # the parent. Captured live: stale-hashval PUTs return HASHVAL_ERROR
+    # on modern firmware, INVALID_PARAMETER on older.
+    if result_lower == STATUS_HASHVAL_ERROR:
+        raise VizioHashvalError(detail or "stale hashval — refetch and retry")
+    if result_lower == STATUS_INVALID_PARAMETER:
+        raise VizioInvalidParameterError(detail or "invalid value specified")
+    # URI_NOT_FOUND is HTTP-200-with-status, not HTTP 404. Modern
+    # firmware uses it for paths that don't exist (per-field identity
+    # leaves on firmwares that only expose the aggregate). Surface as
+    # VizioNotFoundError so callers using ``propagate_errors=True`` can
+    # distinguish it from transient failures and chain to the next
+    # candidate path. Default callers see ``None`` via the standard
+    # swallow path.
+    if result_lower == STATUS_URI_NOT_FOUND:
+        raise VizioNotFoundError(detail or "endpoint not found on device")
+    if result_lower == STATUS_BLOCKED:
+        raise VizioBusyError(detail or "device blocked the request")
+    if result_lower in (STATUS_REQUIRES_PAIRING, STATUS_PAIRING_DENIED):
+        raise VizioAuthError(detail or result_lower)
+    if result_lower != STATUS_SUCCESS:
+        raise VizioResponseError(f"unexpected status {result_status}: {detail}")
 
     return data
 
@@ -128,23 +187,48 @@ async def _do_request(
     data: str,
     timeout: ClientTimeout,
 ) -> ClientResponse:
-    """Execute a single GET or PUT request on the given session."""
-    if method == "get":
-        _LOGGER.debug(
-            "Using Request: %s", {"method": "get", "url": url, "headers": headers}
-        )
-        return await active_session.get(
-            url=url, headers=headers, ssl=False, timeout=timeout
-        )
+    """Execute a single GET or PUT request on the given session.
 
-    headers["Content-Type"] = "application/json"
-    _LOGGER.debug(
-        "Using Request: %s",
-        {"method": "put", "url": url, "headers": headers, "data": json.loads(data)},
-    )
-    return await active_session.put(
-        url=url, data=data, headers=headers, ssl=False, timeout=timeout
-    )
+    Wraps raw transport exceptions (``aiohttp.ClientError``,
+    ``asyncio.TimeoutError``, ``OSError``, ``ssl.SSLError``) into
+    :class:`VizioConnectionError` so callers using ``propagate_errors=True``
+    in :func:`async_invoke_api` see the typed error instead of having
+    transport failures fall through the broad ``except Exception``
+    catch-all and silently become ``None`` (which would, e.g., poison
+    the identity cache in :meth:`VizioAsync.__get_identity_aggregate`).
+    """
+    try:
+        if method == "get":
+            _LOGGER.debug(
+                "Using Request: %s",
+                {"method": "get", "url": url, "headers": headers},
+            )
+            return await active_session.get(
+                url=url, headers=headers, ssl=False, timeout=timeout
+            )
+
+        headers["Content-Type"] = "application/json"
+        _LOGGER.debug(
+            "Using Request: %s",
+            {"method": "put", "url": url, "headers": headers, "data": json.loads(data)},
+        )
+        return await active_session.put(
+            url=url, data=data, headers=headers, ssl=False, timeout=timeout
+        )
+    except (asyncio.TimeoutError, OSError, ssl.SSLError) as e:
+        raise VizioConnectionError(
+            f"Transport error talking to {url}: {type(e).__name__}: {e}"
+        ) from e
+    except Exception as e:
+        # Catches aiohttp.ClientError and any other library-specific
+        # transport exceptions without import-leaking aiohttp here.
+        # Re-raise non-transport bugs (anything not a recognized
+        # transport / socket failure) unchanged.
+        if e.__class__.__module__.startswith(("aiohttp", "yarl")):
+            raise VizioConnectionError(
+                f"Transport error talking to {url}: {type(e).__name__}: {e}"
+            ) from e
+        raise
 
 
 async def async_invoke_api(
@@ -155,8 +239,23 @@ async def async_invoke_api(
     headers: dict[str, Any] = None,
     log_api_exception: bool = True,
     session: ClientSession = None,
+    skip_envelope: bool = False,
+    propagate_errors: bool = False,
 ) -> Any:
-    """Call API endpoints with appropriate request bodies and headers."""
+    """Call API endpoints with appropriate request bodies and headers.
+
+    ``skip_envelope=True`` forwards to :func:`async_validate_response` to
+    skip SCPL ``STATUS``/``ITEMS`` validation for endpoints with
+    non-standard response shapes (e.g. ``/state_extended``).
+
+    ``propagate_errors=True`` re-raises every :class:`VizioError` instead
+    of returning ``None``. Used by callers (e.g. multi-path-fallback
+    helpers like ``__get_identity_aggregate``) that need to distinguish
+    typed failure modes — ``VizioNotFoundError`` for "not exposed at
+    this path, try next" vs transport/busy errors that should not poison
+    a cache. ``VizioAuthError`` always propagates regardless of this
+    flag.
+    """
     if headers is None:
         headers = {}
     url = f"https://{ip}{command.get_url()}"
@@ -172,15 +271,37 @@ async def async_invoke_api(
     try:
         if session:
             response = await _do_request(session, method, url, headers, data, timeout)
-            json_obj = await async_validate_response(response)
+            json_obj = await async_validate_response(
+                response, skip_envelope=skip_envelope
+            )
         else:
             async with ClientSession() as local_session:
                 response = await _do_request(
                     local_session, method, url, headers, data, timeout
                 )
-                json_obj = await async_validate_response(response)
+                json_obj = await async_validate_response(
+                    response, skip_envelope=skip_envelope
+                )
 
         return command.process_response(json_obj)
+    except (VizioAuthError, VizioUnsupportedError):
+        # Always propagate. ``VizioAuthError`` lets probe-style callers
+        # (``can_connect_with_auth_check``) distinguish "token
+        # invalidated, re-pair needed" from generic network / device
+        # failures. ``VizioUnsupportedError`` is a programming-level
+        # invariant set at construction time (e.g. calling a TV-only
+        # endpoint on a speaker), not a runtime device condition, and
+        # must never be silently swallowed. No-op today since the only
+        # raiser (``get_state_extended``) raises before invoking the
+        # API, but locks the contract in case the capability gate ever
+        # moves inside an invoker.
+        raise
+    except VizioError as e:
+        if propagate_errors:
+            raise
+        if log_api_exception:
+            logger.error("Failed to execute command: %s", e)
+        return None
     except Exception as e:
         if log_api_exception:
             logger.error("Failed to execute command: %s", e)
@@ -196,6 +317,8 @@ async def async_invoke_api_auth(
     custom_timeout: int = None,
     log_api_exception: bool = True,
     session: ClientSession = None,
+    skip_envelope: bool = False,
+    propagate_errors: bool = False,
 ) -> Any:
     """Call auth protected API endpoints using CommandBase and subclass request bodies."""
 
@@ -207,4 +330,6 @@ async def async_invoke_api_auth(
         headers={HEADER_AUTH: auth_token},
         log_api_exception=log_api_exception,
         session=session,
+        skip_envelope=skip_envelope,
+        propagate_errors=propagate_errors,
     )
